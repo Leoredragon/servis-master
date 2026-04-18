@@ -2,6 +2,7 @@
 
 import { supabase } from '@/app/lib/supabase'
 import { useEffect, useState, useMemo, useCallback } from 'react'
+import Link from 'next/link'
 import Modal from '@/app/components/Modal'
 import ConfirmModal from '@/app/components/ConfirmModal'
 import SlideOver from '@/app/components/SlideOver'
@@ -174,6 +175,7 @@ export default function StokYonetimi() {
       .select('*')
       .eq('stok_id', item.id)
       .order('islem_tarihi', { ascending: false })
+      .limit(5)
     setSlideOver(prev => ({ ...prev, item, history: data || [] }))
   }, [])
 
@@ -473,24 +475,31 @@ export default function StokYonetimi() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '350px', overflowY: 'auto', paddingRight: '8px' }}>
               {slideOver.history.length === 0 ? (
                 <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: '14px', border: '2px dashed #f1f5f9', borderRadius: '16px' }}>Henüz hareket kaydı bulunmuyor.</div>
-              ) : slideOver.history.map(h => (
-                <div key={h.id} style={{ padding: '16px', borderRadius: '16px', background: '#fff', border: '1.5px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ 
-                        fontSize: '11px', fontWeight: 800, padding: '3px 8px', borderRadius: '6px',
-                        background: h.hareket_turu.includes('Servis') ? '#eff6ff' : h.hareket_turu === 'Giriş' ? '#dcfce7' : h.hareket_turu === 'Çıkış' ? '#fee2e2' : '#f1f5f9',
-                        color: h.hareket_turu.includes('Servis') ? '#2563eb' : h.hareket_turu === 'Giriş' ? '#15803d' : h.hareket_turu === 'Çıkış' ? '#991b1b' : '#475569'
-                      }}>{h.hareket_turu}</span>
-                      <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 500 }}>{new Date(h.islem_tarihi).toLocaleDateString('tr-TR')} {new Date(h.islem_tarihi).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
+              ) : (
+                <>
+                  {slideOver.history.map(h => (
+                    <div key={h.id} style={{ padding: '16px', borderRadius: '16px', background: '#fff', border: '1.5px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ 
+                            fontSize: '11px', fontWeight: 800, padding: '3px 8px', borderRadius: '6px',
+                            background: h.hareket_turu.includes('Servis') ? '#eff6ff' : h.hareket_turu === 'Giriş' ? '#dcfce7' : h.hareket_turu === 'Çıkış' ? '#fee2e2' : '#f1f5f9',
+                            color: h.hareket_turu.includes('Servis') ? '#2563eb' : h.hareket_turu === 'Giriş' ? '#15803d' : h.hareket_turu === 'Çıkış' ? '#991b1b' : '#475569'
+                          }}>{h.hareket_turu}</span>
+                          <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 500 }}>{new Date(h.islem_tarihi).toLocaleDateString('tr-TR')} {new Date(h.islem_tarihi).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <p style={{ margin: '8px 0 0', fontSize: '14px', color: '#445164', fontWeight: 600 }}>{h.aciklama || '—'}</p>
+                      </div>
+                      <div style={{ fontSize: '16px', fontWeight: 900, color: h.hareket_turu.includes('Giriş') || h.hareket_turu.includes('İade') ? '#059669' : '#ef4444' }}>
+                        {h.hareket_turu.includes('Giriş') || h.hareket_turu.includes('İade') ? '+' : '-'}{h.miktar}
+                      </div>
                     </div>
-                    <p style={{ margin: '8px 0 0', fontSize: '14px', color: '#445164', fontWeight: 600 }}>{h.aciklama || '—'}</p>
+                  ))}
+                  <div style={{ marginTop: '8px', textAlign: 'center' }}>
+                    <Link href="#" style={{ fontSize: '13px', fontWeight: 700, color: '#3b82f6', textDecoration: 'none' }}>Tüm Hareketleri Gör</Link>
                   </div>
-                  <div style={{ fontSize: '16px', fontWeight: 900, color: h.hareket_turu.includes('Giriş') || h.hareket_turu.includes('İade') ? '#059669' : '#ef4444' }}>
-                    {h.hareket_turu.includes('Giriş') || h.hareket_turu.includes('İade') ? '+' : '-'}{h.miktar}
-                  </div>
-                </div>
-              ))}
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -70,6 +70,7 @@ const menuGroups = [
     title: 'Sistem',
     items: [
       { path: '/ek-moduller',      name: 'Ek Modüller',      icon: icons.extra      },
+      { path: '/ayarlar',          name: 'Ayarlar',          icon: 'M12 15a3 3 0 100-6 3 3 0 000 6z M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z' },
       { path: '/canli-destek',     name: 'Canlı Destek',     icon: icons.support    },
     ]
   }
@@ -258,18 +259,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         </div>
                         <div style={{ padding: '8px' }}>
                           {[
-                            { label: 'Kullanıcı Ayarları', icon: 'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2 M12 11a4 4 0 100-8 4 4 0 000 8z' },
-                            { label: 'Firma Bilgileri',    icon: 'M3 21h18 M3 7v14 M21 7v14 M9 21V11h6v10 M2 7l10-4 10 4' },
-                            { label: 'Hesap Bilgileri',    icon: 'M12 1v22 M17 5l-5-5-5 5 M7 19l5 5 5-5' },
+                            { label: 'Kullanıcı Ayarları', tab: '0', icon: 'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2 M12 11a4 4 0 100-8 4 4 0 000 8z' },
+                            { label: 'Firma Bilgileri',    tab: '1', icon: 'M3 21h18 M3 7v14 M21 7v14 M9 21V11h6v10 M2 7l10-4 10 4' },
+                            { label: 'Hesap Bilgileri',    tab: '2', icon: 'M12 1v22 M17 5l-5-5-5 5 M7 19l5 5 5-5' },
                           ].map(opt => (
-                            <button key={opt.label} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', border: 'none', background: 'none', borderRadius: '8px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#3b82f6'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'inherit'; }}>
+                            <Link 
+                              key={opt.label} 
+                              href={`/ayarlar?tab=${opt.tab}`}
+                              onClick={closeProfile}
+                              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', border: 'none', background: 'none', borderRadius: '8px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s', textDecoration: 'none', color: '#475569' }} 
+                              onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#3b82f6'; }} 
+                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#475569'; }}
+                            >
                               <Icon d={opt.icon} size={16} />
                               <span style={{ fontSize: '13px', fontWeight: 600, color: 'inherit' }}>{opt.label}</span>
-                            </button>
+                            </Link>
                           ))}
                         </div>
                         <div style={{ padding: '8px', borderTop: '1px solid #f1f5f9' }}>
-                          <button style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', border: 'none', background: 'none', borderRadius: '8px', cursor: 'pointer', textAlign: 'left', color: '#ef4444', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = '#fef2f2'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                          <button onClick={closeProfile} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', border: 'none', background: 'none', borderRadius: '8px', cursor: 'pointer', textAlign: 'left', color: '#ef4444', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = '#fef2f2'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                             <Icon d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4 M16 17l5-5-5-5 M21 12H9" size={16} />
                             <span style={{ fontSize: '13px', fontWeight: 700 }}>Çıkış Yap</span>
                           </button>
