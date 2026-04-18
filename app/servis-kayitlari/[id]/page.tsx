@@ -165,7 +165,9 @@ export default function ServisDetay() {
             kategori: 'Servis Peşinatı',
             aciklama: `SRV-${servis.servis_no} nolu servis peşinatı`,
             islem_tarihi: odemeForm.tarih,
-            odeme_sekli: 'Nakit'
+            odeme_sekli: 'Nakit',
+            kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+            subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
           }])
         }
 
@@ -190,7 +192,9 @@ export default function ServisDetay() {
             vade_tarihi: vDate.toISOString().split('T')[0],
             tutar: tTutar,
             durum: 'Bekliyor',
-            aciklama: `${servis.arac?.plaka} - Taksitlendirme`
+            aciklama: `${servis.arac?.plaka} - Taksitlendirme`,
+            kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+            subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
           })
         }
 
@@ -225,7 +229,9 @@ export default function ServisDetay() {
             cari_id: servis.cari_id,
             servis_id: parseInt(servisId),
             durum: 'Bekliyor',
-            aciklama: odemeForm.aciklama || `SRV-${servis.servis_no} nolu servis alacağı`
+            aciklama: odemeForm.aciklama || `SRV-${servis.servis_no} nolu servis alacağı`,
+            kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+            subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
           }])
           if (csError) throw csError
         } else {
@@ -237,7 +243,9 @@ export default function ServisDetay() {
             kategori: 'Servis Ödemesi',
             aciklama: odemeForm.aciklama || `SRV-${servis.servis_no} nolu servis ödemesi`,
             islem_tarihi: odemeForm.tarih,
-            odeme_sekli: odemeForm.odeme_sekli
+            odeme_sekli: odemeForm.odeme_sekli,
+            kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+            subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
           }])
           if (hError) throw hError
         }

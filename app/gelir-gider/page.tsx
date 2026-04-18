@@ -67,7 +67,11 @@ export default function GelirGider() {
 
     const { error } = editingId 
       ? await supabase.from('kasa_hareket').update(payload).eq('id', editingId)
-      : await supabase.from('kasa_hareket').insert([payload])
+      : await supabase.from('kasa_hareket').insert([{
+          ...payload,
+          kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+          subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
+        }])
     
     setSaving(false)
     if (error) { alert('Hata: ' + error.message); return }

@@ -87,11 +87,17 @@ export default function Stok() {
           stok_id: form.id,
           hareket_turu: 'Düzeltme',
           miktar: Math.abs(diff),
-          notlar: `Manuel miktar düzeltmesi (${old.miktar} -> ${form.miktar})`
+          notlar: `Manuel miktar düzeltmesi (${old.miktar} -> ${form.miktar})`,
+          kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+          subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
         }])
       }
     } else {
-      const res = await supabase.from('stok').insert([payload]).select()
+      const res = await supabase.from('stok').insert([{
+        ...payload,
+        kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+        subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
+      }]).select()
       error = res.error
       // İlk giriş kaydını harelete ekle
       if (!error && res.data && res.data[0]) {
@@ -100,7 +106,9 @@ export default function Stok() {
           hareket_turu: 'Giriş',
           miktar: payload.miktar,
           birim_fiyat: payload.a_fiyat,
-          notlar: 'Açılış bakiyesi'
+          notlar: 'Açılış bakiyesi',
+          kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+          subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
         }])
       }
     }

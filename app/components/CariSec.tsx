@@ -80,7 +80,9 @@ export default function CariSec({ value, onChange, placeholder = "Müşteri Ara.
     try {
       const { data, error } = await supabase.from('cari_kart').insert([{
         yetkili: quickForm.yetkili,
-        tel: quickForm.tel
+        tel: quickForm.tel,
+        kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+        subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
       }]).select().single()
       
       if (error) throw error

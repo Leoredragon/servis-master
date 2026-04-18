@@ -273,7 +273,9 @@ export default function ServisKayitlari() {
       sikayet: form.sikayet,
       teknisyen: form.teknisyen,
       durum: form.durum,
-      servis_no: 'SRV-' + Math.floor(1000 + Math.random() * 9000)
+      servis_no: 'SRV-' + Math.floor(1000 + Math.random() * 9000),
+      kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+      subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
     }]).select().single()
     setSaving(false)
     if (error) { showToast('Hata: ' + error.message, 'error'); return }

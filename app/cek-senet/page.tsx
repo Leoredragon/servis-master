@@ -142,7 +142,9 @@ export default function CekSenetYonetimi() {
         tutar: parseFloat(form.tutar.toString()),
         cari_id: parseInt(form.cari_id.toString()),
         aciklama: form.aciklama,
-        islem_yonu: activeTab === 'Alınan' ? 'Müşteriden Alınan' : 'Firmamızın Verdiği'
+        islem_yonu: activeTab === 'Alınan' ? 'Müşteriden Alınan' : 'Firmamızın Verdiği',
+        kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+        subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
       }
       
       if (!form.id) {
@@ -186,7 +188,9 @@ export default function CekSenetYonetimi() {
       tutar: item.tutar,
       kategori: 'Çek/Senet Tahsilatı',
       aciklama: `${item.evrak_turu} Tahsilatı: ${item.belge_no || ''} (${item.cari?.yetkili || ''})`,
-      islem_tarihi: tahsilForm.tarih
+      islem_tarihi: tahsilForm.tarih,
+      kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+      subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
     }])
 
     if (kError) { alert('Hata: ' + kError.message); setSaving(false); return }

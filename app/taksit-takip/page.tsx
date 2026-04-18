@@ -138,7 +138,9 @@ export default function TaksitTakip() {
             tutar: pesinat,
             kategori: 'Manuel Peşinat',
             aciklama: `Manuel taksitlendirme peşinatı`,
-            islem_tarihi: new Date().toISOString().split('T')[0]
+            islem_tarihi: new Date().toISOString().split('T')[0],
+            kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+            subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
           }])
         }
 
@@ -162,7 +164,9 @@ export default function TaksitTakip() {
             vade_tarihi: vDate.toISOString().split('T')[0],
             tutar: tTutar,
             durum: 'Bekliyor',
-            aciklama: form.aciklama || 'Manuel Taksitlendirme'
+            aciklama: form.aciklama || 'Manuel Taksitlendirme',
+            kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+            subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
           })
         }
 
@@ -210,7 +214,9 @@ export default function TaksitTakip() {
         kasa_id: parseInt(tahsilForm.kasa_id),
         tur: 'gelir', tutar: miktar, kategori: 'Taksit Tahsilatı',
         aciklama: `${item.taksit_sirasi} nolu taksit tahsilatı`,
-        islem_tarihi: tahsilForm.tarih
+        islem_tarihi: tahsilForm.tarih,
+        kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+        subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
       }])
       await supabase.from('taksitler').update({ odenen_tutar: yeni, durum }).eq('id', item.id)
 

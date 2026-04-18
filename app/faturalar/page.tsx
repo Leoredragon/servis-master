@@ -159,7 +159,9 @@ export default function Faturalar() {
         fat_tarih: yeniForm.fat_tarih,
         fatura_turu: yeniForm.fatura_turu,
         gtoplam: parseFloat(yeniForm.gtoplam),
-        odeme_durumu: 'Bekliyor'
+        odeme_durumu: 'Bekliyor',
+        kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+        subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
       }])
       
       if (error) throw error
@@ -197,7 +199,9 @@ export default function Faturalar() {
       tutar: miktar,
       kategori: 'Tahsilat',
       aciklama: odemeForm.aciklama || `${fatura.no} nolu fatura tahsilatı`,
-      islem_tarihi: odemeForm.tarih
+      islem_tarihi: odemeForm.tarih,
+      kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+      subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
     }])
 
     if (hError) { alert('Hata: ' + hError.message); setSaving(false); return }

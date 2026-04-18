@@ -60,6 +60,8 @@ function YeniServisForm() {
       teknisyen:   form.teknisyen,
       durum:       'Girildi',
       giris_tarihi: new Date().toISOString(),
+      kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+      subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
     }]).select().single()
 
     setSaving(false)

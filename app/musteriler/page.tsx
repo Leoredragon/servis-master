@@ -114,6 +114,8 @@ export default function Musteriler() {
         adres:         form.adres   || null,
         vergi_no:      form.vergi_no || null,
         vergi_dairesi: form.vergi_dairesi || null,
+        kullaniciadi:  'admin', // TODO: Oturum bilgisinden dinamik alınacak
+        subeadi:       'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
       }]).select().single()
       setSaving(false)
       if (error) { showToast('Hata: ' + error.message, 'error'); return }
