@@ -1,165 +1,162 @@
 "use client"
 
-import { supabase } from '@/app/lib/supabase'
-import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from '../../lib/supabase'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import CariSec from '../../components/CariSec'
 
-function YeniServisForm() {
-  const router       = useRouter()
-  const searchParams = useSearchParams()
-  const preCariId    = searchParams.get('cari_id') || ''
+const inputStyle = { width: '100%', padding: '14px 16px', border: '1px solid #e2e8f0', borderRadius: '12px', fontSize: '15px', outline: 'none', background: '#fff' }
+const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' }
 
-  const [saving,   setSaving]   = useState(false)
-  const [toast,    setToast]    = useState<{ msg: string; type: 'success'|'error' } | null>(null)
-  const [musteriler,setMusteriler] = useState<any[]>([])
-  const [araclar,  setAraclar]  = useState<any[]>([])
-  const [seciliMusteri, setSeciliMusteri] = useState(preCariId)
-
+export default function YeniServis() {
+  const router = useRouter()
   const [form, setForm] = useState({
-    servis_no:  '',
-    cari_id:    preCariId,
-    arac_id:    '',
+    cari_id: '',
+    arac_id: '',
     gelis_kmsi: '',
-    sikayet:    '',
-    teknisyen:  '',
+    teknisyen: '',
+    sikayet: '',
+    giris_tarihi: new Date().toISOString().slice(0, 16) // datetime-local format
   })
+  
+  const [araclar, setAraclar] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
 
-  const showToast = (msg: string, type: 'success'|'error') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3000)
-  }
+  // Generate SRV code
+  const today = new Date()
+  const yyyymmdd = today.toISOString().split('T')[0].replace(/-/g, '')
+  const random4 = Math.floor(1000 + Math.random() * 9000)
+  const defaultSrvNo = `SRV-${yyyymmdd}-${random4}`
 
+  // Cari ID değiştiğinde o müşteriye ait araçları getir
   useEffect(() => {
-    supabase.from('cari_kart').select('id, yetkili').order('yetkili').then(({ data }) => setMusteriler(data || []))
-  }, [])
+    if (!form.cari_id) {
+      setAraclar([])
+      setForm(prev => ({ ...prev, arac_id: '' }))
+      return
+    }
 
-  useEffect(() => {
-    if (!seciliMusteri) { setAraclar([]); return }
-    supabase.from('arac').select('*').eq('cari_id', seciliMusteri).then(({ data }) => setAraclar(data || []))
-  }, [seciliMusteri])
-
-  const handleMusteriChange = (id: string) => {
-    setSeciliMusteri(id)
-    setForm({ ...form, cari_id: id, arac_id: '' })
-  }
+    const fetchAraclar = async () => {
+      const { data } = await supabase.from('arac').select('id, plaka, marka, model').eq('cari_id', form.cari_id)
+      setAraclar(data || [])
+      if (data && data.length === 1) {
+        setForm(prev => ({ ...prev, arac_id: data[0].id.toString() }))
+      } else {
+        setForm(prev => ({ ...prev, arac_id: '' }))
+      }
+    }
+    fetchAraclar()
+  }, [form.cari_id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.cari_id) { showToast('Müşteri seçiniz', 'error'); return }
-    if (!form.arac_id) { showToast('Araç seçiniz', 'error'); return }
-    setSaving(true)
+    if (!form.cari_id || !form.arac_id) {
+      alert('Lütfen müşteri ve ait olduğu bir aracı seçin.')
+      return
+    }
 
-    const servisNo = form.servis_no.trim() || `SRV-${Date.now()}`
-    const { data, error } = await supabase.from('servis_karti').insert([{
-      servis_no:   servisNo,
-      cari_id:     parseInt(form.cari_id),
-      arac_id:     parseInt(form.arac_id),
-      gelis_kmsi:  parseInt(form.gelis_kmsi) || 0,
-      sikayet:     form.sikayet,
-      teknisyen:   form.teknisyen,
-      durum:       'Girildi',
-      giris_tarihi: new Date().toISOString(),
-      kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
-      subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
-    }]).select().single()
+    setLoading(true)
+    const payload = {
+      servis_no: defaultSrvNo,
+      cari_id: parseInt(form.cari_id),
+      arac_id: parseInt(form.arac_id),
+      giris_tarihi: new Date(form.giris_tarihi).toISOString(),
+      gelis_kmsi: parseInt(form.gelis_kmsi) || 0,
+      teknisyen: form.teknisyen,
+      sikayet: form.sikayet,
+      durum: 'Araç Kabul',
+      odeme_durumu: 'Ödenmedi',
+      toplam_tutar: 0,
+      odenen_tutar: 0,
+      kullaniciadi: 'admin',
+      subeadi: 'Merkez'
+    }
 
-    setSaving(false)
-    if (error) { showToast('Hata: ' + error.message, 'error'); return }
-    showToast('Servis kaydı oluşturuldu!', 'success')
-    setTimeout(() => router.push(`/servis-kayitlari/${data.id}`), 800)
+    const { data, error } = await supabase.from('servis_karti').insert([payload]).select().single()
+
+    if (error) {
+      alert('Hata oluştu: ' + error.message)
+      setLoading(false)
+    } else {
+      router.push(`/servis-kayitlari/${data.id}`)
+    }
   }
 
   return (
-    <div className="animate-fadeIn">
-      {toast && (
-        <div className="toast-container">
-          <div className={`toast toast-${toast.type}`}>
-            {toast.type === 'success' ? '✓' : '✕'} {toast.msg}
-          </div>
-        </div>
-      )}
-
-      <button className="btn-ghost" onClick={() => router.back()} style={{ marginBottom: '1rem' }}>
-        ← Geri
+    <div className="animate-fadeIn" style={{ maxWidth: '800px', margin: '0 auto', padding: '0 24px 60px' }}>
+      <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '15px', fontWeight: 700, cursor: 'pointer', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        ← Geri Dön
       </button>
 
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Yeni Servis Kaydı</h1>
-          <p className="page-subtitle">Araç kabulü ve servis formu oluşturun</p>
-        </div>
+      <div style={{ marginBottom: '32px' }}>
+        <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.5px' }}>Yeni İş Emri Oluştur</h1>
+        <p style={{ color: '#64748b', fontSize: '15px', marginTop: '8px' }}>Müşteri aracını servise kabul edin.</p>
       </div>
 
-      <div className="card" style={{ maxWidth: '720px' }}>
-        <form onSubmit={handleSubmit}>
-          <div className="card-body">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+      <div style={{ background: '#fff', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
+        <form onSubmit={handleSubmit} style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          
+          <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '16px', border: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+             <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', margin: 0 }}>Cari & Araç Bilgisi</h3>
+             
+             <div>
+                <label style={labelStyle}>Müşteri Seçin *</label>
+                <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '2px' }}>
+                  <CariSec value={form.cari_id} onChange={(id) => setForm({...form, cari_id: id})} />
+                </div>
+             </div>
 
-              <div className="form-group">
-                <label className="form-label">Servis No</label>
-                <input type="text" placeholder="Otomatik (SRV-...)" value={form.servis_no} onChange={e => setForm({ ...form, servis_no: e.target.value })} />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Geliş KM</label>
-                <input type="number" min="0" placeholder="0" value={form.gelis_kmsi} onChange={e => setForm({ ...form, gelis_kmsi: e.target.value })} />
-              </div>
-
-              <div className="form-group" style={{ gridColumn: '1/-1' }}>
-                <label className="form-label">Müşteri <span className="required">*</span></label>
-                <select value={seciliMusteri} onChange={e => handleMusteriChange(e.target.value)} required>
-                  <option value="">— Müşteri Seçin —</option>
-                  {musteriler.map(m => (
-                    <option key={m.id} value={m.id}>{m.yetkili} (#{m.id})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group" style={{ gridColumn: '1/-1' }}>
-                <label className="form-label">Araç <span className="required">*</span></label>
-                <select value={form.arac_id} onChange={e => setForm({ ...form, arac_id: e.target.value })} required disabled={!seciliMusteri}>
-                  <option value="">— Araç Seçin —</option>
-                  {araclar.map(a => (
-                    <option key={a.id} value={a.id}>{a.plaka} — {a.marka} {a.model} ({a.yil || '—'})</option>
-                  ))}
-                </select>
-                {seciliMusteri && araclar.length === 0 && (
-                  <p style={{ fontSize: '0.8125rem', color: '#d97706', marginTop: '0.375rem' }}>
-                    ⚠ Bu müşteriye kayıtlı araç bulunamadı.
-                  </p>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Teknisyen</label>
-                <input type="text" placeholder="Teknisyen adı" value={form.teknisyen} onChange={e => setForm({ ...form, teknisyen: e.target.value })} />
-              </div>
-
-              <div className="form-group" style={{ gridColumn: '1/-1' }}>
-                <label className="form-label">Müşteri Şikayeti</label>
-                <textarea rows={3} placeholder="Müşterinin bildirdiği sorun veya şikayet..." value={form.sikayet} onChange={e => setForm({ ...form, sikayet: e.target.value })} />
-              </div>
-
-            </div>
+             {form.cari_id && (
+               <div>
+                  <label style={labelStyle}>Araç Seçin *</label>
+                  <select required style={inputStyle} value={form.arac_id} onChange={e => setForm({...form, arac_id: e.target.value})}>
+                    <option value="">Araç Seçiniz</option>
+                    {araclar.map(a => <option key={a.id} value={a.id}>{a.plaka} - {a.marka} {a.model}</option>)}
+                  </select>
+                  {araclar.length === 0 && (
+                     <div style={{ marginTop: '12px', fontSize: '13px', color: '#ef4444', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        Bu müşteriye ait kayıtlı araç yok. 
+                        <Link href={`/musteriler/${form.cari_id}?arac_ekle=true`} style={{ color: '#3b82f6', textDecoration: 'none' }}>Yeni Araç Ekle →</Link>
+                     </div>
+                  )}
+               </div>
+             )}
           </div>
 
-          <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '0.75rem', background: '#f8fafc', borderRadius: '0 0 0.875rem 0.875rem' }}>
-            <button type="submit" className="btn-primary" disabled={saving}>
-              {saving ? 'Oluşturuluyor...' : '✓ Servis Kaydını Oluştur'}
-            </button>
-            <button type="button" className="btn-secondary" onClick={() => router.back()}>İptal</button>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '20px' }}>
+             <div>
+                <label style={labelStyle}>Servis No</label>
+                <input disabled style={{ ...inputStyle, background: '#f8fafc', color: '#64748b', fontWeight: 800, fontFamily: 'monospace' }} value={defaultSrvNo} />
+             </div>
+             <div>
+                <label style={labelStyle}>Giriş Tarihi ve Saati *</label>
+                <input type="datetime-local" required style={inputStyle} value={form.giris_tarihi} onChange={e => setForm({...form, giris_tarihi: e.target.value})} />
+             </div>
+             <div>
+                <label style={labelStyle}>Geliş Kilometresi (KM)</label>
+                <input type="number" style={inputStyle} placeholder="Örn: 45000" value={form.gelis_kmsi} onChange={e => setForm({...form, gelis_kmsi: e.target.value})} />
+             </div>
+             <div>
+                <label style={labelStyle}>Teknisyen / Usta</label>
+                <input type="text" style={inputStyle} placeholder="A personeli" value={form.teknisyen} onChange={e => setForm({...form, teknisyen: e.target.value})} />
+             </div>
           </div>
+
+          <div>
+             <label style={labelStyle}>Müşteri Şikayeti / Araç Kabul Notu</label>
+             <textarea rows={4} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Müşterinin belirttiği arızalar veya talepler..." value={form.sikayet} onChange={e => setForm({...form, sikayet: e.target.value})} />
+          </div>
+
+          <div style={{ marginTop: '16px', borderTop: '1px solid #e2e8f0', paddingTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+             <button type="button" onClick={() => router.back()} disabled={loading} style={{ padding: '16px 24px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 700, cursor: 'pointer' }}>İptal</button>
+             <button type="submit" disabled={loading} className="btn-primary" style={{ padding: '16px 32px', borderRadius: '12px', fontSize: '16px' }}>
+                {loading ? 'İş Emri Açılıyor...' : 'İş Emrini Başlat →'}
+             </button>
+          </div>
+
         </form>
       </div>
     </div>
-  )
-}
-
-export default function YeniServisKaydi() {
-  return (
-    <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}><div className="spinner" /></div>}>
-      <YeniServisForm />
-    </Suspense>
   )
 }

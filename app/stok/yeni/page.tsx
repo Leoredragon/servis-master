@@ -1,140 +1,155 @@
 "use client"
 
-import { supabase } from '../../lib/supabase'
 import { useState } from 'react'
+import { supabase } from '../../lib/supabase'
 import { useRouter } from 'next/navigation'
 
-export default function YeniStok() {
-  const router    = useRouter()
-  const [saving, setSaving] = useState(false)
-  const [toast,  setToast]  = useState<{ msg: string; type: 'success'|'error' } | null>(null)
-  const [form, setForm] = useState({
-    kod:       '',
-    ad:        '',
-    grup:      '',
-    barkod:    '',
-    birim:     'Adet',
-    a_fiyat:   '',
-    s_fiyat:   '',
-    kdv_oran:  '18',
-  })
+const GRUPLAR = [
+  "Filtre ve Bakım", "Mekanik/Motor", "Elektrik", "Kaporta/Aksesuar", "Sarf Malzeme", "Lastik/Jant", "Madeni Yağ", "Diğer"
+]
+const BIRIMLER = ["Adet", "Litre", "Set", "Kg", "Metre", "Takım"]
 
-  const showToast = (msg: string, type: 'success'|'error') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3500)
-  }
+const inputStyle = { width: '100%', padding: '14px 16px', border: '1px solid #e2e8f0', borderRadius: '12px', fontSize: '15px', outline: 'none', background: '#fff' }
+const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' }
+
+export default function YeniStok() {
+  const router = useRouter()
+  const [saving, setSaving] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
-    const { error } = await supabase.from('stok').insert([{
-      kod:      form.kod      || null,
-      ad:       form.ad,
-      grup:     form.grup     || null,
-      barkod:   form.barkod   || null,
-      birim:    form.birim,
-      a_fiyat:  parseFloat(form.a_fiyat)  || 0,
-      s_fiyat:  parseFloat(form.s_fiyat)  || 0,
-      kdv_oran: parseInt(form.kdv_oran)   || 18,
-    }])
-    setSaving(false)
-    if (error) { showToast('Hata: ' + error.message, 'error'); return }
-    showToast('Ürün başarıyla eklendi!', 'success')
-    setTimeout(() => router.push('/stok'), 1000)
+    const formData = new FormData(e.target as HTMLFormElement)
+    const formDataObj: any = Object.fromEntries(formData.entries())
+
+    const miktar = parseFloat(formDataObj.miktar) || 0
+    
+    // kdv_oran'ın string atanması talebi
+    const payload = {
+      ad: formDataObj.ad,
+      kod: formDataObj.kod || null,
+      barkod: formDataObj.barkod || null,
+      grup: formDataObj.grup,
+      birim: formDataObj.birim,
+      a_fiyat: parseFloat(formDataObj.a_fiyat) || 0,
+      s_fiyat: parseFloat(formDataObj.s_fiyat) || 0,
+      kdv_oran: formDataObj.kdv_oran.toString(),
+      kritik_seviye: parseFloat(formDataObj.kritik_seviye) || 10,
+      aciklama: formDataObj.aciklama,
+      miktar: miktar,
+      kullaniciadi: 'admin',
+      subeadi: 'Merkez'
+    }
+
+    try {
+      const { data, error } = await supabase.from('stok').insert([payload]).select().single()
+      if (error) throw error
+
+      if (miktar > 0 && data) {
+         await supabase.from('stok_hareket').insert([{
+           stok_id: data.id, 
+           hareket_turu: 'Giriş', 
+           miktar: miktar, 
+           aciklama: 'Açılış bakiyesi girişi',
+           kullaniciadi: 'admin', subeadi: 'Merkez'
+         }])
+      }
+
+      router.push(`/stok/${data.id}`)
+    } catch (error: any) {
+      alert(error.message)
+      setSaving(false)
+    }
   }
 
   return (
-    <div className="animate-fadeIn">
-      {toast && (
-        <div className="toast-container">
-          <div className={`toast toast-${toast.type}`}>
-            {toast.type === 'success' ? '✓' : '✕'} {toast.msg}
-          </div>
-        </div>
-      )}
-
-      <button className="btn-ghost" onClick={() => router.back()} style={{ marginBottom: '1rem' }}>
-        ← Geri
+    <div className="animate-fadeIn" style={{ maxWidth: '800px', margin: '0 auto', padding: '0 24px 60px' }}>
+      <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '15px', fontWeight: 700, cursor: 'pointer', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        ← Geri Dön
       </button>
 
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Yeni Ürün / Parça</h1>
-          <p className="page-subtitle">Stoka yeni ürün ekleyin</p>
-        </div>
+      <div style={{ marginBottom: '32px' }}>
+        <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.5px' }}>Yeni Stok Kartı</h1>
+        <p style={{ color: '#64748b', fontSize: '15px', marginTop: '8px' }}>Deponuza yeni bir ürün veya hizmet kalemi tanımlayın.</p>
       </div>
 
-      <div className="card" style={{ maxWidth: '680px' }}>
-        <form onSubmit={handleSubmit}>
-          <div className="card-body">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-              <div className="form-group" style={{ gridColumn: '1/-1' }}>
-                <label className="form-label">Ürün / Parça Adı <span className="required">*</span></label>
-                <input type="text" placeholder="Örn: Yağ Filtresi" value={form.ad} onChange={e => setForm({ ...form, ad: e.target.value })} required />
-              </div>
+      <div className="card">
+         <form onSubmit={handleSubmit} style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '20px' }}>
+               <div style={{ gridColumn: 'span 2' }}>
+                 <label style={labelStyle}>Ürün Adı *</label>
+                 <input autoFocus required name="ad" style={inputStyle} placeholder="Örn: 5W-30 Motor Yağı 4Lt" />
+               </div>
 
-              <div className="form-group">
-                <label className="form-label">Stok Kodu</label>
-                <input type="text" placeholder="Örn: ST-001" value={form.kod} onChange={e => setForm({ ...form, kod: e.target.value })} />
-              </div>
+               <div>
+                 <label style={labelStyle}>Stok Kodu</label>
+                 <input name="kod" style={inputStyle} placeholder="ST-001" />
+               </div>
+               <div>
+                 <label style={labelStyle}>Barkod</label>
+                 <input name="barkod" style={inputStyle} placeholder="869..." />
+               </div>
 
-              <div className="form-group">
-                <label className="form-label">Barkod</label>
-                <input type="text" placeholder="Barkod numarası" value={form.barkod} onChange={e => setForm({ ...form, barkod: e.target.value })} />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Grup / Kategori</label>
-                <input type="text" placeholder="Örn: Filtre, Yağlar" value={form.grup} onChange={e => setForm({ ...form, grup: e.target.value })} />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Birim</label>
-                <select value={form.birim} onChange={e => setForm({ ...form, birim: e.target.value })}>
-                  <option>Adet</option>
-                  <option>Lt</option>
-                  <option>Kg</option>
-                  <option>Metre</option>
-                  <option>Takım</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Alış Fiyatı (₺)</label>
-                <input type="number" step="0.01" min="0" placeholder="0.00" value={form.a_fiyat} onChange={e => setForm({ ...form, a_fiyat: e.target.value })} />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Satış Fiyatı (₺) <span className="required">*</span></label>
-                <input type="number" step="0.01" min="0" placeholder="0.00" value={form.s_fiyat} onChange={e => setForm({ ...form, s_fiyat: e.target.value })} required />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">KDV Oranı (%)</label>
-                <select value={form.kdv_oran} onChange={e => setForm({ ...form, kdv_oran: e.target.value })}>
-                  <option value="0">%0</option>
-                  <option value="8">%8</option>
-                  <option value="18">%18</option>
-                  <option value="20">%20</option>
-                </select>
-              </div>
+               <div>
+                 <label style={labelStyle}>Kategori / Grup</label>
+                 <div style={{ display: 'flex', gap: '8px' }}>
+                    <select name="grup" style={{ ...inputStyle, flex: 1 }}>
+                       {GRUPLAR.map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                 </div>
+               </div>
+               <div>
+                 <label style={labelStyle}>Birim</label>
+                 <select name="birim" style={inputStyle}>
+                    {BIRIMLER.map(b => <option key={b} value={b}>{b}</option>)}
+                 </select>
+               </div>
             </div>
-          </div>
 
-          <div style={{
-            padding: '1rem 1.5rem',
-            borderTop: '1px solid #f1f5f9',
-            display: 'flex',
-            gap: '0.75rem',
-            background: '#f8fafc',
-            borderRadius: '0 0 0.875rem 0.875rem',
-          }}>
-            <button type="submit" className="btn-primary" disabled={saving}>
-              {saving ? 'Kaydediliyor...' : '✓ Ürünü Kaydet'}
-            </button>
-            <button type="button" className="btn-secondary" onClick={() => router.back()}>İptal</button>
-          </div>
-        </form>
+            <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '16px', border: '1px solid #f1f5f9', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+               <div>
+                 <label style={labelStyle}>Alış Fiyatı (₺)</label>
+                 <input type="number" step="0.01" name="a_fiyat" placeholder="0.00" style={inputStyle} />
+               </div>
+               <div>
+                 <label style={labelStyle}>Satış Fiyatı (₺)</label>
+                 <input type="number" step="0.01" name="s_fiyat" placeholder="0.00" style={inputStyle} />
+               </div>
+               <div>
+                 <label style={labelStyle}>KDV Oranı</label>
+                 <select name="kdv_oran" defaultValue="20" style={inputStyle}>
+                    <option value="0">%0</option>
+                    <option value="1">%1</option>
+                    <option value="10">%10</option>
+                    <option value="20">%20</option>
+                 </select>
+               </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '20px' }}>
+               <div>
+                 <label style={labelStyle}>Açılış Stok Miktarı</label>
+                 <input type="number" step="0.01" name="miktar" placeholder="0" defaultValue="0" style={inputStyle} />
+               </div>
+               <div>
+                 <label style={labelStyle}>Kritik Stok Seviyesi (Uyarı)</label>
+                 <input type="number" step="0.01" name="kritik_seviye" placeholder="10" defaultValue="10" style={inputStyle} />
+               </div>
+            </div>
+
+            <div>
+               <label style={labelStyle}>Açıklama / Notlar</label>
+               <textarea name="aciklama" rows={3} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Rafa, tedarikçiye veya ürüne dair ek bilgiler..." />
+            </div>
+
+            <div style={{ marginTop: '16px', borderTop: '1px solid #e2e8f0', paddingTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+               <button type="button" onClick={() => router.back()} disabled={saving} style={{ padding: '16px 24px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 700, cursor: 'pointer' }}>İptal</button>
+               <button type="submit" disabled={saving} className="btn-primary" style={{ padding: '16px 32px', borderRadius: '12px', fontSize: '16px' }}>
+                  {saving ? 'Kaydediliyor...' : 'Stok Ekle →'}
+               </button>
+            </div>
+         </form>
       </div>
     </div>
   )

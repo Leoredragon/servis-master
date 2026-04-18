@@ -133,7 +133,7 @@ export default function YeniFaturaPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '32px', alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-          <div className="card">
+          <div className="card" style={{ overflow: 'visible', position: 'relative', zIndex: 20 }}>
             <div className="card-header">Fatura Başlık Bilgileri</div>
             <div className="card-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                <div style={{ gridColumn: 'span 2' }}>

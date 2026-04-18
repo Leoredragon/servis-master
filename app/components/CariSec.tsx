@@ -43,7 +43,7 @@ export default function CariSec({ value, onChange, placeholder = "Müşteri Ara.
         .from('cari_kart')
         .select('id, yetkili, tel')
         .or(`yetkili.ilike.%${search}%,tel.ilike.%${search}%`)
-        .limit(8)
+        .limit(30)
       setResults(data || [])
       setLoading(false)
     }, 300)
@@ -137,7 +137,7 @@ export default function CariSec({ value, onChange, placeholder = "Müşteri Ara.
             </div>
           </div>
 
-          <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
+          <div style={{ maxHeight: '350px', overflowY: 'auto', paddingBottom: '8px' }}>
             {loading && <div style={{ padding: '20px', textAlign: 'center', fontSize: '12px', color: '#64748b' }}>Aranıyor...</div>}
             
             {!loading && results.map(item => (
