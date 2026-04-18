@@ -325,8 +325,8 @@ export default function TaksitTakip() {
                         setIsEditing(true)
                         setForm({ ...form, id: item.id, cari_id: item.cari_id.toString(), tutar: item.tutar.toString(), vade_tarihi: item.vade_tarihi, aciklama: item.aciklama || '' })
                         setFormOpen(true)
-                      }} style={{ p: '8px', background: '#f1f5f9', border: 'none', borderRadius: '8px', color: '#64748b', cursor: 'pointer' }}>{Icons.edit}</button>
-                      <button onClick={() => setConfirmData({ open: true, id: item.id })} style={{ p: '8px', background: '#fef2f2', border: 'none', borderRadius: '8px', color: '#ef4444', cursor: 'pointer' }}>{Icons.trash}</button>
+                      }} style={{ padding: '8px', background: '#f1f5f9', border: 'none', borderRadius: '8px', color: '#64748b', cursor: 'pointer' }}>{Icons.edit}</button>
+                      <button onClick={() => setConfirmData({ open: true, id: item.id })} style={{ padding: '8px', background: '#fef2f2', border: 'none', borderRadius: '8px', color: '#ef4444', cursor: 'pointer' }}>{Icons.trash}</button>
                     </div>
                   </td>
                 </tr>
