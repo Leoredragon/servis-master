@@ -1,642 +1,485 @@
 "use client"
 
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { useEffect, useState, useCallback } from 'react'
-import SlideOver from '../components/SlideOver'
-import ConfirmModal from '../components/ConfirmModal'
+import Link from 'next/link'
+import Modal from '../components/Modal'
 import Pagination from '../components/Pagination'
 
-// İkonlar ve Stiller
-const icons = {
-  cash: 'M3 6h18v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6z M7 10h10 M7 14h10',
-  bank: 'M3 21h18 M3 10h18 M5 6l7-3 7 3 M4 10v11 M11 10v11 M15 10v11 M20 10v11',
-  pos: 'M6 18c-2 0-3-1-3-3s1-3 3-3 3 1 3 3-1 3-3 3z M18 18c-2 0-3-1-3-3s1-3 3-3 3 1 3 3-1 3-3 3z M3 6h18v6H3V6z',
-  plus: 'M12 5v14M5 12h14',
-  transfer: 'M7 10l5-5 5 5M7 14l5 5 5-5',
-  info: 'M12 16h.01M12 8h.01M12 21a9 9 0 110-18 9 9 0 010 18z',
-  trash: 'M3 6h18 M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2',
-  history: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
-  check: 'M20 6L9 17l-5-5',
-  card: 'M3 10h18M7 15h1M11 15h1',
-  bank_card: 'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zM2 10h20',
-  bill: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
+const Icons = {
+  plus: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  search: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>,
+  wallet: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>,
+  bank: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,
+  history: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>,
+  edit: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>,
+  link: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
+  close: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 }
 
-const Icon = ({ d, size = 18, color = 'currentColor' }: { d: string; size?: number; color?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d={d} />
-  </svg>
-)
-
-const inputStyle = { width: '100%', padding: '12px 16px', border: '1.5px solid #e2e8f0', borderRadius: '12px', fontSize: '14px', outline: 'none', transition: 'all 0.2s', boxSizing: 'border-box' as const }
-const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' }
+const inputStyle = { width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none', background: '#fff', color: '#0f172a' }
+const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '6px' }
 
 export default function KasaYonetimi() {
   const [kasalar, setKasalar] = useState<any[]>([])
-  const [selectedKasa, setSelectedKasa] = useState<any>(null)
   const [hareketler, setHareketler] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [hareketLoading, setHareketLoading] = useState(false)
-  
-  // Modallar
-  const [kasaPanel, setKasaPanel] = useState(false)
-  const [transferPanel, setTransferPanel] = useState(false)
-  const [confirmData, setConfirmData] = useState<{ open: boolean, type: 'kasa' | 'hareket', item: any }>({ open: false, type: 'kasa', item: null })
-  
-  // Formlar
-  const [kasaForm, setKasaForm] = useState({ 
-    kasa_adi: '', 
-    kasa_turu: 'Nakit', 
-    acilis_bakiyesi: '0',
-    banka_adi: '',
-    sube_kodu: '',
-    iban: ''
-  })
-  const [transferForm, setTransferForm] = useState({ 
-    from_id: '', 
-    to_id: '', 
-    tutar: '', 
-    aciklama: '', 
-    tarih: new Date().toISOString().split('T')[0],
-    odeme_sekli: 'Havale/EFT'
-  })
+
+  // Filters
+  const [selectedKasaId, setSelectedKasaId] = useState<string>('all')
+  const [filterTur, setFilterTur] = useState('Tümü')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [dateRange, setDateRange] = useState({
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-    end: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
+    end: new Date().toISOString().split('T')[0]
   })
-  const [saving, setSaving] = useState(false)
-  const [pageSize, setPageSize] = useState(20)
+  
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 50
 
-  const fetchKasalar = useCallback(async () => {
+  // Modals
+  const [yeniKasaModal, setYeniKasaModal] = useState(false)
+  const [hareketModal, setHareketModal] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+
+  // Forms
+  const [kasaForm, setKasaForm] = useState({ kasa_adi: '', kasa_turu: 'Nakit', acilis_bakiyesi: '0', banka_adi: '', sube_kodu: '', iban: '' })
+  const [hareketForm, setHareketForm] = useState({
+    hareket_tur: 'Gelir',
+    kasa_id: '',
+    hedef_kasa_id: '', // Sadece transfer
+    kategori: 'Servis Geliri',
+    aciklama: '',
+    hesap: '',
+    odeme_sekli: 'Nakit',
+    tutar: '',
+    tarih: new Date().toISOString().split('T')[0]
+  })
+
+  // Data Fetching
+  const fetchVeriler = useCallback(async () => {
     setLoading(true)
-    const { data, error } = await supabase.from('kasalar').select('*').order('kasa_adi')
-    if (error) { console.error(error) }
-    else {
-      let activeKasalar = data
-      if (data.length === 0) {
-        const { data: newData, error: insertError } = await supabase.from('kasalar').insert([
-          { 
-            kasa_adi: 'Merkez Nakit', 
-            kasa_turu: 'Nakit', 
-            acilis_bakiyesi: 0,
-            kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
-            subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
-          }
-        ]).select()
-        if (!insertError && newData) activeKasalar = newData
-      }
-      setKasalar(activeKasalar)
-      if (!selectedKasa && activeKasalar.length > 0) {
-        setSelectedKasa(activeKasalar[0])
-      }
-    }
-    setLoading(false)
-  }, [selectedKasa])
+    // 1. Kasalar
+    const { data: kasalarData } = await supabase.from('kasalar').select('*').eq('aktif_mi', true).order('kasa_adi')
+    setKasalar(kasalarData || [])
 
-  const fetchHareketler = useCallback(async () => {
-    if (!selectedKasa) return
-    setHareketLoading(true)
-    const { data, error } = await supabase
-      .from('kasa_hareket')
-      .select('*')
-      .eq('kasa_id', selectedKasa.id)
+    // 2. Hareketler
+    let query = supabase.from('kasa_hareket').select('*')
       .gte('islem_tarihi', dateRange.start)
-      .lte('islem_tarihi', dateRange.end)
+      .lte('islem_tarihi', dateRange.end + 'T23:59:59')
       .order('islem_tarihi', { ascending: false })
       .order('id', { ascending: false })
     
-    if (error) console.error(error)
-    else setHareketler(data || [])
-    setHareketLoading(false)
-    setCurrentPage(1)
-  }, [selectedKasa, dateRange])
-
-  useEffect(() => { fetchKasalar() }, [])
-  useEffect(() => { fetchHareketler() }, [fetchHareketler])
-
-  const handleKasaKaydet = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSaving(true)
-    const { error } = await supabase.from('kasalar').insert([
-      { 
-        ...kasaForm, 
-        acilis_bakiyesi: parseFloat(kasaForm.acilis_bakiyesi),
-        kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
-        subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
-      }
-    ])
-    setSaving(false)
-    if (error) alert('Hata: ' + error.message)
-    else {
-      setKasaPanel(false)
-      setKasaForm({ 
-        kasa_adi: '', kasa_turu: 'Nakit', acilis_bakiyesi: '0',
-        banka_adi: '', sube_kodu: '', iban: ''
-      })
-      fetchKasalar()
+    if (selectedKasaId !== 'all') {
+      query = query.eq('kasa_id', selectedKasaId)
     }
-  }
-
-  const handleTransfer = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (transferForm.from_id === transferForm.to_id) { alert('Aynı hesaplar arası transfer yapılamaz.'); return }
-    setSaving(true)
     
-    const tutar = parseFloat(transferForm.tutar)
-    const now = transferForm.tarih
-    
-    // Double entry logic
-    const movements = [
-      {
-        kasa_id: transferForm.from_id,
-        tur: 'gider',
-        tutar: tutar,
-        kategori: 'Transfer',
-        aciklama: `Transfer -> ${kasalar.find(k => k.id.toString() === transferForm.to_id)?.kasa_adi}. ${transferForm.aciklama}`,
-        islem_tarihi: now,
-        odeme_sekli: transferForm.odeme_sekli,
-        kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
-        subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
-      },
-      {
-        kasa_id: transferForm.to_id,
-        tur: 'gelir',
-        tutar: tutar,
-        kategori: 'Transfer',
-        aciklama: `Transfer <- ${kasalar.find(k => k.id.toString() === transferForm.from_id)?.kasa_adi}. ${transferForm.aciklama}`,
-        islem_tarihi: now,
-        odeme_sekli: transferForm.odeme_sekli,
-        kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
-        subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
+    const { data: hareketlerData } = await query
+    setHareketler(hareketlerData || [])
+    setLoading(false)
+  }, [dateRange, selectedKasaId])
+
+  useEffect(() => { fetchVeriler() }, [fetchVeriler])
+
+  useEffect(() => {
+    const handler = setTimeout(() => { setDebouncedSearch(searchQuery) }, 300)
+    return () => clearTimeout(handler)
+  }, [searchQuery])
+
+  // Filtering Logic
+  const filteredHareketler = useMemo(() => {
+    let res = hareketler
+    if (filterTur !== 'Tümü') res = res.filter(x => x.tur?.toLowerCase() === filterTur.toLowerCase())
+    if (debouncedSearch) {
+      const qs = debouncedSearch.toLowerCase()
+      res = res.filter(x => (x.aciklama || '').toLowerCase().includes(qs) || (x.kategori || '').toLowerCase().includes(qs))
+    }
+    return res
+  }, [hareketler, filterTur, debouncedSearch])
+
+  const paginatedHareketler = filteredHareketler.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
+  const topBakiye = kasalar.reduce((acc, curr) => acc + (curr.guncel_bakiye || 0), 0)
+
+  // Handlers
+  const kaydetKasa = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!kasaForm.kasa_adi) return
+    setIsSaving(true)
+    const initialBalance = parseFloat(kasaForm.acilis_bakiyesi) || 0
+
+    const { error } = await supabase.from('kasalar').insert([{
+      kasa_adi: kasaForm.kasa_adi,
+      kasa_turu: kasaForm.kasa_turu,
+      acilis_bakiyesi: initialBalance,
+      guncel_bakiye: initialBalance,
+      banka_adi: kasaForm.kasa_turu === 'Banka' ? kasaForm.banka_adi : null,
+      sube_kodu: kasaForm.kasa_turu === 'Banka' ? kasaForm.sube_kodu : null,
+      iban: kasaForm.kasa_turu === 'Banka' ? kasaForm.iban : null
+    }])
+
+    setIsSaving(false)
+    if (error) alert(error.message)
+    else {
+      setYeniKasaModal(false)
+      setKasaForm({ kasa_adi: '', kasa_turu: 'Nakit', acilis_bakiyesi: '0', banka_adi: '', sube_kodu: '', iban: '' })
+      fetchVeriler()
+    }
+  }
+
+  const kaydetHareket = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!hareketForm.kasa_id || !hareketForm.tutar) return
+    setIsSaving(true)
+    const tutar = parseFloat(hareketForm.tutar) || 0
+    const fromKasa = kasalar.find(k => k.id.toString() === hareketForm.kasa_id)
+
+    try {
+      if (hareketForm.hareket_tur === 'Transfer') {
+        if (!hareketForm.hedef_kasa_id || hareketForm.kasa_id === hareketForm.hedef_kasa_id) {
+          throw new Error('Farklı bir hedef kasa seçmelisiniz.')
+        }
+        const toKasa = kasalar.find(k => k.id.toString() === hareketForm.hedef_kasa_id)
+
+        // 1. Çıkış Hareketi
+        await supabase.from('kasa_hareket').insert([{
+          kasa_id: fromKasa.id,
+          tur: 'gider',
+          kategori: 'Transfer',
+          aciklama: `Transfer -> ${toKasa?.kasa_adi}. ${hareketForm.aciklama}`,
+          tutar: tutar,
+          islem_tarihi: hareketForm.tarih,
+          odeme_sekli: hareketForm.odeme_sekli
+        }])
+        
+        // 2. Giriş Hareketi
+        await supabase.from('kasa_hareket').insert([{
+          kasa_id: toKasa.id,
+          tur: 'gelir',
+          kategori: 'Transfer',
+          aciklama: `Transfer <- ${fromKasa?.kasa_adi}. ${hareketForm.aciklama}`,
+          tutar: tutar,
+          islem_tarihi: hareketForm.tarih,
+          odeme_sekli: hareketForm.odeme_sekli
+        }])
+
+        // 3. Bakiyeleri Güncelle
+        await supabase.from('kasalar').update({ guncel_bakiye: (fromKasa.guncel_bakiye || 0) - tutar }).eq('id', fromKasa.id)
+        await supabase.from('kasalar').update({ guncel_bakiye: (toKasa.guncel_bakiye || 0) + tutar }).eq('id', toKasa.id)
+
+      } else {
+        // Normal Gelir / Gider
+        const dbTur = hareketForm.hareket_tur.toLowerCase() // 'gelir' veya 'gider'
+        
+        await supabase.from('kasa_hareket').insert([{
+          kasa_id: fromKasa.id,
+          tur: dbTur,
+          kategori: hareketForm.kategori,
+          aciklama: hareketForm.aciklama,
+          hesap: hareketForm.hesap,
+          tutar: tutar,
+          islem_tarihi: hareketForm.tarih,
+          odeme_sekli: hareketForm.odeme_sekli
+        }])
+
+        // Bakiye Güncelle
+        const yeniBakiye = dbTur === 'gelir' ? (fromKasa.guncel_bakiye || 0) + tutar : (fromKasa.guncel_bakiye || 0) - tutar
+        await supabase.from('kasalar').update({ guncel_bakiye: yeniBakiye }).eq('id', fromKasa.id)
       }
-    ]
 
-    const { error } = await supabase.from('kasa_hareket').insert(movements)
-    setSaving(false)
-    if (error) alert('Hata: ' + error.message)
-    else {
-      setTransferPanel(false)
-      setTransferForm({ 
-        from_id: '', to_id: '', tutar: '', aciklama: '', 
-        tarih: new Date().toISOString().split('T')[0],
-        odeme_sekli: 'Havale/EFT'
-      })
-      fetchKasalar()
-      fetchHareketler()
+      setHareketModal(false)
+      setHareketForm({ ...hareketForm, aciklama: '', hesap: '', tutar: '' })
+      fetchVeriler()
+    } catch (err: any) {
+      alert(err.message)
+    } finally {
+      setIsSaving(false)
     }
   }
-
-  const handleKasaSil = async () => {
-    if (!confirmData.item) return
-    const { error } = await supabase.from('kasalar').delete().eq('id', confirmData.item.id)
-    if (error) alert('Hata: ' + error.message)
-    else {
-      setConfirmData({ open: false, type: 'kasa', item: null })
-      setSelectedKasa(null)
-      fetchKasalar()
-    }
-  }
-
-  const handleHareketSil = async () => {
-    if (!confirmData.item) return
-    const { error } = await supabase.from('kasa_hareket').delete().eq('id', confirmData.item.id)
-    if (error) alert('Hata: ' + error.message)
-    else {
-      setConfirmData({ open: false, type: 'hareket', item: null })
-      fetchHareketler()
-    }
-  }
-
-  // Bakiye hesaplama (Basit gösterim için her kasanın anlık bakiyesi)
-  // Gerçek projede bu bir veritabanı view'ı veya trigger ile güncellenen bir kolon olmalı
-  // Burada UI tarafında hesaplıyoruz
-  const getKasaBakiye = (kasaId: number) => {
-    // Bu fonksiyon her renderda çalışacağı için optimize edilebilir
-    // Ancak küçük veri setleri için sorun yaratmaz
-    const kasa = kasalar.find(k => k.id === kasaId)
-    if (!kasa) return 0
-    return kasa.acilis_bakiyesi // Şimdilik açılış bakiyesi, hareketleri de eklemek lazım
-  }
-
-  const paginatedHareketler = hareketler.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   return (
-    <div style={{ display: 'flex', gap: '24px', height: '100%', animate: 'fadeIn 0.4s ease-out' }}>
+    <div className="animate-fadeIn" style={{ width: '100%', padding: '0 32px' }}>
       
-      {/* ─── SOL: Hesaplarım ─── */}
-      <div style={{ width: '380px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: 0 }}>Cüzdanlarım</h2>
-          <button 
-            onClick={() => setKasaPanel(true)}
-            style={{ 
-              width: '32px', height: '32px', borderRadius: '10px', background: '#3b82f6', 
-              color: '#fff', border: 'none', cursor: 'pointer', display: 'flex', 
-              alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(59,130,246,0.3)' 
-            }}
-          >
-            <Icon d={icons.plus} size={16} />
-          </button>
+      {/* ─── HEADER YAPI ─── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+        <div>
+           <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.3px' }}>Cüzdanlar & Finans</h1>
+           <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>Bankalar, POS cihazları ve nakit kasalarınızdaki toplam durum.</p>
         </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', paddingRight: '4px' }}>
-          {loading ? (
-            [1,2,3].map(i => <div key={i} style={{ height: '100px', background: '#fff', borderRadius: '20px', animate: 'pulse 1.5s infinite' }} />)
-          ) : kasalar.map(kasa => {
-            const isSelected = selectedKasa?.id === kasa.id
-            const iconD = kasa.kasa_turu === 'Banka' ? icons.bank : (kasa.kasa_turu === 'POS' ? icons.pos : icons.cash)
-            const iconColor = kasa.kasa_turu === 'Banka' ? '#3b82f6' : (kasa.kasa_turu === 'POS' ? '#7c3aed' : '#10b981')
-            
-            return (
-              <div 
-                key={kasa.id}
-                onClick={() => setSelectedKasa(kasa)}
-                style={{
-                  background: isSelected ? '#fff' : 'rgba(255,255,255,0.6)',
-                  padding: '20px',
-                  borderRadius: '24px',
-                  border: isSelected ? `2px solid ${iconColor}` : '2px solid transparent',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: isSelected ? `0 12px 24px ${iconColor}15` : '0 2px 4px rgba(0,0,0,0.02)',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-              >
-                {isSelected && <div style={{ position: 'absolute', top: 0, right: 0, width: '60px', height: '60px', background: `${iconColor}08`, borderRadius: '0 0 0 100%' }} />}
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
-                  <div style={{ 
-                    width: '42px', height: '42px', borderRadius: '12px', 
-                    background: `${iconColor}15`, display: 'flex', 
-                    alignItems: 'center', justifyContent: 'center', color: iconColor 
-                  }}>
-                    <Icon d={iconD} size={22} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>{kasa.kasa_adi}</div>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{kasa.kasa_turu} Hesabı</div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                  <div>
-                    <div style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>GÜNCEL BAKİYE</div>
-                    <div style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px' }}>
-                      {(kasa.guncel_bakiye || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} <span style={{ fontSize: '14px', fontWeight: 700, color: '#64748b' }}>₺</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+           <div style={{ background: '#fff', border: '1.5px solid #e2e8f0', padding: '10px 20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+              <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', color: '#94a3b8' }}>Toplam Nakit Varlığı</span>
+              <span style={{ fontSize: '20px', fontWeight: 900, color: topBakiye >= 0 ? '#10b981' : '#ef4444' }}>{topBakiye.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
+           </div>
+           <button onClick={() => setYeniKasaModal(true)} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '14px 20px', borderRadius: '12px' }}>
+              {Icons.plus} Yeni Kasa
+           </button>
         </div>
       </div>
 
-      {/* ─── SAĞ: Hesap Hareketleri ─── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <h2 style={{ fontSize: '22px', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.5px' }}>
-                {selectedKasa?.kasa_adi || 'Hesap'} Hareketleri
-              </h2>
-              {selectedKasa?.iban && (
-                <span style={{ 
-                  background: '#eff6ff', color: '#1d4ed8', fontSize: '11px', fontWeight: 800, 
-                  padding: '4px 10px', borderRadius: '8px', border: '1px solid #dbeafe' 
-                }}>
-                  IBAN: {selectedKasa.iban}
-                </span>
-              )}
-            </div>
-            <p style={{ fontSize: '13px', color: '#64748b', fontWeight: 500, margin: '4px 0 0' }}>
-              {selectedKasa?.banka_adi && `${selectedKasa.banka_adi} - `} {selectedKasa?.sube_kodu && `Şube: ${selectedKasa.sube_kodu} | `} Hesabınıza ait tüm para giriş ve çıkışları
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button 
-              onClick={() => setTransferPanel(true)}
-              style={{
-                padding: '10px 20px', background: '#0f172a', color: '#fff', border: 'none',
-                borderRadius: '12px', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s'
-              }}
-            >
-              <Icon d={icons.transfer} size={16} /> Para Transferi
-            </button>
-            <button 
-              onClick={() => setConfirmData({ open: true, type: 'kasa', item: selectedKasa })}
-              style={{
-                width: '42px', height: '42px', background: '#fff', color: '#ef4444', 
-                border: '1.5px solid #fee2e2', borderRadius: '12px', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}
-            >
-              <Icon d={icons.trash} size={18} />
-            </button>
-          </div>
-        </div>
-
-        {/* Tarih Filtresi Çubuğu */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#fff', padding: '12px 20px', borderRadius: '16px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flex: 1 }}>
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'center', background: '#f8fafc', padding: '6px 16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8', marginBottom: '2px' }}>BAŞLANGIÇ</span>
-                <input type="date" value={dateRange.start} onChange={e => setDateRange({ ...dateRange, start: e.target.value })} style={{ border: 'none', background: 'transparent', fontSize: '13px', fontWeight: 700, color: '#0f172a', outline: 'none' }} />
+      {/* ─── KASA KARTLARI ─── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '40px' }}>
+        {loading ? (
+           [1,2,3,4].map(i => <div key={i} className="skeleton" style={{ height: '140px', borderRadius: '16px' }} />)
+        ) : kasalar.map(kasa => (
+           <div key={kasa.id} className="card hover-row" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ 
+                       width: '40px', height: '40px', borderRadius: '10px', 
+                       background: kasa.kasa_turu === 'Banka' ? '#eff6ff' : '#ecfdf5',
+                       color: kasa.kasa_turu === 'Banka' ? '#3b82f6' : '#10b981',
+                       display: 'flex', alignItems: 'center', justifyContent: 'center' 
+                    }}>
+                       {kasa.kasa_turu === 'Banka' ? Icons.bank : Icons.wallet}
+                    </div>
+                    <div>
+                       <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>{kasa.kasa_adi}</div>
+                       <div style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>{kasa.kasa_turu} Hesabı</div>
+                    </div>
+                 </div>
               </div>
-              <div style={{ width: '1px', height: '24px', background: '#e2e8f0' }}></div>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8', marginBottom: '2px' }}>BİTİŞ</span>
-                <input type="date" value={dateRange.end} onChange={e => setDateRange({ ...dateRange, end: e.target.value })} style={{ border: 'none', background: 'transparent', fontSize: '13px', fontWeight: 700, color: '#0f172a', outline: 'none' }} />
+              <div>
+                 <div style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', marginBottom: '2px' }}>Güncel Bakiye</div>
+                 <div style={{ fontSize: '24px', fontWeight: 900, color: kasa.guncel_bakiye >= 0 ? '#10b981' : '#ef4444', letterSpacing: '-0.5px' }}>
+                    {(kasa.guncel_bakiye || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                 </div>
               </div>
+              <div style={{ display: 'flex', gap: '8px', marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid #f1f5f9' }}>
+                 <button 
+                   onClick={() => { setSelectedKasaId(kasa.id.toString()); document.getElementById('hareketler')?.scrollIntoView({ behavior: 'smooth' }) }} 
+                   style={{ flex: 1, padding: '8px', borderRadius: '8px', background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                 >
+                   {Icons.history} Hareketler
+                 </button>
+                 {/* Düzenle butonu placeholder (şimdilik popup veya düzenlemesi eklenmedi ama tasarımda yer ayrıldı) */}
+                 <button style={{ padding: '8px 12px', borderRadius: '8px', background: '#f8fafc', color: '#94a3b8', border: '1px solid #e2e8f0', cursor: 'not-allowed' }}>{Icons.edit}</button>
+              </div>
+           </div>
+        ))}
+      </div>
+
+      {/* ─── HAREKETLER BÖLÜMÜ ─── */}
+      <div id="hareketler" style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', padding: '24px' }}>
+         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <div>
+               <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>Kasa Hareketleri</h2>
+               <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>Seçilen kriterlere ait finansal geçmiş işlemleri görüntüleyin.</p>
             </div>
-            <button 
-              onClick={fetchHareketler}
-              className="bg-blue-500 hover:bg-blue-600"
-              style={{ padding: '10px 20px', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(59,130,246,0.2)' }}
-            >
-              Uygula
+            <button onClick={() => setHareketModal(true)} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+               {Icons.plus} Yeni Hareket
             </button>
-          </div>
-          <div style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 700 }}>{hareketler.length} toplam hareket</div>
-        </div>
+         </div>
 
-        <div style={{ 
-          background: '#fff', borderRadius: '32px', border: '1px solid #f1f5f9', 
-          flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.02)'
-        }}>
-          <div style={{ padding: '24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Icon d={icons.history} size={18} color="#64748b" />
-              <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>Son Hareketler</span>
+         {/* FİLTRELER */}
+         <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
+            <select style={{ ...inputStyle, width: '200px' }} value={selectedKasaId} onChange={e => setSelectedKasaId(e.target.value)}>
+               <option value="all">Tüm Kasalar</option>
+               {kasalar.map(k => <option key={k.id} value={k.id}>{k.kasa_adi}</option>)}
+            </select>
+            
+            <div style={{ display: 'flex', background: '#f8fafc', padding: '4px', borderRadius: '10px', flexShrink: 0, border: '1px solid #e2e8f0' }}>
+               {['Tümü', 'Gelir', 'Gider', 'Transfer'].map(tab => (
+                 <button key={tab} onClick={() => setFilterTur(tab)}
+                   style={{ padding: '8px 16px', border: 'none', background: filterTur === tab ? '#fff' : 'transparent', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', color: filterTur === tab ? '#0f172a' : '#64748b', boxShadow: filterTur === tab ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', transition: 'all 0.2s' }}
+                 >{tab}</button>
+               ))}
             </div>
-            <div style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 700 }}>{hareketler.length} Kayıt</div>
-          </div>
 
-          <div style={{ flex: 1, overflowY: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc', padding: '4px 12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+               <input type="date" value={dateRange.start} onChange={e => setDateRange({...dateRange, start: e.target.value})} style={{ border: 'none', background: 'none', fontSize: '12px', fontWeight: 600, outline: 'none' }} />
+               <span style={{ color: '#cbd5e1' }}>—</span>
+               <input type="date" value={dateRange.end} onChange={e => setDateRange({...dateRange, end: e.target.value})} style={{ border: 'none', background: 'none', fontSize: '12px', fontWeight: 600, outline: 'none' }} />
+            </div>
+
+            <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+               <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>{Icons.search}</span>
+               <input placeholder="Açıklama veya kategori ara..." style={{ ...inputStyle, paddingLeft: '38px' }} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+            </div>
+         </div>
+
+         {/* TABLO */}
+         <div style={{ margin: '0 -24px -24px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', position: 'sticky', top: 0, zIndex: 1 }}>
-                  {['Tarih', 'İşlem Türü', 'Açıklama', 'Tutar', 'İşlem'].map(h => (
-                    <th key={h} style={{ padding: '16px 24px', textAlign: h === 'Tutar' || h === 'İşlem' ? 'right' : 'left', fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {hareketLoading ? (
-                   [1,2,3,4,5].map(i => (
-                     <tr key={i}>
-                       <td style={{ padding: '18px 24px' }}><div className="skeleton" style={{ height: '20px', width: '80%' }} /></td>
-                       <td style={{ padding: '18px 24px' }}><div className="skeleton" style={{ height: '32px', width: '100px', borderRadius: '8px' }} /></td>
-                       <td style={{ padding: '18px 24px' }}><div className="skeleton" style={{ height: '20px', width: '100%' }} /></td>
-                       <td style={{ padding: '18px 24px' }}><div className="skeleton" style={{ height: '24px', width: '80px', marginLeft: 'auto' }} /></td>
-                       <td style={{ padding: '18px 24px' }}><div className="skeleton" style={{ height: '28px', width: '28px', marginLeft: 'auto' }} /></td>
-                     </tr>
-                   ))
-                ) : paginatedHareketler.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} style={{ padding: '100px 24px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '48px', marginBottom: '16px' }}>💸</div>
-                      <div style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>Hareket Bulunamadı</div>
-                      <p style={{ fontSize: '13px', color: '#94a3b8', margin: '8px 0 0' }}>Bu hesaba ait henüz bir finansal işlem kaydedilmemiş.</p>
-                    </td>
+               <thead>
+                  <tr style={{ background: '#f8fafc', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
+                     <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Kasa & Tarih</th>
+                     <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Açıklama / Hesap</th>
+                     <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Kategori</th>
+                     <th style={{ textAlign: 'center', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Ödeme Şekli</th>
+                     <th style={{ textAlign: 'right', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Tutar</th>
                   </tr>
-                ) : paginatedHareketler.map((h, idx) => (
-                  <tr key={h.id} style={{ borderBottom: '1px solid #f8fafc', background: idx % 2 === 0 ? '#fff' : '#fafbfc' }}>
-                    <td style={{ padding: '18px 24px', fontSize: '14px', color: '#64748b', fontWeight: 600 }}>
-                      {new Date(h.islem_tarihi).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                    </td>
-                    <td style={{ padding: '18px 24px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ 
-                          width: '32px', height: '32px', borderRadius: '8px', 
-                          background: h.tur === 'gelir' ? '#ecfdf5' : '#fef2f2',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: h.tur === 'gelir' ? '#10b981' : '#ef4444'
-                        }}>
-                          {h.tur === 'gelir' ? '↑' : '↓'}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>{h.kategori}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ padding: '18px 24px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ 
-                          fontSize: '10px', padding: '3px 8px', borderRadius: '6px', 
-                          background: '#f1f5f9', color: '#64748b', fontWeight: 800, 
-                          border: '1px solid #e2e8f0', display: 'inline-flex', alignItems: 'center', gap: '4px' 
-                        }}>
-                          {h.odeme_sekli === 'Kredi Kartı' && <Icon d={icons.card} size={10} />}
-                          {h.odeme_sekli === 'Çek' && <Icon d={icons.bill} size={10} />}
-                          {h.odeme_sekli === 'Havale/EFT' && <Icon d={icons.bank_card} size={10} />}
-                          {h.odeme_sekli || 'Nakit'}
-                        </span>
-                        <div style={{ fontSize: '13px', color: '#64748b' }}>{h.aciklama || '—'}</div>
-                      </div>
-                    </td>
-                    <td style={{ padding: '18px 24px', textAlign: 'right' }}>
-                      <div style={{ fontSize: '16px', fontWeight: 900, color: h.tur === 'gelir' ? '#10b981' : '#ef4444' }}>
-                        {h.tur === 'gelir' ? '+' : '-'}{h.tutar?.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                      </div>
-                    </td>
-                    <td style={{ padding: '18px 24px', textAlign: 'right' }}>
-                      <button 
-                        onClick={() => setConfirmData({ open: true, type: 'hareket', item: h })}
-                        style={{ background: '#fef2f2', border: 'none', padding: '8px', borderRadius: '8px', color: '#ef4444', cursor: 'pointer' }}
-                      >
-                        <Icon d={icons.trash} size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
+               </thead>
+               <tbody>
+                  {loading ? (
+                     [1,2,3].map(i => <tr key={i}><td colSpan={5} style={{ padding: '24px' }}><div className="skeleton" style={{ height: '30px', width: '100%' }} /></td></tr>)
+                  ) : paginatedHareketler.length === 0 ? (
+                     <tr><td colSpan={5} style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>Bu kriterlere uygun kasa hareketi bulunamadı.</td></tr>
+                  ) : paginatedHareketler.map(h => {
+                     const isIncome = h.tur === 'gelir'
+                     const k = kasalar.find(x => x.id === h.kasa_id)
+                     return (
+                        <tr key={h.id} style={{ borderBottom: '1px solid #f1f5f9' }} className="hover-row">
+                           <td style={{ padding: '16px 24px' }}>
+                              <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '14px' }}>{k?.kasa_adi}</div>
+                              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{new Date(h.islem_tarihi).toLocaleDateString('tr-TR')}</div>
+                           </td>
+                           <td style={{ padding: '16px 24px' }}>
+                              <div style={{ fontWeight: 600, color: '#334155', fontSize: '14px' }}>{h.aciklama || '—'}</div>
+                              {h.hesap && <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>Hesap: {h.hesap}</div>}
+                              {h.servis_id && (
+                                <Link href={`/servis-kayitlari/${h.servis_id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '4px', fontSize: '11px', fontWeight: 800, background: '#eff6ff', color: '#3b82f6', padding: '2px 8px', borderRadius: '4px', textDecoration: 'none' }}>
+                                   {Icons.link} Servis Bağlantısı
+                                </Link>
+                              )}
+                           </td>
+                           <td style={{ padding: '16px 24px' }}>
+                              <div style={{ fontSize: '13px', fontWeight: 600, color: '#475569', background: '#f8fafc', padding: '4px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', display: 'inline-block' }}>{h.kategori}</div>
+                           </td>
+                           <td style={{ padding: '16px 24px', textAlign: 'center' }}>
+                              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 500 }}>{h.odeme_sekli}</span>
+                           </td>
+                           <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                              <div style={{ fontSize: '16px', fontWeight: 900, color: isIncome ? '#059669' : '#dc2626' }}>
+                                 {isIncome ? '+' : '-'}{h.tutar?.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                              </div>
+                           </td>
+                        </tr>
+                     )
+                  })}
+               </tbody>
             </table>
-          </div>
-
-          <Pagination 
-            currentPage={currentPage}
-            totalItems={hareketler.length}
-            pageSize={pageSize}
-            onPageChange={setCurrentPage}
-            onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }}
-          />
-        </div>
+         </div>
+      </div>
+      
+      <div style={{ marginTop: '24px' }}>
+        <Pagination totalItems={filteredHareketler.length} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} />
       </div>
 
       {/* ─── MODALLAR ─── */}
+      <Modal isOpen={yeniKasaModal} onClose={() => setYeniKasaModal(false)} title="Yeni Kasa / Banka Ekle" size="md">
+         <form onSubmit={kaydetKasa} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+               <div>
+                  <label style={labelStyle}>Kasa Adı *</label>
+                  <input required style={inputStyle} value={kasaForm.kasa_adi} onChange={e => setKasaForm({...kasaForm, kasa_adi: e.target.value})} placeholder="Örn: Garanti Bankası" />
+               </div>
+               <div>
+                  <label style={labelStyle}>Kasa Türü</label>
+                  <select style={inputStyle} value={kasaForm.kasa_turu} onChange={e => setKasaForm({...kasaForm, kasa_turu: e.target.value})}>
+                     <option value="Nakit">Nakit Müşteri Kasası</option>
+                     <option value="Banka">Banka / Şirket Hesabı</option>
+                  </select>
+               </div>
+            </div>
 
-      {/* Yeni Kasa / Banka Panel */}
-      <SlideOver 
-        isOpen={kasaPanel} 
-        onClose={() => setKasaPanel(false)}
-        title="Yeni Hesap Ekle"
-        subtitle="Nakit kasa, banka hesabı veya POS cüzdanı tanımlayın."
-      >
-        <form onSubmit={handleKasaKaydet} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div>
-            <label style={labelStyle}>Hesap Adı</label>
-            <input 
-              required style={inputStyle} placeholder="Örn: Garanti Ana Hesap"
-              value={kasaForm.kasa_adi} onChange={e => setKasaForm({ ...kasaForm, kasa_adi: e.target.value })}
-            />
-          </div>
-          <div>
-            <label style={labelStyle}>Hesap Türü</label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-              {['Nakit', 'Banka', 'POS'].map(t => (
-                <button
-                  key={t} type="button"
-                  onClick={() => setKasaForm({ ...kasaForm, kasa_turu: t })}
-                  style={{
-                    padding: '12px', borderRadius: '12px', border: '2px solid',
-                    borderColor: kasaForm.kasa_turu === t ? '#3b82f6' : '#f1f5f9',
-                    background: kasaForm.kasa_turu === t ? '#eff6ff' : '#fff',
-                    color: kasaForm.kasa_turu === t ? '#1e40af' : '#64748b',
-                    fontSize: '13px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
-                  }}
-                >{t}</button>
-              ))}
-            </div>
-          </div>
-          {(kasaForm.kasa_turu === 'Banka' || kasaForm.kasa_turu === 'POS') && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-              <div>
-                <label style={labelStyle}>Banka Adı</label>
-                <input style={inputStyle} value={kasaForm.banka_adi} onChange={e => setKasaForm({ ...kasaForm, banka_adi: e.target.value })} />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2.5fr', gap: '10px' }}>
-                <div>
-                  <label style={labelStyle}>Şube Kodu</label>
-                  <input style={inputStyle} value={kasaForm.sube_kodu} onChange={e => setKasaForm({ ...kasaForm, sube_kodu: e.target.value })} />
-                </div>
-                <div>
-                  <label style={labelStyle}>IBAN</label>
-                  <input style={inputStyle} placeholder="TR..." value={kasaForm.iban} onChange={e => setKasaForm({ ...kasaForm, iban: e.target.value })} />
-                </div>
-              </div>
-            </div>
-          )}
-          <div>
-            <label style={labelStyle}>Açılış Bakiyesi (₺)</label>
-            <input 
-              type="number" step="0.01" style={inputStyle}
-              value={kasaForm.acilis_bakiyesi} onChange={e => setKasaForm({ ...kasaForm, acilis_bakiyesi: e.target.value })}
-            />
-          </div>
-          <button 
-            type="submit" disabled={saving}
-            style={{ 
-              marginTop: '10px', width: '100%', padding: '16px', borderRadius: '16px', border: 'none', 
-              background: '#3b82f6', color: '#fff', fontSize: '16px', fontWeight: 800, cursor: 'pointer',
-              boxShadow: '0 8px 20px rgba(59,130,246,0.3)'
-            }}
-          >
-            {saving ? 'Kaydediliyor...' : 'Hesabı Oluştur'}
-          </button>
-        </form>
-      </SlideOver>
+            {kasaForm.kasa_turu === 'Banka' && (
+               <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
+                     <div>
+                        <label style={labelStyle}>Banka Adı</label>
+                        <input style={inputStyle} value={kasaForm.banka_adi} onChange={e => setKasaForm({...kasaForm, banka_adi: e.target.value})} />
+                     </div>
+                     <div>
+                        <label style={labelStyle}>Şube Kodu</label>
+                        <input style={inputStyle} value={kasaForm.sube_kodu} onChange={e => setKasaForm({...kasaForm, sube_kodu: e.target.value})} />
+                     </div>
+                  </div>
+                  <div>
+                     <label style={labelStyle}>IBAN TR...</label>
+                     <input style={inputStyle} value={kasaForm.iban} onChange={e => setKasaForm({...kasaForm, iban: e.target.value})} />
+                  </div>
+               </div>
+            )}
 
-      {/* Para Transferi Panel */}
-      <SlideOver 
-        isOpen={transferPanel} 
-        onClose={() => setTransferPanel(false)}
-        title="Para Transferi"
-        subtitle="Hesaplarınız arasında hızlı bakiye aktarımı yapın."
-      >
-        <form onSubmit={handleTransfer} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={labelStyle}>Nereden (Çıkış)</label>
-              <select 
-                required style={inputStyle}
-                value={transferForm.from_id} onChange={e => setTransferForm({ ...transferForm, from_id: e.target.value })}
-              >
-                <option value="">Hesap Seçin...</option>
-                {kasalar.map(k => <option key={k.id} value={k.id}>{k.kasa_adi}</option>)}
-              </select>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#fff', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                ↓
-              </div>
-            </div>
             <div>
-              <label style={labelStyle}>Nereye (Giriş)</label>
-              <select 
-                required style={inputStyle}
-                value={transferForm.to_id} onChange={e => setTransferForm({ ...transferForm, to_id: e.target.value })}
-              >
-                <option value="">Hedef Seçiniz...</option>
-                {kasalar.map(k => <option key={k.id} value={k.id}>{k.kasa_adi} ({(k.guncel_bakiye || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺)</option>)}
-              </select>
+               <label style={labelStyle}>Açılış / Mevcut Bakiye (₺)</label>
+               <input type="number" step="0.01" required style={{...inputStyle, fontWeight: 800, color: '#0f172a', fontSize: '18px'}} value={kasaForm.acilis_bakiyesi} onChange={e => setKasaForm({...kasaForm, acilis_bakiyesi: e.target.value})} />
             </div>
-          </div>
 
-          <div>
-            <label style={labelStyle}>Transfer Tutarı (₺)</label>
-            <input 
-              type="number" step="0.01" required style={{ ...inputStyle, fontSize: '24px', fontWeight: 900, textAlign: 'center' }}
-              value={transferForm.tutar} onChange={e => setTransferForm({ ...transferForm, tutar: e.target.value })}
-            />
-          </div>
+            <button type="submit" disabled={isSaving} className="btn-primary" style={{ padding: '14px', fontSize: '15px' }}>
+               {isSaving ? 'Kaydediliyor...' : 'Hesabı Aktifleştir'}
+            </button>
+         </form>
+      </Modal>
 
-          <div>
-            <label style={labelStyle}>Tarih & Ödeme Şekli</label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-              <input type="date" style={inputStyle} value={transferForm.tarih} onChange={e => setTransferForm({ ...transferForm, tarih: e.target.value })} />
-              <select 
-                required style={inputStyle}
-                value={transferForm.odeme_sekli} onChange={e => setTransferForm({ ...transferForm, odeme_sekli: e.target.value })}
-              >
-                <option value="Havale/EFT">Havale/EFT</option>
-                <option value="Nakit">Nakit</option>
-                <option value="Kredi Kartı">Kredi Kartı</option>
-                <option value="Çek">Çek</option>
-                <option value="Senet">Senet</option>
-              </select>
+      <Modal isOpen={hareketModal} onClose={() => setHareketModal(false)} title="Yeni Finansal Hareket / Transfer" size="md">
+         <form onSubmit={kaydetHareket} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', background: '#f1f5f9', padding: '6px', borderRadius: '12px' }}>
+               {['Gelir', 'Gider', 'Transfer'].map(t => (
+                  <button key={t} type="button" onClick={() => setHareketForm({...hareketForm, hareket_tur: t})}
+                     style={{ flex: 1, padding: '10px', border: 'none', background: hareketForm.hareket_tur === t ? '#fff' : 'transparent', borderRadius: '8px', fontSize: '14px', fontWeight: 700, color: hareketForm.hareket_tur === t ? '#0f172a' : '#64748b', cursor: 'pointer', boxShadow: hareketForm.hareket_tur === t ? '0 2px 8px rgba(0,0,0,0.05)' : 'none' }}>
+                     {t}
+                  </button>
+               ))}
             </div>
-            <textarea 
-              rows={3} style={{ ...inputStyle, resize: 'none' }} placeholder="Transfer sebebi..."
-              value={transferForm.aciklama} onChange={e => setTransferForm({ ...transferForm, aciklama: e.target.value })}
-            />
-          </div>
 
-          <button 
-            type="submit" disabled={saving}
-            style={{ 
-              width: '100%', padding: '16px', borderRadius: '16px', border: 'none', 
-              background: '#0f172a', color: '#fff', fontSize: '16px', fontWeight: 800, cursor: 'pointer',
-              boxShadow: '0 8px 20px rgba(15,23,42,0.3)'
-            }}
-          >
-            {saving ? 'Aktarılıyor...' : 'Transferi Onayla'}
-          </button>
-        </form>
-      </SlideOver>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+               <div>
+                  <label style={labelStyle}>{hareketForm.hareket_tur === 'Transfer' ? 'Çıkış Yapılacak Kasa' : 'İlgili Kasa'}</label>
+                  <select required style={inputStyle} value={hareketForm.kasa_id} onChange={e => setHareketForm({...hareketForm, kasa_id: e.target.value})}>
+                     <option value="">Kasa Seçin...</option>
+                     {kasalar.map(k => <option key={k.id} value={k.id}>{k.kasa_adi} ({k.guncel_bakiye} ₺)</option>)}
+                  </select>
+               </div>
+               
+               {hareketForm.hareket_tur === 'Transfer' ? (
+                 <div>
+                    <label style={labelStyle}>Hedef (Giriş) Kasa</label>
+                    <select required style={inputStyle} value={hareketForm.hedef_kasa_id} onChange={e => setHareketForm({...hareketForm, hedef_kasa_id: e.target.value})}>
+                       <option value="">Kasa Seçin...</option>
+                       {kasalar.map(k => <option key={k.id} value={k.id}>{k.kasa_adi} ({k.guncel_bakiye} ₺)</option>)}
+                    </select>
+                 </div>
+               ) : (
+                 <div>
+                    <label style={labelStyle}>Kategori</label>
+                    <select required style={inputStyle} value={hareketForm.kategori} onChange={e => setHareketForm({...hareketForm, kategori: e.target.value})}>
+                       <option value="Servis Geliri">Servis Geliri</option>
+                       <option value="Satış">Satış / Genel</option>
+                       <option value="Maaş">Maaş - SGK Ödemeleri</option>
+                       <option value="Kira">Kira Gideri</option>
+                       <option value="Fatura">Fatura / Kurum Ödemeleri</option>
+                       <option value="Diğer">Diğer</option>
+                    </select>
+                 </div>
+               )}
+            </div>
 
-      <ConfirmModal 
-        isOpen={confirmData.open}
-        onClose={() => setConfirmData({ ...confirmData, open: false })}
-        onConfirm={confirmData.type === 'kasa' ? handleKasaSil : handleHareketSil}
-        title={confirmData.type === 'kasa' ? 'Hesabı Sil' : 'Hareketi Sil'}
-        message={confirmData.type === 'kasa' 
-          ? `"${confirmData.item?.kasa_adi}" hesabını silmek istediğinizden emin misiniz? Bu işlem hesaba ait tüm geçmiş hareketleri de silebilir!` 
-          : "Bu finansal hareketi silmek istediğinizden emin misiniz? İşlem geri alınamaz."}
-        type="danger"
-      />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+               <div>
+                  <label style={labelStyle}>Tarih</label>
+                  <input type="date" required style={inputStyle} value={hareketForm.tarih} onChange={e => setHareketForm({...hareketForm, tarih: e.target.value})} />
+               </div>
+               <div>
+                  <label style={labelStyle}>Ödeme Şekli</label>
+                  <select required style={inputStyle} value={hareketForm.odeme_sekli} onChange={e => setHareketForm({...hareketForm, odeme_sekli: e.target.value})}>
+                     <option value="Nakit">Nakit</option>
+                     <option value="Kredi Kartı">Kredi Kartı / POS</option>
+                     <option value="Havale/EFT">Havale / EFT / Fast</option>
+                     <option value="Çek">Çek / Senet</option>
+                  </select>
+               </div>
+            </div>
 
-      <style>{`
-        .spinner { width: 24px; height: 24px; border: 3px solid #f1f5f9; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
-      `}</style>
+            <div>
+               <label style={labelStyle}>Tutar (₺)</label>
+               <input type="number" step="0.01" required style={{...inputStyle, fontWeight: 900, fontSize: '20px', color: hareketForm.hareket_tur === 'Gider' ? '#dc2626' : '#10b981'}} placeholder="0.00" value={hareketForm.tutar} onChange={e => setHareketForm({...hareketForm, tutar: e.target.value})} />
+            </div>
 
+            <div>
+               <label style={labelStyle}>Açıklama / Karşı Hesap</label>
+               <input style={{...inputStyle, marginBottom: '8px'}} placeholder="Karşı Taraf (Cari) veya Firma" value={hareketForm.hesap} onChange={e => setHareketForm({...hareketForm, hesap: e.target.value})} />
+               <textarea rows={2} style={inputStyle} placeholder="İşleme ait kısa açıklama girin..." value={hareketForm.aciklama} onChange={e => setHareketForm({...hareketForm, aciklama: e.target.value})} />
+            </div>
+
+            <button type="submit" disabled={isSaving} className="btn-primary" style={{ padding: '14px', fontSize: '15px' }}>
+               {isSaving ? 'İşleniyor...' : 'Hareketi / Transferi Tamamla'}
+            </button>
+         </form>
+      </Modal>
     </div>
   )
 }
