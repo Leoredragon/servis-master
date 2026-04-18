@@ -36,7 +36,7 @@ export default function MusteriDetay() {
   
   // Araç Modal
   const [aracModal, setAracModal] = useState(false)
-  const [aracForm, setAracForm] = useState({ plaka: '', marka: '', model: '', yil: '', sase_no: '', renk: '' })
+  const [aracForm, setAracForm] = useState({ plaka: '', marka: '', model: '', yil: '', sasi_no: '', renk: '' })
   
   const [hareketModal, setHareketModal] = useState({ acik: false, tip: 'Borç' as 'Borç' | 'Tahsilat' })
   const [hareketForm, setHareketForm] = useState({ tutar: '', aciklama: '' })
@@ -110,14 +110,14 @@ export default function MusteriDetay() {
       marka: aracForm.marka.trim(),
       model: aracForm.model.trim(),
       yil:   aracForm.yil.trim() || null,
-      sase_no: aracForm.sase_no.trim() || null,
+      sasi_no: aracForm.sasi_no.trim() || null,
       renk: aracForm.renk.trim() || null
     }])
     setSaving(false)
     if (error) { showToast('Hata: ' + error.message, 'error'); return }
     showToast('Araç başarıyla eklendi')
     setAracModal(false)
-    setAracForm({ plaka: '', marka: '', model: '', yil: '', sase_no: '', renk: '' })
+    setAracForm({ plaka: '', marka: '', model: '', yil: '', sasi_no: '', renk: '' })
     await loadData()
   }
 
@@ -133,13 +133,15 @@ export default function MusteriDetay() {
     }
     setSaving(true)
     const { error } = await supabase.from('fatura').insert([{
-      cari_id: id,
+      cari_id: parseInt(id as string),
       fatura_turu: hareketModal.tip,
       gtoplam: parseFloat(hareketForm.tutar),
       evrak_no: hareketForm.aciklama || (hareketModal.tip === 'Borç' ? 'BORC-' : 'TAH-') + Date.now().toString().slice(-6),
       fat_tarih: new Date().toISOString(),
       toplam: parseFloat(hareketForm.tutar),
-      kdv: 0
+      kdv: 0,
+      kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+      subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
     }])
     setSaving(false)
     if (error) { showToast('Hata: ' + error.message, 'error'); return }
@@ -330,7 +332,7 @@ export default function MusteriDetay() {
                           </div>
                           <div>
                             <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Şasi No</div>
-                            <div style={{ fontSize: '13px', color: '#0f172a', fontWeight: 500, marginTop: '2px', fontFamily: 'monospace' }}>{a.sase_no || 'Bilinmiyor'}</div>
+                            <div style={{ fontSize: '13px', color: '#0f172a', fontWeight: 500, marginTop: '2px', fontFamily: 'monospace' }}>{a.sasi_no || 'Bilinmiyor'}</div>
                           </div>
                         </div>
                         <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
@@ -544,7 +546,7 @@ export default function MusteriDetay() {
 
               <div style={{ gridColumn: '1/-1' }}>
                 <label style={lbl}>Şasi No (Opsiyonel)</label>
-                <input style={inp} placeholder="VF123..." value={aracForm.sase_no} onChange={e => setAracForm({ ...aracForm, sase_no: e.target.value })} />
+                <input style={inp} placeholder="VF123..." value={aracForm.sasi_no} onChange={e => setAracForm({ ...aracForm, sasi_no: e.target.value })} />
               </div>
             </div>
           </div>

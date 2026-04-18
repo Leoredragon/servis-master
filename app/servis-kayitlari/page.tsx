@@ -1,7 +1,7 @@
 "use client"
 
 import { supabase } from '../lib/supabase'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import Modal from '../components/Modal'
 import Pagination from '../components/Pagination'
@@ -157,9 +157,9 @@ function KanbanColumn({ title, servisler, color }: { title: string; servisler: S
 
 export default function ServisKayitlari() {
   const [servisler,  setServisler]  = useState<Servis[]>([])
-  const [filtered,   setFiltered]   = useState<Servis[]>([])
   const [loading,    setLoading]    = useState(true)
   const [arama,      setArama]      = useState('')
+  const [debouncedArama, setDebouncedArama] = useState('')
   const [aktifTab,   setAktifTab]   = useState('Tümü')
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize,   setPageSize]   = useState(20)
@@ -188,41 +188,44 @@ export default function ServisKayitlari() {
     cari_id: '', arac_id: '', gelis_kmsi: '', sikayet: '', teknisyen: '', durum: 'Araç Kabul'
   })
 
-  const showToast = (msg: string, type: 'success'|'error' = 'success') => { setToast({msg, type}); setTimeout(() => setToast(null), 3000) }
+  const showToast = useCallback((msg: string, type: 'success'|'error' = 'success') => { 
+    setToast({msg, type}); 
+    setTimeout(() => setToast(null), 3000) 
+  }, [])
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true)
     const [s_res, m_res, a_res] = await Promise.all([
-      supabase.from('servis_karti').select('*, arac(*), cari_kart(*)').order('giris_tarihi', { ascending: false }),
+      supabase.from('servis_karti')
+        .select('id, servis_no, cari_id, arac_id, gelis_kmsi, sikayet, teknisyen, durum, giris_tarihi, toplam_tutar, arac(id, plaka, marka, model, yil), cari_kart(id, yetkili)')
+        .order('giris_tarihi', { ascending: false })
+        .limit(50),
       supabase.from('cari_kart').select('id, yetkili').order('yetkili'),
-      supabase.from('arac').select('*')
+      supabase.from('arac').select('id, plaka, marka, model, yil, cari_id')
     ])
-    setServisler(s_res.data || [])
-    setFiltered(s_res.data || [])
-    setMusteriler(m_res.data || [])
-    setTumAraclar(a_res.data || [])
+    setServisler((s_res.data as any) || [])
+    setMusteriler((m_res.data as any) || [])
+    setTumAraclar((a_res.data as any) || [])
     setLoading(false)
-  }
+  }, [])
 
   useEffect(() => { 
     fetchData()
-    const savedView = localStorage.getItem('servis_view_mode') as 'list' | 'kanban'
-    if (savedView) setViewMode(savedView)
-  }, [])
+  }, [fetchData])
 
   const handleViewToggle = (mode: 'list' | 'kanban') => {
     setViewMode(mode)
     localStorage.setItem('servis_view_mode', mode)
   }
 
-  const handleDragEnd = async (event: any) => {
+  const handleDragEnd = useCallback(async (event: any) => {
     const { active, over } = event
     if (!over) return
 
     const activeId = active.id
     const newDurum = over.id as string
 
-    // Aynı kolona bırakıldıysa işlem yapma
+    // Aynı kolona bırakıldıyse işlem yapma
     const sIdx = servisler.findIndex(s => s.id === activeId)
     if (sIdx === -1 || servisler[sIdx].durum === newDurum) return
 
@@ -243,10 +246,17 @@ export default function ServisKayitlari() {
     } else {
       showToast(`${updated[sIdx].servis_no} durumu güncellendi`)
     }
-  }
+  }, [servisler, fetchData, showToast])
 
   useEffect(() => {
-    const q = arama.toLowerCase()
+    const handler = setTimeout(() => {
+      setDebouncedArama(arama)
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [arama])
+
+  const filtered = useMemo(() => {
+    const q = debouncedArama.toLowerCase()
     let list = servisler
     if (aktifTab !== 'Tümü') list = list.filter(s => s.durum === aktifTab)
     if (q) {
@@ -256,17 +266,20 @@ export default function ServisKayitlari() {
         (s.arac?.plaka || '').toLowerCase().includes(q)
       )
     }
-    setFiltered(list)
+    return list
+  }, [debouncedArama, aktifTab, servisler])
+
+  useEffect(() => {
     setCurrentPage(1)
-  }, [arama, aktifTab, servisler])
+  }, [debouncedArama, aktifTab])
 
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
-  const handleYeniKaydet = async (e: React.FormEvent) => {
+  const handleYeniKaydet = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.cari_id || !form.arac_id) { showToast('Müşteri ve Araç seçimi zorunludur', 'error'); return }
     setSaving(true)
-    const { data, error } = await supabase.from('servis_karti').insert([{
+    const { error } = await supabase.from('servis_karti').insert([{
       cari_id: parseInt(form.cari_id),
       arac_id: parseInt(form.arac_id),
       gelis_kmsi: parseInt(form.gelis_kmsi) || 0,
@@ -274,15 +287,15 @@ export default function ServisKayitlari() {
       teknisyen: form.teknisyen,
       durum: form.durum,
       servis_no: 'SRV-' + Math.floor(1000 + Math.random() * 9000),
-      kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
-      subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
-    }]).select().single()
+      kullaniciadi: 'admin',
+      subeadi:      'Merkez',
+    }])
     setSaving(false)
     if (error) { showToast('Hata: ' + error.message, 'error'); return }
     setModalAcik(false)
     showToast('Yeni servis kaydı açıldı')
     await fetchData()
-  }
+  }, [form, fetchData, showToast])
 
   return (
     <div style={{ width: '100%', padding: '0 32px', display: 'flex', flexDirection: 'column', gap: '28px', paddingBottom: '32px' }}>
@@ -336,7 +349,11 @@ export default function ServisKayitlari() {
           </div>
 
           {loading ? (
-            <div style={{ padding: '80px', textAlign: 'center', color: '#64748b', fontWeight: 600 }}>Yükleniyor...</div>
+            <div style={{ padding: '24px' }}>
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="skeleton" style={{ height: '60px', marginBottom: '12px', width: '100%' }} />
+              ))}
+            </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>

@@ -1,9 +1,16 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { Inter } from 'next/font/google'
 import './globals.css'
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  weight: ['300', '400', '500', '600', '700', '800', '900']
+})
 
 // ─── SVG İkonları ────────────────────────────────
 const Icon = ({ d, size = 18 }: { d: string; size?: number }) => (
@@ -72,16 +79,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [collapsed, setCollapsed] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const pathname = usePathname()
-  const isActive = (path: string) => path === '/' ? pathname === '/' : pathname.startsWith(path)
+  
+  const isActive = useCallback((path: string) => 
+    path === '/' ? pathname === '/' : pathname.startsWith(path), 
+  [pathname])
+
+  const toggleSidebar = useCallback(() => setCollapsed(prev => !prev), [])
+  const toggleProfile = useCallback(() => setProfileOpen(prev => !prev), [])
+  const closeProfile = useCallback(() => setProfileOpen(false), [])
 
   return (
     <html lang="tr">
       <head>
         <title>Servis Master Pro</title>
         <meta name="description" content="Profesyonel Teknik Servis Yönetim Sistemi" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
       </head>
-      <body style={{ margin: 0, padding: 0, fontFamily: "'Inter', sans-serif", background: '#f0f2f5' }}>
+      <body className={inter.className} style={{ margin: 0, padding: 0, background: '#f0f2f5' }}>
         <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
           
           {/* ─── Sidebar ─── */}
@@ -91,6 +104,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             background: 'linear-gradient(175deg, #0d1b2a 0%, #132040 55%, #0d1929 100%)',
             display: 'flex', flexDirection: 'column',
             transition: 'width 0.26s cubic-bezier(0.4,0,0.2,1), min-width 0.26s cubic-bezier(0.4,0,0.2,1)',
+            willChange: 'width, min-width',
             overflow: 'hidden',
             boxShadow: '4px 0 28px rgba(0,0,0,0.22)',
             position: 'relative', zIndex: 10,
@@ -116,7 +130,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <div style={{ color: '#60a5fa', fontWeight: 700, fontSize: '10px', letterSpacing: '2.5px', marginTop: '2px' }}>MASTER PRO</div>
                 </div>
               )}
-              <button onClick={() => setCollapsed(!collapsed)} style={{
+              <button onClick={toggleSidebar} style={{
                 marginLeft: 'auto', background: 'rgba(255,255,255,0.05)',
                 border: '1px solid rgba(255,255,255,0.08)', color: '#64748b',
                 borderRadius: '8px', width: '28px', height: '28px',
@@ -215,7 +229,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
                 <div style={{ position: 'relative' }}>
                   <div 
-                    onClick={() => setProfileOpen(!profileOpen)}
+                    onClick={toggleProfile}
                     style={{ display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer', padding: '4px 8px', borderRadius: '12px', transition: 'all 0.2s' }}
                     onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -232,7 +246,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   {/* Profile Dropdown */}
                   {profileOpen && (
                     <>
-                      <div onClick={() => setProfileOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 100 }}></div>
+                      <div onClick={closeProfile} style={{ position: 'fixed', inset: 0, zIndex: 100 }}></div>
                       <div style={{ 
                         position: 'absolute', top: 'calc(100% + 12px)', right: 0, width: '220px', 
                         background: '#fff', borderRadius: '16px', boxShadow: '0 10px 40px rgba(0,0,0,0.12)', 

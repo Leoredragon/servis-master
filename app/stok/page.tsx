@@ -1,264 +1,361 @@
 "use client"
 
-import { supabase } from '../lib/supabase'
-import { useEffect, useState } from 'react'
-import Modal from '../components/Modal'
-import ConfirmModal from '../components/ConfirmModal'
-import SlideOver from '../components/SlideOver'
-import Pagination from '../components/Pagination'
+import { supabase } from '@/app/lib/supabase'
+import { useEffect, useState, useMemo, useCallback } from 'react'
+import Modal from '@/app/components/Modal'
+import ConfirmModal from '@/app/components/ConfirmModal'
+import SlideOver from '@/app/components/SlideOver'
+import Pagination from '@/app/components/Pagination'
 
-const KATEGORILER = [
-  "Filtre ve Bakım", "Mekanik/Motor", "Elektrik", "Kaporta/Aksesuar", "Sarf Malzeme", "Diğer"
+/* ─── Sabitler ─── */
+const GRUPLAR = [
+  "Filtre ve Bakım", "Mekanik/Motor", "Elektrik", "Kaporta/Aksesuar", "Sarf Malzeme", "Lastik/Jant", "Madeni Yağ", "Diğer"
 ]
 
-const inputStyle: React.CSSProperties = { width: '100%', padding: '12px 14px', border: '1.5px solid #e2e8f0', borderRadius: '12px', fontSize: '14px', outline: 'none', color: '#0f172a', background: '#fff', boxSizing: 'border-box', transition: 'border-color 0.2s' }
-const labelStyle: React.CSSProperties = { display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '8px' }
+const BIRIMLER = ["Adet", "Litre", "Set", "Kg", "Metre", "Takım"]
 
-export default function Stok() {
-  const [urunler,  setUrunler]  = useState<any[]>([])
-  const [filtered, setFiltered] = useState<any[]>([])
-  const [loading,  setLoading]  = useState(true)
-  const [arama,    setArama]    = useState('')
-  const [modalAcik,setModalAcik]= useState(false)
-  const [saving,   setSaving]   = useState(false)
-  const [toast,    setToast]    = useState<{ type: 'success' | 'error', msg: string } | null>(null)
-  const [confirmData, setConfirmData] = useState<{ open: boolean, item: any }>({ open: false, item: null })
-  const [form, setForm] = useState({
-    id: null as number | null,
-    kod: '', ad: '', kategori: 'Filtre ve Bakım', barkod: '', birim: 'Adet',
-    a_fiyat: '', s_fiyat: '', kdv_oran: '20', miktar: '0', kritik_seviye: '5', aciklama: ''
-  })
-  const [pageSize, setPageSize] = useState(20)
+const KDV_ORANLARI = [0, 1, 10, 20]
+
+const Icons = {
+  plus: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  search: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>,
+  box: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>,
+  trendingUp: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+  alert: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+  edit: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+  trash: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>,
+  history: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>,
+  in: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>,
+  out: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="3" y2="21"/><path d="M11 18h6a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v7"/></svg>,
+}
+
+const inputStyle = { width: '100%', padding: '12px 16px', border: '1.5px solid #e2e8f0', borderRadius: '12px', fontSize: '14px', outline: 'none', transition: 'all 0.2s', background: '#fff' }
+const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' }
+
+export default function StokYonetimi() {
+  const [loading, setLoading] = useState(true)
+  const [items, setItems] = useState<any[]>([])
+  const [stats, setStats] = useState({ totalProducts: 0, totalValue: 0, criticalCount: 0 })
+  const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [selectedGroup, setSelectedGroup] = useState('Hepsi')
+  
+  // Modal & SlideOver states
+  const [modal, setModal] = useState<{ open: boolean, data: any }>({ open: false, data: null })
+  const [slideOver, setSlideOver] = useState<{ open: boolean, item: any, history: any[] }>({ open: false, item: null, history: [] })
+  const [confirmDelete, setConfirmDelete] = useState<{ open: boolean, id: number | null }>({ open: false, id: null })
+  const [movementModal, setMovementModal] = useState<{ open: boolean, type: 'Giriş' | 'Çıkış' }>({ open: false, type: 'Giriş' })
+  const [movementForm, setMovementForm] = useState({ miktar: '', aciklama: '' })
+
+  const [saving, setSaving] = useState(false)
+  const [toast, setToast] = useState<any>(null)
+
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
-  const showToast = (msg: string, type: 'success' | 'error' = 'success') => { setToast({ type, msg }); setTimeout(() => setToast(null), 3000) }
+  const showToast = useCallback((msg: string, type = 'success') => { 
+    setToast({ msg, type }); 
+    setTimeout(() => setToast(null), 3000) 
+  }, [])
 
-  const loadUrunler = async () => {
+  /* ─── Veri Yükleme ─── */
+  const fetchData = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase.from('stok').select('*').order('ad')
-    setUrunler(data || [])
-    setLoading(false)
-  }
+    const { data, error } = await supabase.from('stok').select('*').order('ad').limit(50)
+    if (error) { showToast('Hata: ' + error.message, 'error'); return }
 
-  useEffect(() => { loadUrunler() }, [])
+    setItems(data || [])
+    
+    // Stats calculation
+    const totalVal = (data || []).reduce((acc, curr) => acc + (curr.miktar * curr.a_fiyat), 0)
+    const critical = (data || []).filter(u => u.miktar <= (u.kritik_seviye || 5)).length
+    setStats({ totalProducts: data?.length || 0, totalValue: totalVal, criticalCount: critical })
+    
+    setLoading(false)
+  }, [showToast])
+
+  useEffect(() => { fetchData() }, [fetchData])
 
   useEffect(() => {
-    const q = arama.toLowerCase()
-    setFiltered(!q ? urunler : urunler.filter(u =>
-      (u.ad||'').toLowerCase().includes(q) ||
-      (u.kod||'').toLowerCase().includes(q) ||
-      (u.kategori||'').toLowerCase().includes(q) ||
-      (u.barkod||'').toLowerCase().includes(q)
-    ))
-    setCurrentPage(1)
-  }, [arama, urunler])
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm)
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [searchTerm])
 
-  const paginatedResults = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+  /* ─── Filtreleme ─── */
+  const filteredItems = useMemo(() => {
+    return items.filter(u => {
+      const matchSearch = debouncedSearch === '' || 
+        u.ad.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        (u.kod || '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        (u.barkod || '').toLowerCase().includes(debouncedSearch.toLowerCase())
+      const matchGroup = selectedGroup === 'Hepsi' || u.grup === selectedGroup
+      return matchSearch && matchGroup
+    })
+  }, [items, debouncedSearch, selectedGroup])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const paginatedItems = filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
+  /* ─── Ürün Kaydet (Yeni/Düzenle) ─── */
+  const handleSave = useCallback(async (e: any) => {
     e.preventDefault()
     setSaving(true)
+    const formData = new FormData(e.target)
+    const formDataObj: any = Object.fromEntries(formData.entries())
 
     const payload = {
-      kod: form.kod || null,
-      ad: form.ad,
-      kategori: form.kategori,
-      barkod: form.barkod || null,
-      birim: form.birim,
-      a_fiyat: parseFloat(form.a_fiyat) || 0,
-      s_fiyat: parseFloat(form.s_fiyat) || 0,
-      kdv_oran: parseInt(form.kdv_oran) || 20,
-      miktar: parseFloat(form.miktar) || 0,
-      kritik_seviye: parseFloat(form.kritik_seviye) || 0,
-      aciklama: form.aciklama || null
+      ad: formDataObj.ad,
+      kod: formDataObj.kod || null,
+      barkod: formDataObj.barkod || null,
+      grup: formDataObj.grup,
+      birim: formDataObj.birim,
+      a_fiyat: parseFloat(formDataObj.a_fiyat) || 0,
+      s_fiyat: parseFloat(formDataObj.s_fiyat) || 0,
+      kdv_oran: parseInt(formDataObj.kdv_oran),
+      kritik_seviye: parseFloat(formDataObj.kritik_seviye) || 10,
+      aciklama: formDataObj.aciklama,
+      kullaniciadi: 'admin',
+      subeadi: 'Merkez'
     }
 
-    let error
-    if (form.id) {
-      // Değişiklik kontrolü için eski veriyi al
-      const { data: old } = await supabase.from('stok').select('miktar').eq('id', form.id).single()
+    try {
+      if (modal.data?.id) {
+        // Düzenle
+        const { error } = await supabase.from('stok').update(payload).eq('id', modal.data.id)
+        if (error) throw error
+        showToast('Ürün güncellendi')
+      } else {
+        // Yeni
+        const { data: inserted, error } = await supabase.from('stok').insert([{ 
+          ...payload, 
+          miktar: parseFloat(formDataObj.miktar) || 0 
+        }]).select().single()
+        if (error) throw error
+
+        // İlk hareket kaydı
+        if (parseFloat(formDataObj.miktar) > 0) {
+          await supabase.from('stok_hareket').insert([{
+            stok_id: inserted.id,
+            hareket_turu: 'Giriş',
+            miktar: parseFloat(formDataObj.miktar),
+            aciklama: 'Açılış bakiyesi'
+          }])
+        }
+        showToast('Yeni ürün eklendi')
+      }
+      setModal({ open: false, data: null })
+      fetchData()
+    } catch (err: any) {
+      showToast(err.message, 'error')
+    } finally {
+      setSaving(false)
+    }
+  }, [modal.data, fetchData, showToast])
+
+  /* ─── Silme ─── */
+  const handleDelete = useCallback(async () => {
+    if (!confirmDelete.id) return
+    const { error } = await supabase.from('stok').delete().eq('id', confirmDelete.id)
+    if (error) showToast(error.message, 'error')
+    else {
+      showToast('Ürün silindi')
+      fetchData()
+    }
+    setConfirmDelete({ open: false, id: null })
+  }, [confirmDelete.id, fetchData, showToast])
+
+  /* ─── Detay & Hareketler ─── */
+  const openDetail = useCallback(async (item: any) => {
+    setSlideOver({ open: true, item, history: [] })
+    const { data } = await supabase
+      .from('stok_hareket')
+      .select('*')
+      .eq('stok_id', item.id)
+      .order('islem_tarihi', { ascending: false })
+    setSlideOver(prev => ({ ...prev, item, history: data || [] }))
+  }, [])
+
+  /* ─── Manuel Hareket Ekle ─── */
+  const handleMovementSubmit = useCallback(async (e: any) => {
+    e.preventDefault()
+    setSaving(true)
+    const miktar = parseFloat(movementForm.miktar)
+    const item = slideOver.item
+
+    if (movementModal.type === 'Çıkış' && item.miktar < miktar) {
+       showToast('Yetersiz stok!', 'error')
+       setSaving(false)
+       return
+    }
+
+    const degisim = movementModal.type === 'Giriş' ? miktar : -miktar
+
+    try {
+      const { error: hErr } = await supabase.from('stok_hareket').insert([{
+        stok_id: item.id,
+        hareket_turu: movementModal.type,
+        miktar: miktar,
+        aciklama: movementForm.aciklama
+      }])
+      if (hErr) throw hErr
+
+      await supabase.rpc('update_stok_miktar', { s_id: item.id, degisim: degisim })
       
-      const res = await supabase.from('stok').update(payload).eq('id', form.id)
-      error = res.error
-
-      if (!error && old && parseFloat(form.miktar) !== old.miktar) {
-        const diff = parseFloat(form.miktar) - old.miktar
-        await supabase.from('stok_hareket').insert([{
-          stok_id: form.id,
-          hareket_turu: 'Düzeltme',
-          miktar: Math.abs(diff),
-          notlar: `Manuel miktar düzeltmesi (${old.miktar} -> ${form.miktar})`,
-          kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
-          subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
-        }])
-      }
-    } else {
-      const res = await supabase.from('stok').insert([{
-        ...payload,
-        kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
-        subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
-      }]).select()
-      error = res.error
-      // İlk giriş kaydını harelete ekle
-      if (!error && res.data && res.data[0]) {
-        await supabase.from('stok_hareket').insert([{
-          stok_id: res.data[0].id,
-          hareket_turu: 'Giriş',
-          miktar: payload.miktar,
-          birim_fiyat: payload.a_fiyat,
-          notlar: 'Açılış bakiyesi',
-          kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
-          subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
-        }])
-      }
+      showToast('Stok hareketi kaydedildi')
+      setMovementModal({ open: false, type: 'Giriş' })
+      setMovementForm({ miktar: '', aciklama: '' })
+      
+      // Refresh
+      const { data: updatedItem } = await supabase.from('stok').select('*').eq('id', item.id).single()
+      if (updatedItem) openDetail(updatedItem)
+      fetchData()
+    } catch (err: any) {
+      showToast(err.message, 'error')
+    } finally {
+      setSaving(false)
     }
-
-    setSaving(false)
-    if (error) { showToast('Hata: ' + error.message, 'error'); return }
-    setModalAcik(false)
-    setForm({ id: null, kod:'', ad:'', kategori:'Filtre ve Bakım', barkod:'', birim:'Adet', a_fiyat:'', s_fiyat:'', kdv_oran:'20', miktar: '0', kritik_seviye: '5', aciklama: '' })
-    showToast(form.id ? 'Ürün güncellendi' : 'Ürün başarıyla eklendi')
-    await loadUrunler()
-  }
-
-  const handleSil = async (id: number) => {
-    const { error } = await supabase.from('stok').delete().eq('id', id)
-    if (error) { showToast('Silinemedi: ' + error.message); return }
-    showToast('Ürün silindi')
-    await loadUrunler()
-  }
+  }, [movementForm, movementModal.type, slideOver.item, openDetail, fetchData, showToast])
 
   return (
-    <div className="animate-fadeIn" style={{ width: '100%', padding: '0 40px', boxSizing: 'border-box' }}>
+    <div style={{ padding: '0 40px', boxSizing: 'border-box' }}>
+      {/* Custom Toast */}
       {toast && (
-        <div style={{ position: 'fixed', top: '24px', right: '24px', zIndex: 3000, background: toast.type === 'success' ? '#10b981' : '#ef4444', color: '#fff', padding: '14px 24px', borderRadius: '14px', fontSize: '14px', fontWeight: 800, boxShadow: '0 10px 25px -4px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {toast.type === 'success' ? '✓' : '✕'} {toast.msg}
+        <div style={{
+          position: 'fixed', top: '24px', right: '24px', zIndex: 9999,
+          background: toast.type === 'error' ? '#ef4444' : '#10b981',
+          color: '#fff', padding: '16px 28px', borderRadius: '16px', fontWeight: 700,
+          boxShadow: '0 10px 30px rgba(0,0,0,0.15)', animation: 'slideIn 0.3s ease-out'
+        }}>
+          {toast.msg}
         </div>
       )}
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', marginTop: '10px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '24px 0 32px' }}>
         <div>
           <h1 style={{ fontSize: '32px', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-1px' }}>Yedek Parça & Stok</h1>
-          <p style={{ color: '#64748b', fontSize: '15px', margin: '4px 0 0', fontWeight: 500 }}>
-            Toplam <span style={{ color: '#0f172a', fontWeight: 700 }}>{urunler.length}</span> kalem stok kartı
+          <p style={{ color: '#64748b', fontSize: '15px', marginTop: '4px', fontWeight: 500 }}>
+            Tüm yedek parçaları, sarf malzemeleri ve stok hareketlerini buradan yönetebilirsiniz.
           </p>
         </div>
-        <button 
-          onClick={() => {
-            setForm({ id: null, kod:'', ad:'', kategori:'Filtre ve Bakım', barkod:'', birim:'Adet', a_fiyat:'', s_fiyat:'', kdv_oran:'20', miktar: '0', kritik_seviye: '5', aciklama: '' })
-            setModalAcik(true)
-          }} 
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', color: '#fff', padding: '12px 24px', borderRadius: '14px', fontWeight: 800, fontSize: '14px', border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(37,99,235,0.25)', transition: 'all 0.2s' }}
-          onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-          onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+        <button
+          onClick={() => setModal({ open: true, data: null })}
+          className="btn-primary"
+          style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28px', fontSize: '15px' }}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Yeni Stok Kartı
+          {Icons.plus} Yeni Ürün Ekle
         </button>
       </div>
 
       {/* Stats Summary */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '24px' }}>
-        {[
-          { label: 'Kritik Stokta', val: urunler.filter(u => u.miktar <= (u.kritik_seviye||0)).length, color: '#ef4444', bg: '#fef2f2' },
-          { label: 'Toplam Adet', val: urunler.reduce((s, u) => s + (u.miktar||0), 0).toFixed(0), color: '#3b82f6', bg: '#eff6ff' },
-          { label: 'Stok Değeri (Alış)', val: urunler.reduce((s, u) => s + (u.miktar * u.a_fiyat), 0).toLocaleString('tr-TR'), suffix: ' ₺', color: '#8b5cf6', bg: '#f5f3ff' },
-          { label: 'Tahmini Kazanç', val: urunler.reduce((s, u) => s + (u.miktar * (u.s_fiyat - u.a_fiyat)), 0).toLocaleString('tr-TR'), suffix: ' ₺', color: '#10b981', bg: '#f0fdf4' }
-        ].map((s, i) => (
-          <div key={i} style={{ background: '#fff', padding: '20px', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-            <span style={{ fontSize: '12px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</span>
-            <div style={{ fontSize: '24px', fontWeight: 900, color: s.color, marginTop: '8px' }}>
-              {s.val}{s.suffix}
-              {s.label === 'Kritik Stokta' && s.val > 0 && <span style={{ marginLeft: '8px', fontSize: '14px', background: s.color, color: '#fff', padding: '2px 8px', borderRadius: '6px' }}>ALARM</span>}
-            </div>
-          </div>
-        ))}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '32px' }}>
+        <StatCard icon={Icons.box} label="Toplam Ürün" value={stats.totalProducts} color="#3b82f6" subValue="Barkodlu/Barkodsuz karışık" />
+        <StatCard icon={Icons.trendingUp} label="Stok Değeri (Alış)" value={stats.totalValue.toLocaleString('tr-TR') + ' ₺'} color="#10b981" subValue="Mevcut envanter yatırım tutarı" />
+        <StatCard icon={Icons.alert} label="Kritik Stok" value={stats.criticalCount} color="#ef4444" subValue="Alarm seviyesindeki ürünler" warning />
       </div>
 
-      {/* Table Container */}
-      <div style={{ background: '#fff', borderRadius: '24px', border: '1px solid #f1f5f9', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', gap: '20px', alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
-            <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            </span>
-            <input type="text" placeholder="Ürün adı, kod veya barkod ile hızlı ara..." value={arama} onChange={e => setArama(e.target.value)} style={{ ...inputStyle, paddingLeft: '44px' }} />
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {['Filtre ve Bakım', 'Mekanik/Motor'].map(cat => (
-              <button key={cat} onClick={() => setArama(arama === cat ? '' : cat)} style={{ padding: '8px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', border: '1px solid #e2e8f0', background: arama === cat ? '#0f172a' : '#fff', color: arama === cat ? '#fff' : '#64748b' }}>{cat}</button>
-            ))}
-          </div>
+      {/* Toolbar */}
+      <div style={{ background: '#fff', borderRadius: '24px', border: '1.5px solid #f1f5f9', padding: '20px 24px', marginBottom: '24px', display: 'flex', gap: '20px', alignItems: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
+        <div style={{ position: 'relative', flex: 1 }}>
+          <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>{Icons.search}</div>
+          <input 
+            type="text" 
+            placeholder="Kod, ad veya barkod ile hızlı filtrele..." 
+            style={{ ...inputStyle, paddingLeft: '48px', height: '48px' }}
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+          />
         </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {['Hepsi', ...GRUPLAR.slice(0, 4)].map(g => (
+            <button
+              key={g}
+              onClick={() => setSelectedGroup(g)}
+              style={{
+                padding: '8px 18px', border: '1.5px solid #e2e8f0', borderRadius: '12px',
+                fontSize: '13px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s',
+                background: selectedGroup === g ? '#0f172a' : '#fff',
+                color: selectedGroup === g ? '#fff' : '#64748b'
+              }}
+            >
+              {g}
+            </button>
+          ))}
+        </div>
+      </div>
 
-        <div style={{ overflowX: 'auto' }}>
-          {loading ? (
-            <div style={{ padding: '100px', textAlign: 'center' }}>
-               <div style={{ width: '40px', height: '40px', margin: '0 auto', border: '4px solid #f1f5f9', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-               <p style={{ marginTop: '16px', color: '#64748b', fontSize: '14px', fontWeight: 600 }}>Veriler yükleniyor...</p>
-            </div>
-          ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc' }}>
-                  {['Durum', 'Kod / Barkod', 'Ürün Bilgisi', 'Kategori', 'Miktar', 'Alış / Satış', 'İşlemler'].map(h => (
-                    <th key={h} style={{ padding: '16px 24px', textAlign: h === 'İşlemler' || h === 'Alış / Satış' ? 'right' : 'left', fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '2px solid #f1f5f9' }}>{h}</th>
+      {/* Table Component */}
+      <div style={{ background: '#fff', borderRadius: '24px', border: '1.5px solid #f1f5f9', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #f1f5f9' }}>
+              <th style={{ padding: '20px 24px', textAlign: 'left', fontSize: '12px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Kod / Ürün Adı</th>
+              <th style={{ padding: '20px 24px', textAlign: 'left', fontSize: '12px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Grup</th>
+              <th style={{ padding: '20px 24px', textAlign: 'center', fontSize: '12px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Miktar</th>
+              <th style={{ padding: '20px 24px', textAlign: 'right', fontSize: '12px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Birim Fiyat (Alış/Satış)</th>
+              <th style={{ padding: '20px 24px', textAlign: 'center', fontSize: '12px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={5} style={{ padding: '24px' }}>
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <div key={i} className="skeleton" style={{ height: '60px', marginBottom: '12px', width: '100%' }} />
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedResults.map((u, idx) => {
-                  const isLow = u.miktar <= (u.kritik_seviye || 0)
-                  return (
-                    <tr key={u.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = '#fcfdfe'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                      <td style={{ padding: '18px 24px' }}>
-                         <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: isLow ? '#ef4444' : '#10b981', boxShadow: isLow ? '0 0 8px #ef444466' : 'none' }} />
-                      </td>
-                      <td style={{ padding: '18px 24px' }}>
-                        <div style={{ fontSize: '13px', fontWeight: 750, color: '#1e293b', fontFamily: 'var(--font-mono)' }}>{u.kod || '—'}</div>
-                        <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>{u.barkod || 'Barkodsuz'}</div>
-                      </td>
-                      <td style={{ padding: '18px 24px' }}>
-                        <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>{u.ad}</div>
-                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{u.birim}</div>
-                      </td>
-                      <td style={{ padding: '18px 24px' }}>
-                        <span style={{ padding: '6px 12px', borderRadius: '8px', background: '#f1f5f9', color: '#475569', fontSize: '12px', fontWeight: 700 }}>{u.kategori || 'Genel'}</span>
-                      </td>
-                      <td style={{ padding: '18px 24px' }}>
-                        <div style={{ fontSize: '18px', fontWeight: 900, color: isLow ? '#ef4444' : '#0f172a' }}>
-                          {u.miktar} <span style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8' }}>{u.birim}</span>
-                        </div>
-                        {isLow && <div style={{ fontSize: '10px', color: '#ef4444', fontWeight: 800, textTransform: 'uppercase', marginTop: '2px' }}>Kritik Seviye! ({u.kritik_seviye})</div>}
-                      </td>
-                      <td style={{ padding: '18px 24px', textAlign: 'right' }}>
-                         <div style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 600 }}>Alış: {u.a_fiyat?.toFixed(2)} ₺</div>
-                         <div style={{ fontSize: '16px', fontWeight: 900, color: '#059669', marginTop: '2px' }}>{u.s_fiyat?.toFixed(2)} ₺</div>
-                      </td>
-                      <td style={{ padding: '18px 24px', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                          <button 
-                            onClick={() => {
-                              setForm({ ...u, a_fiyat: u.a_fiyat.toString(), s_fiyat: u.s_fiyat.toString(), miktar: u.miktar.toString(), kritik_seviye: u.kritik_seviye.toString(), kdv_oran: u.kdv_oran.toString() })
-                              setModalAcik(true)
-                            }}
-                            style={{ padding: '8px 12px', background: '#eff6ff', color: '#2563eb', border: 'none', borderRadius: '10px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
-                          >Detay</button>
-                          <button onClick={() => setConfirmData({ open: true, item: u })} style={{ padding: '8px 12px', background: '#fef2f2', color: '#ef4444', border: 'none', borderRadius: '10px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Sil</button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-                {paginatedResults.length === 0 && <tr><td colSpan={7} style={{ padding: '100px', textAlign: 'center', color: '#94a3b8', fontSize: '15px', fontWeight: 600 }}>Ürün bulunamadı</td></tr>}
-              </tbody>
-            </table>
-          )}
-        </div>
-
+                </td>
+              </tr>
+            ) : paginatedItems.length === 0 ? (
+              <tr><td colSpan={5} style={{ padding: '60px', textAlign: 'center', color: '#64748b' }}>Ürün bulunamadı.</td></tr>
+            ) : paginatedItems.map(item => (
+              <tr 
+                key={item.id} 
+                className="hover-row"
+                style={{ borderBottom: '1.5px solid #f1f5f9', cursor: 'pointer' }}
+                onClick={() => openDetail(item)}
+              >
+                <td style={{ padding: '20px 24px' }}>
+                  <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '15px' }}>{item.ad}</div>
+                  <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px', fontFamily: 'monospace' }}>{item.kod || 'Kodsuz'} | {item.barkod || 'Barkodsuz'}</div>
+                </td>
+                <td style={{ padding: '20px 24px' }}>
+                  <span style={{ padding: '6px 12px', borderRadius: '8px', background: '#f1f5f9', color: '#475569', fontSize: '12px', fontWeight: 700 }}>{item.grup}</span>
+                </td>
+                <td style={{ padding: '20px 24px', textAlign: 'center' }}>
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                    padding: '6px 14px', borderRadius: '12px', fontWeight: 900, fontSize: '15px',
+                    background: item.miktar <= 0 ? '#fef2f2' : item.miktar <= item.kritik_seviye ? '#fff9db' : '#f0fdf4',
+                    color: item.miktar <= 0 ? '#ef4444' : item.miktar <= item.kritik_seviye ? '#f59f00' : '#10b981'
+                  }}>
+                    {item.miktar} <span style={{ fontSize: '11px', opacity: 0.8 }}>{item.birim}</span>
+                  </div>
+                </td>
+                <td style={{ padding: '20px 24px', textAlign: 'right' }}>
+                  <div style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 600 }}>Alış: {item.a_fiyat?.toFixed(2)} ₺</div>
+                  <div style={{ fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>Satış: {item.s_fiyat?.toFixed(2)} ₺</div>
+                </td>
+                <td style={{ padding: '20px 24px' }} onClick={e => e.stopPropagation()}>
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                    <button 
+                      onClick={() => setModal({ open: true, data: item })}
+                      style={{ padding: '8px', background: '#e0f2fe', color: '#0284c7', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                    >{Icons.edit}</button>
+                    <button 
+                      onClick={() => setConfirmDelete({ open: true, id: item.id })}
+                      style={{ padding: '8px', background: '#fef2f2', color: '#dc2626', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                    >{Icons.trash}</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        
         <Pagination 
-          totalItems={filtered.length}
+          totalItems={filteredItems.length}
           pageSize={pageSize}
           currentPage={currentPage}
           onPageChange={setCurrentPage}
@@ -266,100 +363,212 @@ export default function Stok() {
         />
       </div>
 
-      {/* ─── SLIDEOVER FORM ─── */}
-      <SlideOver
-        isOpen={modalAcik}
-        onClose={() => setModalAcik(false)}
-        title={form.id ? 'Stok Kartı Düzenle' : 'Yeni Stok Kartı'}
-        subtitle="Ürün detaylarını ve stok seviyelerini girin."
+      {/* Product Add/Edit Modal */}
+      <Modal
+        isOpen={modal.open}
+        onClose={() => setModal({ open: false, data: null })}
+        title={modal.data ? "Stok Kartını Düzenle" : "Yeni Stok Kartı Ekle"}
+        size="md"
       >
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
+        <form onSubmit={handleSave} style={{ padding: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+            <div style={{ gridColumn: 'span 2' }}>
               <label style={labelStyle}>Ürün Adı *</label>
-              <input style={inputStyle} type="text" placeholder="Örn: Yağ Filtresi" value={form.ad} onChange={e => setForm({...form, ad: e.target.value})} required />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-               <div>
-                 <label style={labelStyle}>Stok Kodu</label>
-                 <input style={inputStyle} type="text" placeholder="ST-..." value={form.kod} onChange={e => setForm({...form, kod: e.target.value})} />
-               </div>
-               <div>
-                 <label style={labelStyle}>Barkod</label>
-                 <input style={inputStyle} type="text" placeholder="Scanning..." value={form.barkod} onChange={e => setForm({...form, barkod: e.target.value})} />
-               </div>
+              <input name="ad" defaultValue={modal.data?.ad} required style={inputStyle} placeholder="Örn: 5W-30 Motor Yağı 4Lt" />
             </div>
             <div>
-              <label style={labelStyle}>Kategori</label>
-              <select style={inputStyle} value={form.kategori} onChange={e => setForm({...form, kategori: e.target.value})}>
-                {KATEGORILER.map(c => <option key={c} value={c}>{c}</option>)}
+              <label style={labelStyle}>Stok Kodu</label>
+              <input name="kod" defaultValue={modal.data?.kod} style={inputStyle} placeholder="ST-001" />
+            </div>
+            <div>
+              <label style={labelStyle}>Barkod</label>
+              <input name="barkod" defaultValue={modal.data?.barkod} style={inputStyle} placeholder="869..." />
+            </div>
+            <div>
+              <label style={labelStyle}>Grup / Kategori</label>
+              <select name="grup" defaultValue={modal.data?.grup || "Filtre ve Bakım"} style={inputStyle}>
+                {GRUPLAR.map(g => <option key={g} value={g}>{g}</option>)}
               </select>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-               <div>
-                  <label style={labelStyle}>Birim</label>
-                  <select style={inputStyle} value={form.birim} onChange={e => setForm({...form, birim: e.target.value})}>
-                    {['Adet', 'Litre', 'Set', 'Kg', 'Metre'].map(b => <option key={b} value={b}>{b}</option>)}
-                  </select>
-               </div>
-               <div>
-                 <label style={labelStyle}>KDV Oranı</label>
-                 <select style={inputStyle} value={form.kdv_oran} onChange={e => setForm({...form, kdv_oran: e.target.value})}>
-                   {['0','1','10','20'].map(k => <option key={k} value={k}>%{k}</option>)}
-                 </select>
-               </div>
+            <div>
+              <label style={labelStyle}>Birim</label>
+              <select name="birim" defaultValue={modal.data?.birim || "Adet"} style={inputStyle}>
+                {BIRIMLER.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Alış Fiyatı (₺)</label>
+              <input name="a_fiyat" type="number" step="0.01" defaultValue={modal.data?.a_fiyat || 0} style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>Satış Fiyatı (₺)</label>
+              <input name="s_fiyat" type="number" step="0.01" defaultValue={modal.data?.s_fiyat || 0} style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>KDV Oranı</label>
+              <select name="kdv_oran" defaultValue={modal.data?.kdv_oran || 20} style={inputStyle}>
+                {KDV_ORANLARI.map(k => <option key={k} value={k}>%{k}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Kritik Stok Seviyesi</label>
+              <input name="kritik_seviye" type="number" defaultValue={modal.data?.kritik_seviye || 10} style={inputStyle} />
+            </div>
+            {!modal.data && (
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={labelStyle}>Açılış Stok Miktarı</label>
+                <input name="miktar" type="number" defaultValue={0} style={inputStyle} />
+              </div>
+            )}
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={labelStyle}>Açıklama</label>
+              <textarea name="aciklama" defaultValue={modal.data?.aciklama} style={{ ...inputStyle, height: '80px', resize: 'none' }} />
             </div>
           </div>
+          <button type="submit" disabled={saving} className="btn-primary" style={{ width: '100%', padding: '16px' }}>
+            {saving ? 'Kaydediliyor...' : 'Kaydet'}
+          </button>
+        </form>
+      </Modal>
 
-          <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-             <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>Finansal Bilgiler & Stok</h4>
-             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                   <label style={labelStyle}>Alış Fiyatı (₺)</label>
-                   <input style={inputStyle} type="number" step="0.01" value={form.a_fiyat} onChange={e => setForm({...form, a_fiyat: e.target.value})} />
-                </div>
-                <div>
-                   <label style={labelStyle}>Satış Fiyatı (₺)</label>
-                   <input style={inputStyle} type="number" step="0.01" value={form.s_fiyat} onChange={e => setForm({...form, s_fiyat: e.target.value})} required />
-                </div>
-                <div>
-                   <label style={labelStyle}>Mevcut Stok</label>
-                   <input style={inputStyle} type="number" value={form.miktar} onChange={e => setForm({...form, miktar: e.target.value})} />
-                </div>
-                <div>
-                   <label style={labelStyle}>Kritik Seviye</label>
-                   <input style={inputStyle} type="number" value={form.kritik_seviye} onChange={e => setForm({...form, kritik_seviye: e.target.value})} />
-                </div>
+      {/* Product Detail Modal (Formerly SlideOver) */}
+      <Modal
+        isOpen={slideOver.open}
+        onClose={() => setSlideOver({ open: false, item: null, history: [] })}
+        title={slideOver.item?.ad || 'Ürün Detayı'}
+        subtitle={`${slideOver.item?.kod || 'KODSUZ'} | ${slideOver.item?.grup}`}
+        size="md"
+      >
+        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          {/* Quick Stats */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+             <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>Mevcut Stok</div>
+                <div style={{ fontSize: '32px', fontWeight: 900, color: '#0f172a' }}>{slideOver.item?.miktar} <span style={{ fontSize: '14px', color: '#64748b' }}>{slideOver.item?.birim}</span></div>
+             </div>
+             <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>Satış Fiyatı</div>
+                <div style={{ fontSize: '32px', fontWeight: 900, color: '#059669' }}>{slideOver.item?.s_fiyat?.toFixed(2)} <span style={{ fontSize: '14px' }}>₺</span></div>
              </div>
           </div>
 
-          <div>
-             <label style={labelStyle}>Açıklama</label>
-             <textarea style={{ ...inputStyle, height: '100px', resize: 'none' }} value={form.aciklama} onChange={e => setForm({...form, aciklama: e.target.value})} />
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button 
+              onClick={() => setMovementModal({ open: true, type: 'Giriş' })}
+              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '14px', background: '#f0fdf4', color: '#166534', border: '1.2px solid #bcf0da', borderRadius: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}
+            >{Icons.in} Stok Girişi</button>
+            <button 
+              onClick={() => setMovementModal({ open: true, type: 'Çıkış' })}
+              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '14px', background: '#fef2f2', color: '#991b1b', border: '1.2px solid #fecaca', borderRadius: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}
+            >{Icons.out} Stok Çıkışı</button>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', marginTop: 'auto' }}>
-            <button type="submit" disabled={saving} style={{ flex: 1, padding: '16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '14px', fontWeight: 800, fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(37,99,235,0.2)' }}>
-              {saving ? 'Kaydediliyor...' : (form.id ? 'Güncelle' : 'Ürünü Kaydet')}
+          {/* History List */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+              <div style={{ color: '#64748b' }}>{Icons.history}</div>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>Hareket Geçmişi</h3>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '350px', overflowY: 'auto', paddingRight: '8px' }}>
+              {slideOver.history.length === 0 ? (
+                <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: '14px', border: '2px dashed #f1f5f9', borderRadius: '16px' }}>Henüz hareket kaydı bulunmuyor.</div>
+              ) : slideOver.history.map(h => (
+                <div key={h.id} style={{ padding: '16px', borderRadius: '16px', background: '#fff', border: '1.5px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ 
+                        fontSize: '11px', fontWeight: 800, padding: '3px 8px', borderRadius: '6px',
+                        background: h.hareket_turu.includes('Servis') ? '#eff6ff' : h.hareket_turu === 'Giriş' ? '#dcfce7' : h.hareket_turu === 'Çıkış' ? '#fee2e2' : '#f1f5f9',
+                        color: h.hareket_turu.includes('Servis') ? '#2563eb' : h.hareket_turu === 'Giriş' ? '#15803d' : h.hareket_turu === 'Çıkış' ? '#991b1b' : '#475569'
+                      }}>{h.hareket_turu}</span>
+                      <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 500 }}>{new Date(h.islem_tarihi).toLocaleDateString('tr-TR')} {new Date(h.islem_tarihi).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                    <p style={{ margin: '8px 0 0', fontSize: '14px', color: '#445164', fontWeight: 600 }}>{h.aciklama || '—'}</p>
+                  </div>
+                  <div style={{ fontSize: '16px', fontWeight: 900, color: h.hareket_turu.includes('Giriş') || h.hareket_turu.includes('İade') ? '#059669' : '#ef4444' }}>
+                    {h.hareket_turu.includes('Giriş') || h.hareket_turu.includes('İade') ? '+' : '-'}{h.miktar}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Manual Movement Modal */}
+      <Modal
+        isOpen={movementModal.open}
+        onClose={() => setMovementModal({ open: false, type: 'Giriş' })}
+        title={`Stok ${movementModal.type} İşlemi`}
+        size="sm"
+      >
+        <form onSubmit={handleMovementSubmit} style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div>
+              <label style={labelStyle}>Miktar ({slideOver.item?.birim})</label>
+              <input 
+                type="number" step="0.01" required autoFocus
+                style={inputStyle} 
+                value={movementForm.miktar}
+                onChange={e => setMovementForm({ ...movementForm, miktar: e.target.value })}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Açıklama / Not</label>
+              <textarea 
+                style={{ ...inputStyle, height: '80px', resize: 'none' }}
+                value={movementForm.aciklama}
+                onChange={e => setMovementForm({ ...movementForm, aciklama: e.target.value })}
+              />
+            </div>
+            <button 
+              type="submit" 
+              disabled={saving} 
+              className={movementModal.type === 'Giriş' ? 'btn-primary' : ''}
+              style={{ 
+                width: '100%', padding: '16px', borderRadius: '14px', border: 'none',
+                background: movementModal.type === 'Giriş' ? '#10b981' : '#ef4444',
+                color: '#fff', fontSize: '15px', fontWeight: 800, cursor: 'pointer'
+              }}
+            >
+              {saving ? 'İşleniyor...' : `${movementModal.type} Yap`}
             </button>
-            <button type="button" onClick={() => setModalAcik(false)} style={{ padding: '16px 24px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '14px', fontWeight: 700, fontSize: '15px', cursor: 'pointer' }}>İptal</button>
           </div>
         </form>
-      </SlideOver>
+      </Modal>
 
-      <ConfirmModal 
-        isOpen={confirmData.open}
-        onClose={() => setConfirmData({ open: false, item: null })}
-        onConfirm={() => handleSil(confirmData.item.id)}
+      <ConfirmModal
+        isOpen={confirmDelete.open}
+        onClose={() => setConfirmDelete({ open: false, id: null })}
+        onConfirm={handleDelete}
         type="danger"
-        title="Stok Kartını Sil"
-        message={`${confirmData.item?.ad} isimli ürünü stoka siliyorsunuz. Bu ürünün geçmiş hareketleri de silinecektir. Emin misiniz?`}
+        title="Ürünü Sil"
+        message="Bu stok kartını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve tüm stok geçmişi silinir."
       />
+
       <style>{`
-        @keyframes spin { to { transform: rotate(360deg) } }
-        .animate-fadeIn { animation: fadeIn 0.4s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .hover-row:hover { background: #f8fafc !important; }
+        @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
       `}</style>
+    </div>
+  )
+}
+
+function StatCard({ icon, label, value, color, subValue, warning = false }: any) {
+  return (
+    <div style={{
+      background: '#fff', padding: '24px', borderRadius: '24px', border: '1.5px solid #f1f5f9',
+      boxShadow: '0 10px 15px -3px rgba(0,0,0,0.03)', position: 'relative', overflow: 'hidden'
+    }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: color }}></div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+        <div style={{ color: color }}>{icon}</div>
+        <span style={{ fontSize: '13px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px' }}>{label}</span>
+      </div>
+      <div style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', letterSpacing: '-1px' }}>{value}</div>
+      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '6px', fontWeight: 500 }}>{subValue}</div>
+      {warning && value > 0 && <div style={{ position: 'absolute', top: '16px', right: '16px', background: '#fef2f2', color: '#ef4444', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800 }}>DİKKAT</div>}
     </div>
   )
 }

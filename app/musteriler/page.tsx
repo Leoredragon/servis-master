@@ -1,7 +1,7 @@
 "use client"
 
 import { supabase } from '../lib/supabase'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Modal from '../components/Modal'
@@ -14,75 +14,96 @@ const lbl: React.CSSProperties = { display: 'block', fontSize: '13px', fontWeigh
 export default function Musteriler() {
   const router = useRouter()
   const [musteriler, setMusteriler] = useState<any[]>([])
-  const [filtered,   setFiltered]   = useState<any[]>([])
-  const [loading,    setLoading]    = useState(true)
-  const [arama,      setArama]      = useState('')
-  const [filtreTip,  setFiltreTip]  = useState('Hepsi')
+  const [loading, setLoading] = useState(true)
+  const [arama, setArama] = useState('')
+  const [debouncedArama, setDebouncedArama] = useState('')
+  const [filtreTip, setFiltreTip] = useState('Hepsi')
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize,   setPageSize]   = useState(20)
-  
-  const [modalAcik,  setModalAcik]  = useState(false)
-  const [saving,     setSaving]     = useState(false)
-  const [toast,      setToast]      = useState<{msg: string, type: 'success'|'error'}|null>(null)
-  const [editingId,  setEditingId]  = useState<number | null>(null)
+  const [pageSize, setPageSize] = useState(20)
+
+  const [modalAcik, setModalAcik] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [toast, setToast] = useState<{ msg: string, type: 'success' | 'error' } | null>(null)
+  const [editingId, setEditingId] = useState<number | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean, id: number | null }>({ open: false, id: null })
-  const [confirmArac,   setConfirmArac]   = useState<{ open: boolean, musterId: number | null }>({ open: false, musterId: null })
+  const [confirmArac, setConfirmArac] = useState<{ open: boolean, musterId: number | null }>({ open: false, musterId: null })
 
   const [form, setForm] = useState({
     tip: 'Bireysel',
     yetkili: '', tel: '', cep: '', mail: '', adres: '', vergi_no: '', vergi_dairesi: ''
   })
 
-  const showToast = (msg: string, type: 'success'|'error' = 'success') => { setToast({msg, type}); setTimeout(() => setToast(null), 3500) }
+  const showToast = useCallback((msg: string, type: 'success' | 'error' = 'success') => { 
+    setToast({ msg, type }); 
+    setTimeout(() => setToast(null), 3500) 
+  }, [])
 
-  const loadMusteriler = async () => {
+  const loadMusteriler = useCallback(async () => {
+    setLoading(true)
     const { data, error } = await supabase
       .from('cari_kart')
-      .select('*, arac(id), servis_karti(toplam_tutar), fatura(gtoplam, fatura_turu)')
+      .select('id, yetkili, tel, cep, mail, vergi_no, arac(id), servis_karti(toplam_tutar), fatura(gtoplam, fatura_turu)')
       .order('yetkili')
-    
-    if (!error) { 
+      .limit(50)
+
+    if (!error) {
       const mapped = (data || []).map(m => {
         const servisToplami = (m.servis_karti || []).reduce((acc: number, s: any) => acc + (s.toplam_tutar || 0), 0)
         const faturaToplami = (m.fatura || []).reduce((acc: number, f: any) => {
           if (f.fatura_turu === 'Tahsilat' || f.fatura_turu === 'Alacak') return acc - (f.gtoplam || 0)
           return acc + (f.gtoplam || 0)
         }, 0)
-        return { ...m, bakiye: servisToplami + faturaToplami, tip: m.vergi_no ? 'Kurumsal' : 'Bireysel' }
+        return { 
+           id: m.id,
+           yetkili: m.yetkili,
+           tel: m.tel,
+           cep: m.cep,
+           mail: m.mail,
+           bakiye: servisToplami + faturaToplami, 
+           tip: m.vergi_no ? 'Kurumsal' : 'Bireysel',
+           arac_sayisi: Array.isArray(m.arac) ? m.arac.length : 0
+        }
       })
-      setMusteriler(mapped) 
-      setFiltered(mapped) 
+      setMusteriler(mapped)
     }
     setLoading(false)
-  }
+  }, [])
 
   useEffect(() => { loadMusteriler() }, [])
 
   useEffect(() => {
-    const q = arama.toLowerCase()
+    const handler = setTimeout(() => {
+      setDebouncedArama(arama)
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [arama])
+
+  const filtered = useMemo(() => {
+    const q = debouncedArama.toLowerCase()
     let res = musteriler
     if (filtreTip === 'Bireysel') res = res.filter(m => m.tip === 'Bireysel')
     if (filtreTip === 'Kurumsal') res = res.filter(m => m.tip === 'Kurumsal')
     if (filtreTip === 'Borcu Olanlar') res = res.filter(m => m.bakiye > 0)
-    res = !q ? res : res.filter(m =>
-      (m.yetkili || '').toLowerCase().includes(q) ||
-      (m.tel     || '').toLowerCase().includes(q) ||
-      (m.cep     || '').toLowerCase().includes(q) ||
-      (m.mail    || '').toLowerCase().includes(q) ||
-      (m.vergi_no|| '').toLowerCase().includes(q)
-    )
-    setFiltered(res)
+    
+    if (q) {
+      res = res.filter(m =>
+        (m.yetkili || '').toLowerCase().includes(q) ||
+        (m.cep || '').toLowerCase().includes(q) ||
+        (m.tel || '').toLowerCase().includes(q)
+      )
+    }
     setCurrentPage(1)
-  }, [arama, filtreTip, musteriler])
+    return res
+  }, [debouncedArama, filtreTip, musteriler])
 
-  const handleSil = async (id: number) => {
+  const handleSil = useCallback(async (id: number) => {
     const { error } = await supabase.from('cari_kart').delete().eq('id', id)
     if (error) { showToast('Silinemedi: ' + error.message, 'error'); return }
     showToast('Müşteri silindi')
     await loadMusteriler()
-  }
+  }, [loadMusteriler, showToast])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.yetkili.trim()) { showToast('Müşteri Adı/Ünvan zorunludur', 'error'); return }
     if (!form.tel.trim() && !form.cep.trim()) { showToast('En az bir telefon numarası girmelisiniz', 'error'); return }
@@ -92,12 +113,12 @@ export default function Musteriler() {
     setSaving(true)
     if (editingId) {
       const { error } = await supabase.from('cari_kart').update({
-        yetkili:       form.yetkili.trim(),
-        tel:           form.tel     || null,
-        cep:           form.cep     || null,
-        mail:          form.mail    || null,
-        adres:         form.adres   || null,
-        vergi_no:      form.vergi_no || null,
+        yetkili: form.yetkili.trim(),
+        tel: form.tel || null,
+        cep: form.cep || null,
+        mail: form.mail || null,
+        adres: form.adres || null,
+        vergi_no: form.vergi_no || null,
         vergi_dairesi: form.vergi_dairesi || null,
       }).eq('id', editingId)
       setSaving(false)
@@ -107,15 +128,15 @@ export default function Musteriler() {
       await loadMusteriler()
     } else {
       const { data, error } = await supabase.from('cari_kart').insert([{
-        yetkili:       form.yetkili.trim(),
-        tel:           form.tel     || null,
-        cep:           form.cep     || null,
-        mail:          form.mail    || null,
-        adres:         form.adres   || null,
-        vergi_no:      form.vergi_no || null,
+        yetkili: form.yetkili.trim(),
+        tel: form.tel || null,
+        cep: form.cep || null,
+        mail: form.mail || null,
+        adres: form.adres || null,
+        vergi_no: form.vergi_no || null,
         vergi_dairesi: form.vergi_dairesi || null,
-        kullaniciadi:  'admin', // TODO: Oturum bilgisinden dinamik alınacak
-        subeadi:       'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
+        kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+        subeadi: 'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
       }]).select().single()
       setSaving(false)
       if (error) { showToast('Hata: ' + error.message, 'error'); return }
@@ -123,14 +144,14 @@ export default function Musteriler() {
       setModalAcik(false)
       setConfirmArac({ open: true, musterId: data.id })
     }
-  }
+  }, [form, editingId, loadMusteriler, router, showToast])
 
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   return (
     <div style={{ width: '100%', padding: '0 32px', display: 'flex', flexDirection: 'column', gap: '28px', paddingBottom: '32px' }}>
       {toast && (
-        <div style={{ position: 'fixed', top: '24px', right: '24px', zIndex: 9999, background: toast.type==='error'?'#ef4444':'#10b981', color: '#fff', padding: '14px 24px', borderRadius: '12px', fontSize: '15px', fontWeight: 600, boxShadow: '0 10px 25px rgba(0,0,0,0.15)', animation: 'modalSlideIn 0.2s ease-out' }}>
+        <div style={{ position: 'fixed', top: '24px', right: '24px', zIndex: 9999, background: toast.type === 'error' ? '#ef4444' : '#10b981', color: '#fff', padding: '14px 24px', borderRadius: '12px', fontSize: '15px', fontWeight: 600, boxShadow: '0 10px 25px rgba(0,0,0,0.15)', animation: 'modalSlideIn 0.2s ease-out' }}>
           {toast.msg}
         </div>
       )}
@@ -141,14 +162,14 @@ export default function Musteriler() {
           <p style={{ color: '#64748b', fontSize: '15px', margin: '4px 0 0', fontWeight: 500 }}>{musteriler.length} kayıtlı müşteri bulunuyor</p>
         </div>
         <button onClick={() => { setEditingId(null); setForm({ tip: 'Bireysel', yetkili: '', tel: '', cep: '', mail: '', adres: '', vergi_no: '', vergi_dairesi: '' }); setModalAcik(true) }} style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', background: '#3b82f6', color: '#fff', padding: '14px 24px', borderRadius: '12px', fontWeight: 700, fontSize: '15px', border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(59,130,246,0.3)', transition: 'background 0.2s' }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
           Yeni Müşteri Ekle
         </button>
       </div>
 
       <div style={{ display: 'flex', gap: '16px', alignItems: 'stretch' }}>
         <div style={{ position: 'relative', flex: 1 }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }}><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
           <input type="text" placeholder="Ad, telefon, e-posta veya vergi no ara..." value={arama} onChange={e => setArama(e.target.value)} style={{ ...inp, paddingLeft: '44px', paddingRight: '16px', height: '100%', fontSize: '15px' }} />
         </div>
         <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '10px', padding: '4px' }}>
@@ -163,7 +184,11 @@ export default function Musteriler() {
       <div style={{ background: '#fff', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', border: '1px solid #f1f5f9', overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
           {loading ? (
-            <div style={{ padding: '60px', display: 'flex', justifyContent: 'center' }}>Yükleniyor...</div>
+            <div style={{ padding: '24px' }}>
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="skeleton" style={{ height: '60px', marginBottom: '12px', width: '100%' }} />
+              ))}
+            </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
@@ -182,7 +207,7 @@ export default function Musteriler() {
                         {m.yetkili || '(İsimsiz)'}
                       </Link>
                       <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px', fontWeight: 500 }}>
-                        {Array.isArray(m.arac) ? m.arac.length : 0} Kayıtlı Araç
+                        {m.arac_sayisi} Kayıtlı Araç
                       </div>
                     </td>
                     <td style={{ padding: '16px 24px' }}>
@@ -220,7 +245,7 @@ export default function Musteriler() {
             </table>
           )}
         </div>
-        <Pagination 
+        <Pagination
           totalItems={filtered.length}
           pageSize={pageSize}
           currentPage={currentPage}
@@ -237,7 +262,7 @@ export default function Musteriler() {
               <div style={{ display: 'flex', gap: '16px' }}>
                 {['Bireysel', 'Kurumsal'].map(tip => (
                   <label key={tip} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', padding: '14px', border: `2px solid ${form.tip === tip ? '#3b82f6' : '#e2e8f0'}`, borderRadius: '10px', cursor: 'pointer', background: form.tip === tip ? '#eff6ff' : '#fff' }}>
-                    <input type="radio" value={tip} checked={form.tip === tip} onChange={() => setForm({...form, tip})} style={{ accentColor: '#3b82f6', width: '18px', height: '18px' }} />
+                    <input type="radio" value={tip} checked={form.tip === tip} onChange={() => setForm({ ...form, tip })} style={{ accentColor: '#3b82f6', width: '18px', height: '18px' }} />
                     <span style={{ fontWeight: 700, fontSize: '14px', color: '#0f172a' }}>{tip} Müşteri</span>
                   </label>
                 ))}
@@ -286,7 +311,7 @@ export default function Musteriler() {
         </form>
       </Modal>
 
-      <ConfirmModal 
+      <ConfirmModal
         isOpen={confirmDelete.open}
         onClose={() => setConfirmDelete({ open: false, id: null })}
         onConfirm={() => confirmDelete.id && handleSil(confirmDelete.id)}
@@ -295,7 +320,7 @@ export default function Musteriler() {
         message="Bu müşteriyi ve bağlı tüm verilerini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz."
       />
 
-      <ConfirmModal 
+      <ConfirmModal
         isOpen={confirmArac.open}
         onClose={() => { setConfirmArac({ open: false, musterId: null }); loadMusteriler(); }}
         onConfirm={() => router.push(`/musteriler/${confirmArac.musterId}?arac_ekle=true`)}

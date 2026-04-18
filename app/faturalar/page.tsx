@@ -1,7 +1,7 @@
 "use client"
 
 import { supabase } from '../lib/supabase'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import Modal from '../components/Modal'
 import ConfirmModal from '../components/ConfirmModal'
 import Pagination from '../components/Pagination'
@@ -12,9 +12,9 @@ const labelStyle: React.CSSProperties = { display: 'block', fontSize: '13px', fo
 
 export default function Faturalar() {
   const [hareketler, setHareketler] = useState<any[]>([])
-  const [filtered,  setFiltered]  = useState<any[]>([])
   const [loading,   setLoading]   = useState(true)
   const [arama,     setArama]     = useState('')
+  const [debouncedArama, setDebouncedArama] = useState('')
   const [filtre,    setFiltre]    = useState('Tümü')
   const [dateRange, setDateRange] = useState({
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
@@ -31,29 +31,30 @@ export default function Faturalar() {
   const [odemeForm, setOdemeForm] = useState({ fId: null as number | null, kasa_id: '', tutar: '', aciklama: '', tarih: new Date().toISOString().split('T')[0] })
   const [yeniForm, setYeniForm] = useState({ cari_id: '', evrak_no: '', fat_tarih: new Date().toISOString().split('T')[0], fatura_turu: 'Satış', gtoplam: '' })
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true)
-    const { data: faturalar } = await supabase
-      .from('fatura')
-      .select('*, cari_kart(*)')
-      .gte('fat_tarih', dateRange.start)
-      .lte('fat_tarih', dateRange.end)
-      .order('fat_tarih', { ascending: false })
-
-    const { data: kasa } = await supabase
-      .from('kasa_hareket')
-      .select('*')
-      .gte('islem_tarihi', dateRange.start)
-      .lte('islem_tarihi', dateRange.end)
-      .order('islem_tarihi', { ascending: false })
+    const [fatRes, kasaRes] = await Promise.all([
+      supabase.from('fatura')
+        .select('id, evrak_no, fat_tarih, fatura_turu, gtoplam, kdv, toplam, servis_id, odeme_durumu, odenen_tutar, cari_kart(yetkili)')
+        .gte('fat_tarih', dateRange.start)
+        .lte('fat_tarih', dateRange.end)
+        .order('fat_tarih', { ascending: false })
+        .limit(50),
+      supabase.from('kasa_hareket')
+        .select('id, islem_tarihi, tur, tutar, kategori, aciklama, servis_id')
+        .gte('islem_tarihi', dateRange.start)
+        .lte('islem_tarihi', dateRange.end)
+        .order('islem_tarihi', { ascending: false })
+        .limit(50)
+    ])
     
-    const mappedFaturalar = (faturalar || []).map(f => ({
+    const mappedFaturalar = (fatRes.data || []).map(f => ({
       id: `f-${f.id}`,
       dbId: f.id,
       source: 'fatura',
       tarih: f.fat_tarih,
       no: f.evrak_no || `FAT-${f.id}`,
-      cari: f.cari_kart?.yetkili || '—',
+      cari: (f.cari_kart as any)?.yetkili || '—',
       tur: f.fatura_turu || 'Satış',
       tutar: f.gtoplam || 0,
       kdv: f.kdv || 0,
@@ -64,7 +65,7 @@ export default function Faturalar() {
       odenen_tutar: f.odenen_tutar || 0,
     }))
 
-    const mappedKasa = (kasa || []).map(k => ({
+    const mappedKasa = (kasaRes.data || []).map(k => ({
       id: `k-${k.id}`,
       dbId: k.id,
       source: 'kasa',
@@ -85,18 +86,24 @@ export default function Faturalar() {
     )
 
     setHareketler(combined)
-    setFiltered(combined)
     setLoading(false)
     setCurrentPage(1)
-  }
+  }, [dateRange.start, dateRange.end])
 
   useEffect(() => {
     fetchData()
-    supabase.from('kasalar').select('*').eq('aktif_mi', true).then(({ data }) => setKasalar(data || []))
-  }, [])
+    supabase.from('kasalar').select('id, kasa_adi, guncel_bakiye').eq('aktif_mi', true).then(({ data }) => setKasalar(data || []))
+  }, [fetchData])
 
   useEffect(() => {
-    const q = arama.toLowerCase()
+    const handler = setTimeout(() => {
+      setDebouncedArama(arama)
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [arama])
+
+  const filtered = useMemo(() => {
+    const q = debouncedArama.toLowerCase()
     let res = hareketler
 
     if (filtre !== 'Tümü') {
@@ -108,27 +115,32 @@ export default function Faturalar() {
       else if (filtre === 'Gider') res = res.filter(h => h.tur === 'Gider')
     }
     
-    res = !q ? res : res.filter(f =>
-      (f.no || '').toLowerCase().includes(q) ||
-      (f.cari || '').toLowerCase().includes(q)
-    )
+    if (q) {
+      res = res.filter(f =>
+        (f.no || '').toLowerCase().includes(q) ||
+        (f.cari || '').toLowerCase().includes(q)
+      )
+    }
     
-    setFiltered(res)
+    return res
+  }, [debouncedArama, filtre, hareketler])
+
+  useEffect(() => {
     setCurrentPage(1)
-  }, [arama, filtre, hareketler])
+  }, [debouncedArama, filtre])
 
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
   const totalPages = Math.ceil(filtered.length / pageSize)
 
-  const handleSil = async (item: any) => {
+  const handleSil = useCallback(async (item: any) => {
     const table = item.source === 'fatura' ? 'fatura' : 'kasa_hareket'
     const { error } = await supabase.from(table).delete().eq('id', item.dbId)
     
     if (error) { alert('Hata: ' + error.message) }
     else { fetchData() }
-  }
+  }, [fetchData])
 
-  const handleGuncelle = async (e: React.FormEvent) => {
+  const handleGuncelle = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     if (!duzenleModal.fatura) return
     setSaving(true)
@@ -145,9 +157,9 @@ export default function Faturalar() {
       setDuzenleModal({ acik: false, fatura: null })
       fetchData()
     }
-  }
+  }, [duzenleModal.fatura, fetchData])
 
-  const handleYeniKaydet = async (e: React.FormEvent) => {
+  const handleYeniKaydet = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     if (!yeniForm.cari_id || !yeniForm.gtoplam) return
     setSaving(true)
@@ -160,8 +172,8 @@ export default function Faturalar() {
         fatura_turu: yeniForm.fatura_turu,
         gtoplam: parseFloat(yeniForm.gtoplam),
         odeme_durumu: 'Bekliyor',
-        kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
-        subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
+        kullaniciadi: 'admin',
+        subeadi:      'Merkez',
       }])
       
       if (error) throw error
@@ -173,9 +185,9 @@ export default function Faturalar() {
     } finally {
       setSaving(false)
     }
-  }
+  }, [yeniForm, fetchData])
 
-  const handleOdemeAl = async (e: React.FormEvent) => {
+  const handleOdemeAl = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     if (!odemeForm.fId || !odemeForm.kasa_id || !odemeForm.tutar) return
     setSaving(true)
@@ -200,8 +212,8 @@ export default function Faturalar() {
       kategori: 'Tahsilat',
       aciklama: odemeForm.aciklama || `${fatura.no} nolu fatura tahsilatı`,
       islem_tarihi: odemeForm.tarih,
-      kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
-      subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
+      kullaniciadi: 'admin',
+      subeadi:      'Merkez',
     }])
 
     if (hError) { alert('Hata: ' + hError.message); setSaving(false); return }
@@ -218,7 +230,7 @@ export default function Faturalar() {
     setOdemePanel(false)
     setOdemeForm({ ...odemeForm, fId: null, tutar: '', aciklama: '' })
     fetchData()
-  }
+  }, [odemeForm, hareketler, fetchData])
 
   const genelToplam = filtered.reduce((s, f) => s + (f.gtoplam || 0), 0)
 
@@ -304,7 +316,11 @@ export default function Faturalar() {
         </div>
         <div style={{ overflowX: 'auto' }}>
           {loading ? (
-            <div style={{ padding: '60px', display: 'flex', justifyContent: 'center' }}><div style={{ width: '36px', height: '36px', border: '3px solid #e5e7eb', borderTopColor: '#3b82f6', borderRadius: '50%' }} /></div>
+            <div style={{ padding: '24px' }}>
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="skeleton" style={{ height: '60px', marginBottom: '12px', width: '100%' }} />
+              ))}
+            </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
@@ -363,7 +379,7 @@ export default function Faturalar() {
                                 onFocus={() => setOdemePanel(true)}
                                 style={{ padding: '6px 10px', background: '#ecfdf5', color: '#059669', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                               >
-                                💸 Öde
+                                Öde
                               </button>
                             )}
                             <button onClick={() => setDuzenleModal({ acik: true, fatura: { ...f, id: f.dbId, gtoplam: f.tutar } })} style={{ padding: '6px 10px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Düzenle</button>

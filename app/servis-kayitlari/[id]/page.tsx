@@ -36,6 +36,7 @@ const Icons = {
   file: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
   wallet: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12V8H6a2 2 0 012-2h12V4a2 2 0 00-2-2H4a2 2 0 00-2 2v16a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2h-3"/><path d="M22 13h-4a2 2 0 00-2 2v2a2 2 0 002 2h4"/></svg>,
   payment: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>,
+  invoice: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><path d="M10 9H8"/></svg>,
 }
 
 /* ─── Tip tanımları ─── */
@@ -49,6 +50,7 @@ interface IslemRow {
   birim: string
   birim_fiyat: number
   kdv_oran: number
+  kdv_dahil: boolean
   toplam_tutar: number
   stok?: { ad: string; kod: string } | null
   _isEditing?: boolean
@@ -68,7 +70,7 @@ export default function ServisDetay() {
   const [saving, setSaving]     = useState(false)
   const [toast, setToast]       = useState<{ msg: string; type: 'success'|'error'|'info' } | null>(null)
 
-  const [confirmData, setConfirmData] = useState<{ open: boolean; type: 'islem' | 'servis'; itemId: number | null }>({
+  const [confirmData, setConfirmData] = useState<{ open: boolean; type: 'islem' | 'servis' | 'fatura'; itemId: number | null }>({
     open: false, type: 'islem', itemId: null
   })
 
@@ -109,6 +111,7 @@ export default function ServisDetay() {
       ...row,
       birim: row.birim || 'Adet',
       kdv_oran: row.kdv_oran ?? 20,
+      kdv_dahil: row.kdv_dahil ?? true,
     }))
 
     setServis(sData)
@@ -272,8 +275,29 @@ export default function ServisDetay() {
   /* ─── Finansal Hesaplamalar ─── */
   const finance = useMemo(() => {
     const persistedRows = islemler.filter(r => !r._isNew)
-    const araToplam = persistedRows.reduce((sum, r) => sum + (r.miktar * r.birim_fiyat), 0)
-    const toplamKDV = persistedRows.reduce((sum, r) => sum + (r.miktar * r.birim_fiyat * (r.kdv_oran / 100)), 0)
+    let araToplam = 0
+    let toplamKDV = 0
+
+    persistedRows.forEach(r => {
+      const miktar = r.miktar || 0
+      const birimFiyat = r.birim_fiyat || 0
+      const kdvOran = r.kdv_oran || 0
+      const isKdvDahil = r.kdv_dahil ?? true
+
+      if (isKdvDahil) {
+        const satirToplam = miktar * birimFiyat
+        const satirNet = satirToplam / (1 + kdvOran / 100)
+        const satirKDV = satirToplam - satirNet
+        araToplam += satirNet
+        toplamKDV += satirKDV
+      } else {
+        const satirNet = miktar * birimFiyat
+        const satirKDV = satirNet * (kdvOran / 100)
+        araToplam += satirNet
+        toplamKDV += satirKDV
+      }
+    })
+
     return {
       araToplam,
       toplamKDV,
@@ -296,6 +320,7 @@ export default function ServisDetay() {
       birim: 'Adet',
       birim_fiyat: 0,
       kdv_oran: 20,
+      kdv_dahil: true,
       toplam_tutar: 0,
       _isNew: true,
       _isEditing: true,
@@ -315,7 +340,10 @@ export default function ServisDetay() {
       birim: row.birim,
       birim_fiyat: row.birim_fiyat,
       kdv_oran: row.kdv_oran,
-      toplam_tutar: toplamTutar,
+      kdv_dahil: row.kdv_dahil,
+      toplam_tutar: row.kdv_dahil ? (row.miktar * row.birim_fiyat) : (row.miktar * row.birim_fiyat * (1 + row.kdv_oran / 100)),
+      kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+      subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
     }])
 
     if (!error && row.islem_turu === 'parca' && row.stok_id) {
@@ -323,10 +351,10 @@ export default function ServisDetay() {
        await supabase.from('stok_hareket').insert([{
          stok_id: row.stok_id,
          servis_id: parseInt(servisId),
-         hareket_turu: 'Çıkış',
+         hareket_turu: 'Servis Çıkış',
          miktar: row.miktar,
          birim_fiyat: row.birim_fiyat,
-         notlar: 'Servis kaydına parça eklendi'
+         aciklama: `SRV-${servisId} nolu servise parça eklendi`
        }])
        await supabase.rpc('update_stok_miktar', { s_id: row.stok_id, degisim: -row.miktar })
     }
@@ -359,7 +387,8 @@ export default function ServisDetay() {
       birim: row.birim,
       birim_fiyat: row.birim_fiyat,
       kdv_oran: row.kdv_oran,
-      toplam_tutar: toplamTutar,
+      kdv_dahil: row.kdv_dahil,
+      toplam_tutar: row.kdv_dahil ? (row.miktar * row.birim_fiyat) : (row.miktar * row.birim_fiyat * (1 + row.kdv_oran / 100)),
     }).eq('id', row.id)
 
     if (!error && oldData && row.islem_turu === 'parca' && row.stok_id) {
@@ -369,9 +398,9 @@ export default function ServisDetay() {
            await supabase.from('stok_hareket').insert([{
              stok_id: row.stok_id,
              servis_id: parseInt(servisId),
-             hareket_turu: degisim > 0 ? 'Giriş' : 'Çıkış',
+             hareket_turu: degisim > 0 ? 'Servis İade' : 'Servis Çıkış',
              miktar: Math.abs(degisim),
-             notlar: 'Servis parçası güncellendi (Miktar değişimi)'
+             aciklama: `SRV-${servisId} parça miktarı güncellendi (${oldData.miktar} -> ${row.miktar})`
            }])
            await supabase.rpc('update_stok_miktar', { s_id: row.stok_id, degisim: degisim })
         }
@@ -416,7 +445,6 @@ export default function ServisDetay() {
         birim: item.birim || 'Adet',
         birim_fiyat: item.s_fiyat || 0,
         kdv_oran: item.kdv_oran ?? 18,
-        toplam_tutar: (r.miktar || 1) * (item.s_fiyat || 0),
         _searchValue: item.ad,
       }
     }))
@@ -433,9 +461,9 @@ export default function ServisDetay() {
        await supabase.from('stok_hareket').insert([{
          stok_id: row.stok_id,
          servis_id: parseInt(servisId),
-         hareket_turu: 'Giriş',
+         hareket_turu: 'Servis İade',
          miktar: row.miktar,
-         notlar: 'Parça servis kaydından silindi (İade)'
+         aciklama: `SRV-${servisId} kaydından parça silindi (Otomatik İade)`
        }])
        await supabase.rpc('update_stok_miktar', { s_id: row.stok_id, degisim: row.miktar })
     }
@@ -462,6 +490,37 @@ export default function ServisDetay() {
     await supabase.from('servis_karti').update({ durum: yeniDurum }).eq('id', servisId)
     setServis({ ...servis, durum: yeniDurum })
     showToast(`Durum "${yeniDurum}" olarak güncellendi`)
+  }
+
+  /* ─── Faturaya Dönüştür Logic ─── */
+  const handleFaturayaDonustur = async () => {
+    setSaving(true)
+    try {
+      // 1. Fatura başlığını oluştur
+      const { data: fatura, error: fError } = await supabase.from('fatura').insert([{
+        cari_id: servis.cari_id,
+        evrak_no: `FAT-${servis.servis_no || servis.id}`,
+        fat_tarih: new Date().toISOString().split('T')[0],
+        fatura_turu: 'Satış',
+        toplam: finance.araToplam,
+        kdv: finance.toplamKDV,
+        gtoplam: finance.genelToplam,
+        servis_id: parseInt(servisId),
+        odeme_durumu: 'Bekliyor',
+        kullaniciadi: 'admin',
+        subeadi: 'Merkez'
+      }]).select().single()
+
+      if (fError) throw fError
+
+      showToast('Fatura başarıyla oluşturuldu')
+      router.push('/faturalar')
+    } catch (err: any) {
+      showToast('Fatura hatası: ' + err.message, 'error')
+    } finally {
+      setSaving(false)
+      setConfirmData({ open: false, type: 'fatura', itemId: null })
+    }
   }
 
   /* ─── Loading ─── */
@@ -543,15 +602,15 @@ export default function ServisDetay() {
             </div>
             <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
               <button
-                onClick={() => setConfirmData({ open: true, type: 'servis', itemId: null })}
+                onClick={() => setConfirmData({ open: true, type: 'fatura', itemId: null })}
                 style={{
-                  padding: '7px 14px', background: '#fef2f2', color: '#dc2626',
-                  border: '1px solid #fecaca', borderRadius: '8px', fontSize: '12px', fontWeight: 700,
-                  cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px',
-                  transition: 'all 0.15s',
+                  padding: '8px 16px', background: '#3b82f6', color: '#fff',
+                  border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 700,
+                  cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px',
+                  boxShadow: '0 4px 12px rgba(59,130,246,0.3)', transition: 'all 0.2s',
                 }}
               >
-                {Icons.trash} İş Emrini Sil
+                {Icons.invoice} Faturaya Dönüştür
               </button>
             </div>
           </div>
@@ -628,14 +687,14 @@ export default function ServisDetay() {
       {/* ─── İşlemler Tablosu ─── */}
       <div className="card" style={{ marginBottom: '20px' }}>
         <div className="card-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {Icons.file}
             <h2 style={{ fontWeight: 800, fontSize: '15px', color: '#0f172a', margin: 0 }}>Proforma Detayları</h2>
           </div>
           <button
             className="btn-primary"
             onClick={handleSatirEkle}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px' }}
           >
             {Icons.plus} Satır Ekle
           </button>
@@ -644,22 +703,38 @@ export default function ServisDetay() {
         <div style={{ overflowX: 'auto' }}>
           <table className="compact-table">
             <thead>
-              <tr>
-                <th style={{ width: '90px' }}>Tür</th>
-                <th style={{ minWidth: '150px' }}>Ürün / İşlem Adı</th>
+              <tr style={{ background: '#f8fafc' }}>
+                <th style={{ width: '80px', textAlign: 'left', paddingLeft: '20px' }}>Tür</th>
+                <th style={{ width: '35%', textAlign: 'left' }}>Ürün / İşlem Adı</th>
                 <th style={{ textAlign: 'center', width: '70px' }}>Miktar</th>
-                <th style={{ textAlign: 'center', width: '85px' }}>Birim</th>
-                <th style={{ textAlign: 'right', width: '110px' }}>Birim Fiyat</th>
-                <th style={{ textAlign: 'center', width: '75px' }}>KDV (%)</th>
-                <th style={{ textAlign: 'right', width: '130px' }}>Satır Toplamı</th>
-                <th style={{ textAlign: 'center', width: '90px' }}>İşlem</th>
+                <th style={{ textAlign: 'center', width: '80px' }}>Birim</th>
+                <th style={{ textAlign: 'right', width: '130px', paddingRight: '20px' }}>Birim Fiyat</th>
+                <th style={{ textAlign: 'center', width: '100px' }}>KDV</th>
+                <th style={{ textAlign: 'right', width: '150px', paddingRight: '20px' }}>Satır Toplamı</th>
+                <th style={{ textAlign: 'center', width: '80px' }}>İşlem</th>
               </tr>
             </thead>
             <tbody>
               {islemler.map((row, idx) => {
-                const satırNet = row.miktar * row.birim_fiyat
-                const satırKDV = satırNet * (row.kdv_oran / 100)
-                const satırToplam = satırNet + satırKDV
+                const miktar = row.miktar || 0
+                const birimFiyat = row.birim_fiyat || 0
+                const kdvOran = row.kdv_oran || 0
+
+                let satirNet = 0
+                let satirKDV = 0
+                let satirToplam = 0
+
+                const isRowKdvDahil = row.kdv_dahil ?? true
+
+                if (isRowKdvDahil) {
+                  satirToplam = miktar * birimFiyat
+                  satirNet = satirToplam / (1 + kdvOran / 100)
+                  satirKDV = satirToplam - satirNet
+                } else {
+                  satirNet = miktar * birimFiyat
+                  satirKDV = satirNet * (kdvOran / 100)
+                  satirToplam = satirNet + satirKDV
+                }
 
                 if (row._isEditing) {
                   return (
@@ -676,7 +751,7 @@ export default function ServisDetay() {
                         </select>
                       </td>
                       {/* Ürün / İşlem Adı */}
-                      <td>
+                      <td style={{ maxWidth: '400px' }}>
                         {row.islem_turu === 'parca' ? (
                           <SmartProductSearch
                             value={row._searchValue || ''}
@@ -693,7 +768,7 @@ export default function ServisDetay() {
                             value={row.aciklama}
                             onChange={e => updateRowField(idx, 'aciklama', e.target.value)}
                             placeholder="İşçilik açıklaması..."
-                            style={{ padding: '8px 12px', fontSize: '13px', border: '1.5px solid #e2e8f0', borderRadius: '8px', width: '100%' }}
+                            style={{ padding: '8px 12px', fontSize: '13px', border: '1.5px solid #e2e8f0', borderRadius: '8px', width: '100%', outline: 'none' }}
                           />
                         )}
                       </td>
@@ -731,29 +806,41 @@ export default function ServisDetay() {
                           min="0"
                           value={row.birim_fiyat}
                           onChange={e => updateRowField(idx, 'birim_fiyat', parseFloat(e.target.value) || 0)}
-                          style={{ padding: '7px 8px', fontSize: '13px', textAlign: 'right', border: '1.5px solid #e2e8f0', borderRadius: '8px', width: '100%' }}
+                          style={{ padding: '7px 12px', fontSize: '13px', textAlign: 'right', border: '1.5px solid #e2e8f0', borderRadius: '8px', width: '100%' }}
                         />
                       </td>
                       {/* KDV */}
-                      <td>
-                        <select
-                          value={row.kdv_oran}
-                          onChange={e => updateRowField(idx, 'kdv_oran', parseInt(e.target.value))}
-                          style={{ padding: '7px 8px', fontSize: '12px', borderRadius: '8px', border: '1.5px solid #e2e8f0', width: '100%' }}
-                        >
-                          <option value={0}>%0</option>
-                          <option value={1}>%1</option>
-                          <option value={10}>%10</option>
-                          <option value={20}>%20</option>
-                        </select>
+                      <td style={{ textAlign: 'center' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+                          <select
+                            value={row.kdv_oran}
+                            onChange={e => updateRowField(idx, 'kdv_oran', parseInt(e.target.value))}
+                            style={{ padding: '4px 6px', fontSize: '11px', borderRadius: '6px', border: '1.5px solid #e2e8f0', width: '60px' }}
+                          >
+                            <option value={0}>0</option>
+                            <option value={1}>1</option>
+                            <option value={10}>10</option>
+                            <option value={18}>18</option>
+                            <option value={20}>20</option>
+                          </select>
+                          <button
+                            onClick={() => updateRowField(idx, 'kdv_dahil', !row.kdv_dahil)}
+                            style={{
+                              border: 'none', padding: '2px 6px', fontSize: '9px', fontWeight: 700, borderRadius: '4px', cursor: 'pointer',
+                              background: row.kdv_dahil ? '#3b82f6' : '#ef4444', color: '#fff'
+                            }}
+                          >
+                            {row.kdv_dahil ? 'Dahil' : 'Hariç'}
+                          </button>
+                        </div>
                       </td>
                       {/* Satır Toplamı */}
-                      <td style={{ textAlign: 'right' }}>
+                      <td style={{ textAlign: 'right', paddingRight: '20px' }}>
                         <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>
-                          {satırToplam.toFixed(2)} ₺
+                          {satirToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
                         </div>
-                        <div style={{ fontSize: '10px', color: '#94a3b8' }}>
-                          (KDV: {satırKDV.toFixed(2)} ₺)
+                        <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600 }}>
+                          {isRowKdvDahil ? 'KDV Dahil' : `+ ${satirKDV.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺`}
                         </div>
                       </td>
                       {/* Aksiyon */}
@@ -805,11 +892,20 @@ export default function ServisDetay() {
                     </td>
                     <td style={{ textAlign: 'center', fontWeight: 600 }}>{row.miktar}</td>
                     <td style={{ textAlign: 'center', color: '#64748b', fontSize: '13px' }}>{row.birim || 'Adet'}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 600 }}>{row.birim_fiyat?.toFixed(2)} ₺</td>
-                    <td style={{ textAlign: 'center', color: '#64748b', fontSize: '13px' }}>%{row.kdv_oran ?? 18}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ fontWeight: 800, color: '#0f172a' }}>{satırToplam.toFixed(2)} ₺</div>
-                      <div style={{ fontSize: '10px', color: '#94a3b8' }}>KDV: {satırKDV.toFixed(2)} ₺</div>
+                    <td style={{ textAlign: 'right', fontWeight: 750, color: '#0f172a', paddingRight: '20px' }}>
+                      {row.birim_fiyat?.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>%{row.kdv_oran ?? 20}</div>
+                      <div style={{ fontSize: '9px', fontWeight: 600, color: row.kdv_dahil ? '#3b82f6' : '#ef4444' }}>
+                        {row.kdv_dahil ? 'DAHİL' : 'HARİÇ'}
+                      </div>
+                    </td>
+                    <td style={{ textAlign: 'right', paddingRight: '20px' }}>
+                      <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '14px' }}>{satirToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</div>
+                      <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 500 }}>
+                        {isRowKdvDahil ? 'KDV Dahil' : `+ ${satirKDV.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺ KDV`}
+                      </div>
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
@@ -857,74 +953,73 @@ export default function ServisDetay() {
 
       {/* ─── Canlı Finansal Özet ─── */}
       {islemler.filter(r => !r._isNew).length > 0 && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '32px' }}>
           <div style={{
-            background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0',
-            padding: '24px 32px', minWidth: '340px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+            background: '#fff', borderRadius: '20px', border: '1.5px solid #f1f5f9',
+            padding: '28px 36px', minWidth: '380px', boxShadow: '0 10px 30px rgba(0,0,0,0.04)',
+            position: 'relative', overflow: 'hidden'
           }}>
-            <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '16px' }}>
-              Finansal Özet
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: 'linear-gradient(90deg, #3b82f6, #8b5cf6)' }}></div>
+            
+            <div style={{ fontSize: '12px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {Icons.payment} Tahmini Maliyet Özeti
             </div>
 
-            {/* Ara Toplam */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
-              <span style={{ fontSize: '14px', color: '#64748b', fontWeight: 500 }}>Ara Toplam</span>
-              <span style={{ fontSize: '15px', color: '#0f172a', fontWeight: 700 }}>{finance.araToplam.toFixed(2)} ₺</span>
-            </div>
-
-            {/* KDV */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
-              <span style={{ fontSize: '14px', color: '#64748b', fontWeight: 500 }}>Toplam KDV</span>
-              <span style={{ fontSize: '15px', color: '#0f172a', fontWeight: 700 }}>{finance.toplamKDV.toFixed(2)} ₺</span>
-            </div>
-
-            {/* Genel Toplam */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0 4px' }}>
-              <span style={{ fontSize: '16px', color: '#0f172a', fontWeight: 800 }}>Genel Toplam</span>
-              <span style={{
-                fontSize: '22px', fontWeight: 900, letterSpacing: '-0.5px',
-                background: 'linear-gradient(135deg, #059669, #10b981)',
-                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-              }}>
-                {finance.genelToplam.toFixed(2)} ₺
-              </span>
-            </div>
-
-            {/* Ödenen / Kalan */}
-            <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>Ödenen Tutar</span>
-                <span style={{ fontSize: '13px', color: '#059669', fontWeight: 700 }}>{(servis?.odenen_tutar || 0).toFixed(2)} ₺</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>Kalan Borç</span>
-                <span style={{ fontSize: '13px', color: (finance.genelToplam - (servis?.odenen_tutar || 0)) > 0 ? '#ef4444' : '#64748b', fontWeight: 700 }}>
-                  {Math.max(0, finance.genelToplam - (servis?.odenen_tutar || 0)).toFixed(2)} ₺
-                </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '14px', color: '#64748b', fontWeight: 600 }}>Ara Toplam</span>
+                <span style={{ fontSize: '15px', color: '#0f172a', fontWeight: 700 }}>{finance.araToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
               </div>
 
-              {/* Ödeme Al Butonu - YENİ KONUM */}
-              <button
-                onClick={() => {
-                  const kalan = finance.genelToplam - (servis.odenen_tutar || 0)
-                  setOdemeForm({ ...odemeForm, tutar: kalan > 0 ? kalan.toString() : '' })
-                  setOdemePanel(true)
-                }}
-                style={{
-                  width: '100%', padding: '12px', background: '#059669', color: '#fff',
-                  border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 800,
-                  cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                  boxShadow: '0 4px 12px rgba(5,150,105,0.2)', transition: 'all 0.2s',
-                }}
-                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-                onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-              >
-                {Icons.wallet} Ödeme Al (Tahsilat)
-              </button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '14px', color: '#64748b', fontWeight: 600 }}>KDV Tutarı</span>
+                <span style={{ fontSize: '15px', color: '#0f172a', fontWeight: 700 }}>{finance.toplamKDV.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
+              </div>
+
+              <div style={{ margin: '8px 0', borderTop: '1.5px dashed #f1f5f9' }}></div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 800, color: '#3b82f6', marginBottom: '2px' }}>ÖDENECEK TOPLAM</div>
+                  <span style={{ fontSize: '16px', color: '#0f172a', fontWeight: 800 }}>Genel Toplam</span>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{
+                    fontSize: '28px', fontWeight: 900, letterSpacing: '-1px', color: '#10b981'
+                  }}>
+                    {finance.genelToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                  </span>
+                </div>
+              </div>
             </div>
+
+            {(servis?.odenen_tutar || 0) > 0 && (
+              <div style={{ marginTop: '20px', padding: '12px 16px', background: '#f8fafc', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 700 }}>Tahsil Edilen</span>
+                <span style={{ fontSize: '14px', color: '#059669', fontWeight: 800 }}>{(servis?.odenen_tutar || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
+              </div>
+            )}
           </div>
         </div>
       )}
+
+      {/* ─── İş Emrini Sil ─── */}
+      <div style={{ marginTop: '60px', display: 'flex', justifyContent: 'flex-end', padding: '24px 0', borderTop: '1px solid #f1f5f9' }}>
+        <button
+          onClick={() => setConfirmData({ open: true, type: 'servis', itemId: null })}
+          style={{
+            padding: '10px 20px', background: '#fff', color: '#dc2626',
+            border: '1.5px solid #fecaca', borderRadius: '10px', fontSize: '13px', fontWeight: 700,
+            cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2' }}
+          onMouseLeave={e => { e.currentTarget.style.background = '#fff' }}
+        >
+          {Icons.trash} İş Emrini Tamamen Sil
+        </button>
+      </div>
+
 
       {/* ─── ConfirmModal ─── */}
       {/* ─── Ödeme Al SlideOver ─── */}
@@ -1069,13 +1164,19 @@ export default function ServisDetay() {
         onClose={() => setConfirmData({ open: false, type: 'islem', itemId: null })}
         onConfirm={() => {
           if (confirmData.type === 'islem' && confirmData.itemId) handleIslemSil(confirmData.itemId)
+          else if (confirmData.type === 'fatura') handleFaturayaDonustur()
           else handleServisSil()
         }}
-        type="danger"
-        title={confirmData.type === 'islem' ? "İşlemi Sil" : "Servis Kaydını Sil"}
-        message={confirmData.type === 'islem'
-          ? "Bu işlemi (parça/işçilik) silmek istediğinizden emin misiniz? Bu işlem geri alınamaz."
-          : "Bu servis kaydını ve içindeki tüm işlemleri tamamen silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve finansal kayıtları etkileyebilir."}
+        type={confirmData.type === 'fatura' ? 'info' : 'danger'}
+        title={
+          confirmData.type === 'islem' ? "İşlemi Sil" : 
+          confirmData.type === 'fatura' ? "Faturaya Dönüştür" : "Servis Kaydını Sil"
+        }
+        message={
+          confirmData.type === 'islem' ? "Bu işlemi (parça/işçilik) silmek istediğinizden emin misiniz? Bu işlem geri alınamaz." :
+          confirmData.type === 'fatura' ? "Bu servisi faturaya dönüştürmek istediğinize emin misiniz? İşlem sonunda faturalar modülüne yönlendirileceksiniz." :
+          "Bu servis kaydını ve içindeki tüm işlemleri tamamen silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve finansal kayıtları etkileyebilir."
+        }
       />
 
       <style>{`

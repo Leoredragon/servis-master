@@ -76,7 +76,13 @@ export default function KasaYonetimi() {
       let activeKasalar = data
       if (data.length === 0) {
         const { data: newData, error: insertError } = await supabase.from('kasalar').insert([
-          { kasa_adi: 'Merkez Nakit', kasa_turu: 'Nakit', acilis_bakiyesi: 0 }
+          { 
+            kasa_adi: 'Merkez Nakit', 
+            kasa_turu: 'Nakit', 
+            acilis_bakiyesi: 0,
+            kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+            subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
+          }
         ]).select()
         if (!insertError && newData) activeKasalar = newData
       }
@@ -115,7 +121,9 @@ export default function KasaYonetimi() {
     const { error } = await supabase.from('kasalar').insert([
       { 
         ...kasaForm, 
-        acilis_bakiyesi: parseFloat(kasaForm.acilis_bakiyesi) 
+        acilis_bakiyesi: parseFloat(kasaForm.acilis_bakiyesi),
+        kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+        subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
       }
     ])
     setSaving(false)
@@ -147,7 +155,9 @@ export default function KasaYonetimi() {
         kategori: 'Transfer',
         aciklama: `Transfer -> ${kasalar.find(k => k.id.toString() === transferForm.to_id)?.kasa_adi}. ${transferForm.aciklama}`,
         islem_tarihi: now,
-        odeme_sekli: transferForm.odeme_sekli
+        odeme_sekli: transferForm.odeme_sekli,
+        kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+        subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
       },
       {
         kasa_id: transferForm.to_id,
@@ -156,7 +166,9 @@ export default function KasaYonetimi() {
         kategori: 'Transfer',
         aciklama: `Transfer <- ${kasalar.find(k => k.id.toString() === transferForm.from_id)?.kasa_adi}. ${transferForm.aciklama}`,
         islem_tarihi: now,
-        odeme_sekli: transferForm.odeme_sekli
+        odeme_sekli: transferForm.odeme_sekli,
+        kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
+        subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
       }
     ]
 
