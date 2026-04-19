@@ -31,8 +31,30 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/', req.url))
   }
 
-  if (req.nextUrl.pathname !== '/login' && !session) {
-    return NextResponse.redirect(new URL('/login', req.url))
+  if (req.nextUrl.pathname !== '/login') {
+    if (!session) {
+      return NextResponse.redirect(new URL('/login', req.url))
+    }
+
+    // Kullanıcı giriş yapmış, tenant kontrolü yap
+    const { data: tenantData, error } = await supabase
+      .from('firma_kullanicilari')
+      .select('rol, aktif')
+      .eq('user_id', session.user.id)
+      .eq('aktif', true)
+      .single()
+
+    // Tenant yoksa veya aktif değilse dışarı at
+    if (error || !tenantData) {
+      // Çerezleri temizlemek için sunucu tarafında basitçe geri yönlendiriyoruz. 
+      // Login sayfasında auth kalıntıları temizlenecektir.
+      return NextResponse.redirect(new URL('/login?error=no_tenant', req.url))
+    }
+
+    // Admin sayfası güvenlik kalkanı
+    if (req.nextUrl.pathname.startsWith('/admin') && tenantData.rol !== 'admin') {
+      return NextResponse.redirect(new URL('/', req.url))
+    }
   }
 
   return res

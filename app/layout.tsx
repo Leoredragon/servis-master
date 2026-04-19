@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Inter } from 'next/font/google'
 import { supabase } from './lib/supabase'
+import { getTenantInfo } from './lib/auth'
+import { MODULLER } from './lib/permissions'
 import './globals.css'
 
 const inter = Inter({
@@ -46,36 +48,36 @@ const menuGroups = [
   {
     title: 'Ana Menü',
     items: [
-      { path: '/',                 name: 'Anasayfa',         icon: icons.dashboard  },
-      { path: '/musteriler',       name: 'Müşteriler',       icon: icons.customers  },
-      { path: '/servis-kayitlari', name: 'Servis Kayıtları', icon: icons.service    },
+      { path: '/',                 name: 'Anasayfa',         icon: icons.dashboard, modul: MODULLER.DASHBOARD  },
+      { path: '/musteriler',       name: 'Müşteriler',       icon: icons.customers, modul: MODULLER.MUSTERILER  },
+      { path: '/servis-kayitlari', name: 'Servis Kayıtları', icon: icons.service,   modul: MODULLER.SERVIS    },
     ]
   },
   {
     title: 'Finansal Yönetim',
     items: [
-      { path: '/faturalar',        name: 'Faturalar',        icon: icons.invoice    },
-      { path: '/gelir-gider',      name: 'Gelir Gider',      icon: icons.finance    },
-      { path: '/kasa',             name: 'Kasa & Banka',     icon: icons.cash       },
-      { path: '/cek-senet',        name: 'Çek Senet',        icon: icons.check      },
-      { path: '/taksit-takip',     name: 'Taksit Takip',     icon: icons.list       },
+      { path: '/faturalar',        name: 'Faturalar',        icon: icons.invoice,   modul: MODULLER.FATURALAR    },
+      { path: '/gelir-gider',      name: 'Gelir Gider',      icon: icons.finance,   modul: MODULLER.KASA    },
+      { path: '/kasa',             name: 'Kasa & Banka',     icon: icons.cash,      modul: MODULLER.KASA       },
+      { path: '/cek-senet',        name: 'Çek Senet',        icon: icons.check,     modul: MODULLER.CEK_SENET      },
+      { path: '/taksit-takip',     name: 'Taksit Takip',     icon: icons.list,      modul: MODULLER.TAKSIT       },
     ]
   },
   {
     title: 'Operasyonel',
     items: [
-      { path: '/randevu',          name: 'Randevu / Ajanda', icon: icons.randevu    },
-      { path: '/stok',             name: 'Stok Yönetimi',    icon: icons.stock      },
-      { path: '/teklif-siparis',   name: 'Teklif Sipariş',   icon: icons.order      },
-      { path: '/raporlar',         name: 'Raporlar',         icon: icons.reports    },
+      { path: '/randevu',          name: 'Randevu / Ajanda', icon: icons.randevu,   modul: MODULLER.RANDEVU    },
+      { path: '/stok',             name: 'Stok Yönetimi',    icon: icons.stock,     modul: MODULLER.STOK      },
+      { path: '/teklif-siparis',   name: 'Teklif Sipariş',   icon: icons.order,     modul: MODULLER.TEKLIF      },
+      { path: '/raporlar',         name: 'Raporlar',         icon: icons.reports,   modul: MODULLER.RAPORLAR    },
     ]
   },
   {
     title: 'Sistem',
     items: [
-      { path: '/ek-moduller',      name: 'Ek Modüller',      icon: icons.extra      },
-      { path: '/ayarlar',          name: 'Ayarlar',          icon: 'M12 15a3 3 0 100-6 3 3 0 000 6z M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z' },
-      { path: '/canli-destek',     name: 'Canlı Destek',     icon: icons.support    },
+      { path: '/ek-moduller',      name: 'Ek Modüller',      icon: icons.extra,     modul: null      },
+      { path: '/ayarlar',          name: 'Ayarlar',          icon: 'M12 15a3 3 0 100-6 3 3 0 000 6z M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z', modul: null },
+      { path: '/canli-destek',     name: 'Canlı Destek',     icon: icons.support,   modul: null    },
     ]
   }
 ]
@@ -85,15 +87,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [profileOpen, setProfileOpen] = useState(false)
   const [userEmail, setUserEmail] = useState('admin@servismaster.com')
   const [userInitial, setUserInitial] = useState('A')
+  const [tenantCache, setTenantCache] = useState<any>(null)
 
   const pathname = usePathname()
   const router = useRouter()
   
   useEffect(() => {
+    // Initial fetch
+    let mounted = true
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user?.email) {
-        setUserEmail(session.user.email)
-        setUserInitial(session.user.email[0].toUpperCase())
+        if(mounted) {
+          setUserEmail(session.user.email)
+          setUserInitial(session.user.email[0].toUpperCase())
+        }
+        getTenantInfo(session.user.id).then(info => {
+          if (info && mounted) {
+            localStorage.setItem('sm_tenant_info', JSON.stringify(info))
+            setTenantCache(info)
+          }
+        })
       }
     })
 
@@ -103,10 +116,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       } else if (session?.user?.email) {
         setUserEmail(session.user.email)
         setUserInitial(session.user.email[0].toUpperCase())
+        getTenantInfo(session.user.id).then(info => {
+          if (info) {
+            localStorage.setItem('sm_tenant_info', JSON.stringify(info))
+            setTenantCache(info)
+          }
+        })
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [pathname, router])
 
   const isActive = useCallback((path: string) => 
@@ -117,12 +139,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const toggleProfile = useCallback(() => setProfileOpen(prev => !prev), [])
   const closeProfile = useCallback(() => setProfileOpen(false), [])
 
-  // Login sayfasıysa standart layout'u gizle
-  if (pathname === '/login') {
+  // Login veya Admin sayfasıysa standart layout'u gizle
+  if (pathname === '/login' || pathname.startsWith('/admin')) {
     return (
       <html lang="tr">
         <head>
-          <title>Giriş Yap | Servis Master Pro</title>
+          <title>{pathname === '/login' ? 'Giriş Yap' : 'SaaS Admin Paneli'} | Servis Master Pro</title>
         </head>
         <body className={inter.className} style={{ margin: 0, padding: 0, background: '#f0f2f5' }}>
           {children}
@@ -201,8 +223,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   )}
                   {group.items.map(item => {
                     const active = isActive(item.path)
+                    
+                    // Modül kilitli mi kontrolü
+                    let hasAccess = true
+                    if (item.modul && tenantCache?.izinler) {
+                       const izin = tenantCache.izinler.find((i:any) => i.modul_kodu === item.modul)
+                       hasAccess = izin ? izin.aktif : false
+                    }
+
                     return (
-                      <Link key={item.path} href={item.path} title={collapsed ? item.name : undefined} style={{
+                      <Link key={item.path} href={hasAccess ? item.path : '#'} title={collapsed ? item.name : undefined} style={{
                         display: 'flex', alignItems: 'center', gap: '10px',
                         padding: `10px ${collapsed ? '0' : '12px'}`,
                         justifyContent: collapsed ? 'center' : 'flex-start',
@@ -210,17 +240,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         textDecoration: 'none', transition: 'all 0.15s',
                         background: active ? 'linear-gradient(90deg,rgba(59,130,246,0.2)0%,rgba(59,130,246,0.05)100%)' : 'transparent',
                         borderLeft: active ? '3px solid #3b82f6' : '3px solid transparent',
-                        color: active ? '#60a5fa' : '#94a3b8',
+                        color: hasAccess ? (active ? '#60a5fa' : '#94a3b8') : 'rgba(255,255,255,0.1)',
+                        cursor: hasAccess ? 'pointer' : 'not-allowed',
+                        opacity: hasAccess ? 1 : 0.6
                       }}>
-                        <span style={{ flexShrink: 0, display: 'flex', color: active ? '#60a5fa' : 'rgba(255,255,255,0.25)' }}>
+                        <span style={{ flexShrink: 0, display: 'flex', color: hasAccess ? (active ? '#60a5fa' : 'rgba(255,255,255,0.25)') : 'rgba(255,255,255,0.1)' }}>
                           <Icon d={item.icon} size={18} />
                         </span>
                         {!collapsed && (
-                          <span style={{ fontWeight: active ? 600 : 500, fontSize: '13px', whiteSpace: 'nowrap', color: active ? '#fff' : 'rgba(255,255,255,0.5)' }}>
+                          <span style={{ fontWeight: active ? 600 : 500, fontSize: '13px', whiteSpace: 'nowrap', color: hasAccess ? (active ? '#fff' : 'rgba(255,255,255,0.5)') : 'rgba(255,255,255,0.15)' }}>
                             {item.name}
                           </span>
                         )}
-                        {active && !collapsed && (
+                        {!hasAccess && !collapsed && (
+                          <span style={{ marginLeft: 'auto', flexShrink: 0, color: '#ef4444' }}>
+                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                          </span>
+                        )}
+                        {active && !collapsed && hasAccess && (
                           <span style={{ marginLeft: 'auto', width: '5px', height: '5px', borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />
                         )}
                       </Link>
@@ -261,8 +298,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               display: 'flex', alignItems: 'center', padding: '0 28px', gap: '20px',
               flexShrink: 0, boxShadow: '0 1px 3px rgba(0,0,0,0.02)', position: 'sticky', top: 0, zIndex: 50
             }}>
-              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '16px', letterSpacing: '-0.3px', minWidth: '130px' }}>
+              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '16px', letterSpacing: '-0.3px', minWidth: '130px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                 {menuGroups.flatMap(g => g.items).find(m => isActive(m.path))?.name || 'Panel'}
+                {tenantCache?.rol === 'admin' && (
+                  <Link href="/admin" style={{ fontSize: '11px', background: '#e11d48', color: '#fff', padding: '4px 10px', borderRadius: '8px', textDecoration: 'none', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    SİSTEM YÖNETİMİ
+                  </Link>
+                )}
               </div>
 
               <div style={{ flex: 1 }}></div>
