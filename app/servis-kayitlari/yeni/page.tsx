@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
@@ -29,7 +29,7 @@ export default function YeniServis() {
   const random4 = Math.floor(1000 + Math.random() * 9000)
   const defaultSrvNo = `SRV-${yyyymmdd}-${random4}`
 
-  // Cari ID deÄŸiÅŸtiÄŸinde o mÃ¼ÅŸteriye ait araÃ§larÄ± getir
+  // Cari ID değiştiğinde o müşteriye ait araçları getir
   useEffect(() => {
     if (!form.cari_id) {
       setAraclar([])
@@ -52,7 +52,7 @@ export default function YeniServis() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.cari_id || !form.arac_id) {
-      alert('LÃ¼tfen mÃ¼ÅŸteri ve ait olduÄŸu bir aracÄ± seÃ§in.')
+      alert('Lütfen müşteri ve ait olduğu bir aracı seçin.')
       return
     }
 
@@ -65,8 +65,8 @@ export default function YeniServis() {
       gelis_kmsi: parseInt(form.gelis_kmsi) || 0,
       teknisyen: form.teknisyen,
       sikayet: form.sikayet,
-      durum: 'AraÃ§ Kabul',
-      odeme_durumu: 'Ã–denmedi',
+      durum: 'Araç Kabul',
+      odeme_durumu: 'Ödenmedi',
       toplam_tutar: 0,
       odenen_tutar: 0,
       kullaniciadi: (await supabase.auth.getUser()).data.user?.email || 'admin',
@@ -76,7 +76,7 @@ export default function YeniServis() {
     const { data, error } = await supabase.from('servis_karti').insert([payload]).select().single()
 
     if (error) {
-      alert('Hata oluÅŸtu: ' + error.message)
+      alert('Hata oluştu: ' + error.message)
       setLoading(false)
     } else {
       router.push(`/servis-kayitlari/${data.id}`)
@@ -86,22 +86,22 @@ export default function YeniServis() {
   return (
     <div className="animate-fadeIn" style={{ maxWidth: '800px', margin: '0 auto', padding: '0 24px 60px' }}>
       <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '15px', fontWeight: 700, cursor: 'pointer', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        â† Geri DÃ¶n
+        ← Geri Dön
       </button>
 
       <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.5px' }}>Yeni Ä°ÅŸ Emri OluÅŸtur</h1>
-        <p style={{ color: '#64748b', fontSize: '15px', marginTop: '8px' }}>MÃ¼ÅŸteri aracÄ±nÄ± servise kabul edin.</p>
+        <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.5px' }}>Yeni İş Emri Oluştur</h1>
+        <p style={{ color: '#64748b', fontSize: '15px', marginTop: '8px' }}>Müşteri aracını servise kabul edin.</p>
       </div>
 
       <div style={{ background: '#fff', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
         <form onSubmit={handleSubmit} style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
           <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '16px', border: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-             <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', margin: 0 }}>Cari & AraÃ§ Bilgisi</h3>
+             <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', margin: 0 }}>Cari & Araç Bilgisi</h3>
              
              <div>
-                <label style={labelStyle}>MÃ¼ÅŸteri SeÃ§in *</label>
+                <label style={labelStyle}>Müşteri Seçin *</label>
                 <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '2px' }}>
                   <CariSec value={form.cari_id} onChange={(id) => setForm({...form, cari_id: id})} />
                 </div>
@@ -109,15 +109,15 @@ export default function YeniServis() {
 
              {form.cari_id && (
                <div>
-                  <label style={labelStyle}>AraÃ§ SeÃ§in *</label>
+                  <label style={labelStyle}>Araç Seçin *</label>
                   <select required style={inputStyle} value={form.arac_id} onChange={e => setForm({...form, arac_id: e.target.value})}>
-                    <option value="">AraÃ§ SeÃ§iniz</option>
+                    <option value="">Araç Seçiniz</option>
                     {araclar.map(a => <option key={a.id} value={a.id}>{a.plaka} - {a.marka} {a.model}</option>)}
                   </select>
                   {araclar.length === 0 && (
                      <div style={{ marginTop: '12px', fontSize: '13px', color: '#ef4444', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        Bu mÃ¼ÅŸteriye ait kayÄ±tlÄ± araÃ§ yok. 
-                        <Link href={`/musteriler/${form.cari_id}?arac_ekle=true`} style={{ color: '#3b82f6', textDecoration: 'none' }}>Yeni AraÃ§ Ekle â†’</Link>
+                        Bu müşteriye ait kayıtlı araç yok. 
+                        <Link href={`/musteriler/${form.cari_id}?arac_ekle=true`} style={{ color: '#3b82f6', textDecoration: 'none' }}>Yeni Araç Ekle →</Link>
                      </div>
                   )}
                </div>
@@ -130,12 +130,12 @@ export default function YeniServis() {
                 <input disabled style={{ ...inputStyle, background: '#f8fafc', color: '#64748b', fontWeight: 800, fontFamily: 'monospace' }} value={defaultSrvNo} />
              </div>
              <div>
-                <label style={labelStyle}>GiriÅŸ Tarihi ve Saati *</label>
+                <label style={labelStyle}>Giriş Tarihi ve Saati *</label>
                 <input type="datetime-local" required style={inputStyle} value={form.giris_tarihi} onChange={e => setForm({...form, giris_tarihi: e.target.value})} />
              </div>
              <div>
-                <label style={labelStyle}>GeliÅŸ Kilometresi (KM)</label>
-                <input type="number" style={inputStyle} placeholder="Ã–rn: 45000" value={form.gelis_kmsi} onChange={e => setForm({...form, gelis_kmsi: e.target.value})} />
+                <label style={labelStyle}>Geliş Kilometresi (KM)</label>
+                <input type="number" style={inputStyle} placeholder="Örn: 45000" value={form.gelis_kmsi} onChange={e => setForm({...form, gelis_kmsi: e.target.value})} />
              </div>
              <div>
                 <label style={labelStyle}>Teknisyen / Usta</label>
@@ -144,14 +144,14 @@ export default function YeniServis() {
           </div>
 
           <div>
-             <label style={labelStyle}>MÃ¼ÅŸteri Åikayeti / AraÃ§ Kabul Notu</label>
-             <textarea rows={4} style={{ ...inputStyle, resize: 'vertical' }} placeholder="MÃ¼ÅŸterinin belirttiÄŸi arÄ±zalar veya talepler..." value={form.sikayet} onChange={e => setForm({...form, sikayet: e.target.value})} />
+             <label style={labelStyle}>Müşteri Şikayeti / Araç Kabul Notu</label>
+             <textarea rows={4} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Müşterinin belirttiği arızalar veya talepler..." value={form.sikayet} onChange={e => setForm({...form, sikayet: e.target.value})} />
           </div>
 
           <div style={{ marginTop: '16px', borderTop: '1px solid #e2e8f0', paddingTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-             <button type="button" onClick={() => router.back()} disabled={loading} style={{ padding: '16px 24px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 700, cursor: 'pointer' }}>Ä°ptal</button>
+             <button type="button" onClick={() => router.back()} disabled={loading} style={{ padding: '16px 24px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 700, cursor: 'pointer' }}>İptal</button>
              <button type="submit" disabled={loading} className="btn-primary" style={{ padding: '16px 32px', borderRadius: '12px', fontSize: '16px' }}>
-                {loading ? 'Ä°ÅŸ Emri AÃ§Ä±lÄ±yor...' : 'Ä°ÅŸ Emrini BaÅŸlat â†’'}
+                {loading ? 'İş Emri Açılıyor...' : 'İş Emrini Başlat →'}
              </button>
           </div>
 

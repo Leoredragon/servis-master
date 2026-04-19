@@ -51,6 +51,7 @@ const menuGroups = [
       { path: '/',                 name: 'Anasayfa',         icon: icons.dashboard, modul: MODULLER.DASHBOARD  },
       { path: '/musteriler',       name: 'Müşteriler',       icon: icons.customers, modul: MODULLER.MUSTERILER  },
       { path: '/servis-kayitlari', name: 'Servis Kayıtları', icon: icons.service,   modul: MODULLER.SERVIS    },
+      { path: '/stok',             name: 'Stok Yönetimi',    icon: icons.stock,     modul: MODULLER.STOK      },
     ]
   },
   {
@@ -67,7 +68,6 @@ const menuGroups = [
     title: 'Operasyonel',
     items: [
       { path: '/randevu',          name: 'Randevu / Ajanda', icon: icons.randevu,   modul: MODULLER.RANDEVU    },
-      { path: '/stok',             name: 'Stok Yönetimi',    icon: icons.stock,     modul: MODULLER.STOK      },
       { path: '/teklif-siparis',   name: 'Teklif Sipariş',   icon: icons.order,     modul: MODULLER.TEKLIF      },
       { path: '/raporlar',         name: 'Raporlar',         icon: icons.reports,   modul: MODULLER.RAPORLAR    },
     ]

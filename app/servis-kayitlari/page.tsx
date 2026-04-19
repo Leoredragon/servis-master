@@ -139,6 +139,12 @@ export default function ServisKayitlariListesi() {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
   
+  // SMS Modalı state
+  const [smsModalServis, setSmsModalServis] = useState<Servis | null>(null)
+  const [smsSending, setSmsSending] = useState(false)
+  const [smsMessage, setSmsMessage] = useState('')
+  const [smsPhone, setSmsPhone] = useState('')
+  
   // Görünüm Cache (Varsayılan liste ama cache var)
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
 
@@ -223,7 +229,43 @@ export default function ServisKayitlariListesi() {
 
     // DB Update
     const { error } = await supabase.from('servis_karti').update({ durum: newDurum }).eq('id', activeId)
-    if (error) fetchData() // Revert on error
+    if (error) {
+      fetchData() // Revert on error
+    } else {
+      if (newDurum === 'Teslime Hazır' || newDurum === 'Tamamlandı') {
+        const trg = updated[sIdx]
+        setSmsModalServis(trg)
+        
+        // cari_kart inner join doesn't pull 'cep', let's fetch it explicitly now or ask user to provide it.
+        // We will fetch the phone number from cari_kart immediately
+        const { data: cData } = await supabase.from('cari_kart').select('cep').eq('id', trg.cari_id).single()
+        setSmsPhone(cData?.cep || '')
+        
+        setSmsMessage(`Sayın ${trg.cari_kart?.yetkili}, ${trg.arac?.plaka} plakalı aracınızın servis işlemleri tamamlanmıştır. Borcunuz: ${trg.toplam_tutar || 0} TL. İyi günler dileriz.`)
+      }
+    }
+  }
+
+  async function handleSendSms() {
+    if (!smsPhone || !smsMessage) return alert('Telefon veya mesaj eksik!')
+    setSmsSending(true)
+    try {
+       const res = await fetch('/api/sms', {
+         method: 'POST',
+         body: JSON.stringify({ alici: smsPhone, mesaj: smsMessage, modulInfo: 'Servis İşlemi' })
+       })
+       const out = await res.json()
+       if(out.success) {
+         alert('SMS başarıyla gönderildi!')
+         setSmsModalServis(null)
+       } else {
+         alert('Hata: ' + out.error)
+       }
+    } catch(err:any) {
+       alert('Beklenmeyen Hata: ' + err.message)
+    } finally {
+       setSmsSending(false)
+    }
   }
 
   return (
@@ -361,6 +403,41 @@ export default function ServisKayitlariListesi() {
             <Pagination totalItems={filtered.length} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} />
           </div>
         </div>
+      )}
+
+      {/* SMS Modalı */}
+      {smsModalServis && (
+         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} className="animate-fadeIn">
+            <div style={{ background: '#fff', padding: '32px', borderRadius: '24px', width: '450px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                 <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#e0e7ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                 </div>
+                 <div>
+                   <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>Otomatik SMS</h3>
+                   <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>Araç teslim durumu güncellendi.</p>
+                 </div>
+               </div>
+
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                 <div>
+                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>Alıcı Telefon No (Cari Kart):</label>
+                   <input type="text" value={smsPhone} onChange={e=>setSmsPhone(e.target.value)} placeholder="+905551234567" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                 </div>
+                 <div>
+                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>Mesaj İçeriği:</label>
+                   <textarea value={smsMessage} onChange={e=>setSmsMessage(e.target.value)} rows={4} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', resize: 'vertical' }} />
+                 </div>
+               </div>
+
+               <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                 <button onClick={() => setSmsModalServis(null)} disabled={smsSending} style={{ flex: 1, padding: '14px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer' }}>İptal</button>
+                 <button onClick={handleSendSms} disabled={smsSending} style={{ flex: 1, padding: '14px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer' }}>
+                   {smsSending ? 'Gönderiliyor...' : 'SMS Gönder'}
+                 </button>
+               </div>
+            </div>
+         </div>
       )}
     </div>
   )

@@ -72,7 +72,7 @@ export default function FaturalarPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px' }}>Fatura ve Finans Yönetimi</h1>
-          <p style={{ color: '#64748b', fontSize: '15px', marginTop: '4px' }}>Tüm alış, satış ve iade faturalarınızı kalem bazlı detaylarla buradan yönetin.</p>
+          <p style={{ color: '#64748b', fontSize: '15px', marginTop: '4px' }}>Tüm Alış, Satış ve iade faturalarınızı kalem bazlı detaylarla buradan yönetin.</p>
         </div>
         <Link href="/faturalar/yeni" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', textDecoration: 'none' }}>
           {Icons.plus} Yeni Fatura Oluştur
@@ -116,7 +116,7 @@ export default function FaturalarPage() {
         <div style={{ position: 'relative', flex: 1 }}>
           <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>{Icons.search}</span>
           <input 
-            placeholder="Evrak no veya müşteri ile ara..."
+            placeholder="Evrak no veya Müşteri ile ara..."
             style={{ width: '100%', padding: '10px 10px 10px 38px', borderRadius: '10px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px' }}
             value={search}
             onChange={e => setSearch(e.target.value)}
