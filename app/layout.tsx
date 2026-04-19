@@ -37,6 +37,7 @@ const icons = {
   reports:    'M18 20V10 M12 20V4 M6 20v-6',
   extra:      'M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1 3-6z',
   support:    'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z',
+  calendar:   'M19 4h-2V3a1 1 0 00-2 0v1H9V3a1 1 0 00-2 0v1H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2zm0 16H5V10h14v10z',
 }
 
 const menuGroups = [
@@ -61,6 +62,7 @@ const menuGroups = [
   {
     title: 'Operasyonel',
     items: [
+      { path: '/ajanda',           name: 'Ajanda & Takvim',  icon: icons.calendar   },
       { path: '/stok',             name: 'Stok Yönetimi',    icon: icons.stock      },
       { path: '/teklif-siparis',   name: 'Teklif Sipariş',   icon: icons.order      },
       { path: '/raporlar',         name: 'Raporlar',         icon: icons.reports    },

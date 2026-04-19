@@ -355,3 +355,30 @@ label { font-size: 0.875rem; font-weight: 500; color: #374155; display: block; m
 }
 .detail-item .detail-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; margin-bottom: 0.25rem; }
 .detail-item .detail-value { font-size: 0.9375rem; font-weight: 500; color: #111827; }
+
+/* ─── Yazdırma / Print Kuralları ─── */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-area, .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 210mm;
+    margin: 0;
+    padding: 0;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+}

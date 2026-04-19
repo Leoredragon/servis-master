@@ -1,11 +1,13 @@
 "use client"
 
 import { supabase } from '../../lib/supabase'
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import ConfirmModal from '../../components/ConfirmModal'
 import SmartProductSearch, { StokItem } from '../../components/SmartProductSearch'
+import PrintButton from '../../components/print/PrintButton'
+import ServisIsEmri from '../../components/print/ServisIsEmri'
 
 /* ─── Sabitler ─── */
 const IS_AKISI = [
@@ -51,6 +53,7 @@ interface IslemRow {
 export default function ServisDetay() {
   const { id } = useParams()
   const router = useRouter()
+  const printRef = useRef<HTMLDivElement>(null)
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -288,11 +291,14 @@ export default function ServisDetay() {
         <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '14px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
           {Icons.back} Servis Kayıtları
         </button>
-        {canConvert && (
-          <button onClick={() => setConfirmModal({ open: true, config: 'fatura', targetId: null })} className="btn-primary" style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
-            {Icons.invoice} Faturaya Dönüştür
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <PrintButton contentRef={printRef} fileName={`Is_Emri_${servis.servis_no}`} />
+          {canConvert && (
+            <button onClick={() => setConfirmModal({ open: true, config: 'fatura', targetId: null })} className="btn-primary" style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+              {Icons.invoice} Faturaya Dönüştür
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ─── ÜST HEADER KARTI ─── */}
@@ -579,6 +585,10 @@ export default function ServisDetay() {
             if (confirmModal.config === 'fatura') handleFaturayaDonustur()
          }}
       />
+
+      <div style={{ display: 'none' }}>
+         <ServisIsEmri ref={printRef} servis={servis} islemler={islemler} />
+      </div>
     </div>
   )
 }

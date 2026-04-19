@@ -1,9 +1,11 @@
 "use client"
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/app/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import ConfirmModal from '@/app/components/ConfirmModal'
+import PrintButton from '@/app/components/print/PrintButton'
+import FaturaBaski from '@/app/components/print/FaturaBaski'
 
 const Icons = {
   back: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
@@ -14,6 +16,7 @@ const Icons = {
 export default function FaturaDetayPage() {
   const router = useRouter()
   const { id } = useParams()
+  const printRef = useRef<HTMLDivElement>(null)
   const [loading, setLoading] = useState(true)
   const [fatura, setFatura] = useState<any>(null)
   const [kalemler, setKalemler] = useState<any[]>([])
@@ -82,7 +85,7 @@ export default function FaturaDetayPage() {
         </div>
 
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={() => window.print()} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px' }}>{Icons.print} Yazdır</button>
+          <PrintButton contentRef={printRef} fileName={`Fatura_${fatura?.evrak_no || 'Belge'}`} />
           {fatura?.odeme_durumu !== 'İptal Edildi' && (
             <button 
               onClick={() => setCancelModal(true)} 
@@ -194,6 +197,10 @@ export default function FaturaDetayPage() {
         type="danger"
         confirmText="Evet, İptal Et"
       />
+      
+      <div style={{ display: 'none' }}>
+         <FaturaBaski ref={printRef} fatura={fatura} kalemler={kalemler} />
+      </div>
     </div>
   )
 }
