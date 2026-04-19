@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { supabase } from '../lib/supabase'
 import { useEffect, useState, useCallback } from 'react'
@@ -8,7 +8,7 @@ import Pagination from '../components/Pagination'
 import Modal from '../components/Modal'
 import CariSec from '../components/CariSec'
 
-// SVG İkonları
+// SVG Ä°konlarÄ±
 const icons = {
   check: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
   plus: 'M12 5v14M5 12h14',
@@ -33,10 +33,10 @@ export default function CekSenetYonetimi() {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<any[]>([])
   const [filtered, setFiltered] = useState<any[]>([])
-  const [activeTab, setActiveTab] = useState<'Alınan' | 'Verilen'>('Alınan')
+  const [activeTab, setActiveTab] = useState<'AlÄ±nan' | 'Verilen'>('AlÄ±nan')
   const [arama, setArama] = useState('')
   
-  // State: Kasalar & Cariler (Formlar için)
+  // State: Kasalar & Cariler (Formlar iÃ§in)
   const [kasalar, setKasalar] = useState<any[]>([])
   const [cariler, setCariler] = useState<any[]>([])
 
@@ -49,8 +49,8 @@ export default function CekSenetYonetimi() {
   // Form State
   const [form, setForm] = useState({
     id: null as number | null,
-    evrak_turu: 'Çek',
-    islem_yonu: 'Müşteriden Alınan',
+    evrak_turu: 'Ã‡ek',
+    islem_yonu: 'MÃ¼ÅŸteriden AlÄ±nan',
     belge_no: '',
     vade_tarihi: new Date().toISOString().split('T')[0],
     tutar: '',
@@ -82,7 +82,7 @@ export default function CekSenetYonetimi() {
     
     if (error) {
       console.error(error)
-      showToast('Veriler yüklenemedi: ' + error.message, 'error')
+      showToast('Veriler yÃ¼klenemedi: ' + error.message, 'error')
     } else setData(evraklar || [])
 
     const [cRes, kRes] = await Promise.all([
@@ -99,7 +99,7 @@ export default function CekSenetYonetimi() {
 
   useEffect(() => {
     let res = data.filter(item => 
-      activeTab === 'Alınan' ? item.islem_yonu === 'Müşteriden Alınan' : item.islem_yonu === 'Firmamızın Verdiği'
+      activeTab === 'AlÄ±nan' ? item.islem_yonu === 'MÃ¼ÅŸteriden AlÄ±nan' : item.islem_yonu === 'FirmamÄ±zÄ±n VerdiÄŸi'
     )
     if (arama) {
       const q = arama.toLowerCase()
@@ -124,7 +124,7 @@ export default function CekSenetYonetimi() {
     
     setErrors(newErrors)
     if (Object.keys(newErrors).length > 0) {
-      showToast('Lütfen zorunlu alanları eksiksiz ve doğru doldurunuz.', 'error')
+      showToast('LÃ¼tfen zorunlu alanlarÄ± eksiksiz ve doÄŸru doldurunuz.', 'error')
       return
     }
 
@@ -142,9 +142,9 @@ export default function CekSenetYonetimi() {
         tutar: parseFloat(form.tutar.toString()),
         cari_id: parseInt(form.cari_id.toString()),
         aciklama: form.aciklama,
-        islem_yonu: activeTab === 'Alınan' ? 'Müşteriden Alınan' : 'Firmamızın Verdiği',
-        kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
-        subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
+        islem_yonu: activeTab === 'AlÄ±nan' ? 'MÃ¼ÅŸteriden AlÄ±nan' : 'FirmamÄ±zÄ±n VerdiÄŸi',
+        kullaniciadi: (await supabase.auth.getUser()).data.user?.email || 'admin', // TODO: Oturum bilgisinden dinamik alÄ±nacak
+        subeadi:      'Merkez', // TODO: KullanÄ±cÄ± ÅŸubesinden dinamik alÄ±nacak
       }
       
       if (!form.id) {
@@ -162,7 +162,7 @@ export default function CekSenetYonetimi() {
 
       if (error) throw error
 
-      showToast(form.id ? 'Evrak güncellendi' : 'Yeni evrak kaydedildi')
+      showToast(form.id ? 'Evrak gÃ¼ncellendi' : 'Yeni evrak kaydedildi')
       setFormPanel(false)
       fetchData()
     } catch (err: any) {
@@ -179,23 +179,23 @@ export default function CekSenetYonetimi() {
     setSaving(true)
 
     const item = tahsilModal.item
-    const yeniDurum = item.islem_yonu === 'Müşteriden Alınan' ? 'Tahsil Edildi' : 'Ödendi'
+    const yeniDurum = item.islem_yonu === 'MÃ¼ÅŸteriden AlÄ±nan' ? 'Tahsil Edildi' : 'Ã–dendi'
 
     // 1. Kasa hareketi ekle
     const { error: kError } = await supabase.from('kasa_hareket').insert([{
       kasa_id: parseInt(tahsilForm.kasa_id),
-      tur: item.islem_yonu === 'Müşteriden Alınan' ? 'gelir' : 'gider',
+      tur: item.islem_yonu === 'MÃ¼ÅŸteriden AlÄ±nan' ? 'gelir' : 'gider',
       tutar: item.tutar,
-      kategori: 'Çek/Senet Tahsilatı',
-      aciklama: `${item.evrak_turu} Tahsilatı: ${item.belge_no || ''} (${item.cari?.yetkili || ''})`,
+      kategori: 'Ã‡ek/Senet TahsilatÄ±',
+      aciklama: `${item.evrak_turu} TahsilatÄ±: ${item.belge_no || ''} (${item.cari?.yetkili || ''})`,
       islem_tarihi: tahsilForm.tarih,
-      kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
-      subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
+      kullaniciadi: (await supabase.auth.getUser()).data.user?.email || 'admin', // TODO: Oturum bilgisinden dinamik alÄ±nacak
+      subeadi:      'Merkez', // TODO: KullanÄ±cÄ± ÅŸubesinden dinamik alÄ±nacak
     }])
 
     if (kError) { alert('Hata: ' + kError.message); setSaving(false); return }
 
-    // 2. Evrak durumunu güncelle
+    // 2. Evrak durumunu gÃ¼ncelle
     const { error: sError } = await supabase.from('cek_senet').update({ durum: yeniDurum }).eq('id', item.id)
     
     setSaving(false)
@@ -242,15 +242,15 @@ export default function CekSenetYonetimi() {
 
     if (fark < 0) return (
       <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#ef4444', fontWeight: 800 }}>
-        <Icon d={icons.alert} size={14} color="#ef4444" /> {Math.abs(fark)} Gün Geçti
+        <Icon d={icons.alert} size={14} color="#ef4444" /> {Math.abs(fark)} GÃ¼n GeÃ§ti
       </span>
     )
     if (fark <= 3) return (
       <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f59e0b', fontWeight: 800 }}>
-        <Icon d={icons.history} size={14} color="#f59e0b" /> {fark === 0 ? 'Bugün!' : fark + ' Gün Kaldı'}
+        <Icon d={icons.history} size={14} color="#f59e0b" /> {fark === 0 ? 'BugÃ¼n!' : fark + ' GÃ¼n KaldÄ±'}
       </span>
     )
-    return <span style={{ color: '#64748b' }}>{fark} Gün Var</span>
+    return <span style={{ color: '#64748b' }}>{fark} GÃ¼n Var</span>
   }
 
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
@@ -276,15 +276,15 @@ export default function CekSenetYonetimi() {
         </div>
       )}
 
-      {/* ─── Header ─── */}
+      {/* â”€â”€â”€ Header â”€â”€â”€ */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.5px' }}>Çek & Senet Yönetimi</h1>
-          <p style={{ color: '#64748b', fontSize: '15px', margin: '4px 0 0', fontWeight: 500 }}>Vadeli alacak ve borçlarınızı buradan takip edin</p>
+          <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.5px' }}>Ã‡ek & Senet YÃ¶netimi</h1>
+          <p style={{ color: '#64748b', fontSize: '15px', margin: '4px 0 0', fontWeight: 500 }}>Vadeli alacak ve borÃ§larÄ±nÄ±zÄ± buradan takip edin</p>
         </div>
         <button 
           onClick={() => {
-            setForm({ id: null, evrak_turu: 'Çek', islem_yonu: activeTab === 'Alınan' ? 'Müşteriden Alınan' : 'Firmamızın Verdiği', belge_no: '', vade_tarihi: new Date().toISOString().split('T')[0], tutar: '', cari_id: '', aciklama: '' })
+            setForm({ id: null, evrak_turu: 'Ã‡ek', islem_yonu: activeTab === 'AlÄ±nan' ? 'MÃ¼ÅŸteriden AlÄ±nan' : 'FirmamÄ±zÄ±n VerdiÄŸi', belge_no: '', vade_tarihi: new Date().toISOString().split('T')[0], tutar: '', cari_id: '', aciklama: '' })
             setFormPanel(true)
           }}
           style={{ 
@@ -293,14 +293,14 @@ export default function CekSenetYonetimi() {
             border: 'none', cursor: 'pointer', boxShadow: '0 8px 20px rgba(59,130,246,0.3)' 
           }}
         >
-          <Icon d={icons.plus} size={20} /> Yeni Evrak Kaydı
+          <Icon d={icons.plus} size={20} /> Yeni Evrak KaydÄ±
         </button>
       </div>
 
-      {/* ─── Filtreler & Sekmeler ─── */}
+      {/* â”€â”€â”€ Filtreler & Sekmeler â”€â”€â”€ */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '12px 20px', borderRadius: '20px', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', border: '1px solid #f1f5f9' }}>
         <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '12px' }}>
-          {['Alınan', 'Verilen'].map(tab => (
+          {['AlÄ±nan', 'Verilen'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab as any)}
@@ -313,7 +313,7 @@ export default function CekSenetYonetimi() {
                 transition: 'all 0.2s'
               }}
             >
-              {tab === 'Alınan' ? 'Alınan (Alacaklar)' : 'Verilen (Borçlar)'}
+              {tab === 'AlÄ±nan' ? 'AlÄ±nan (Alacaklar)' : 'Verilen (BorÃ§lar)'}
             </button>
           ))}
         </div>
@@ -323,18 +323,18 @@ export default function CekSenetYonetimi() {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           </span>
           <input 
-            type="text" placeholder="No, cari veya açıklama ara..." value={arama} onChange={e => setArama(e.target.value)}
+            type="text" placeholder="No, cari veya aÃ§Ä±klama ara..." value={arama} onChange={e => setArama(e.target.value)}
             style={{ ...inputStyle, paddingLeft: '44px', background: '#f8fafc', border: '1px solid #e2e8f0' }} 
           />
         </div>
       </div>
 
-      {/* ─── Liste Tablosu ─── */}
+      {/* â”€â”€â”€ Liste Tablosu â”€â”€â”€ */}
       <div style={{ background: '#fff', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.04)', border: '1px solid #f1f5f9', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-              {['Tür / No', 'Cari Bilgisi', 'Vade Tarihi', 'Durum', 'Tutar', 'İşlem'].map(h => (
+              {['TÃ¼r / No', 'Cari Bilgisi', 'Vade Tarihi', 'Durum', 'Tutar', 'Ä°ÅŸlem'].map(h => (
                 <th key={h} style={{ padding: '18px 24px', fontSize: '12px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
               ))}
             </tr>
@@ -348,7 +348,7 @@ export default function CekSenetYonetimi() {
               <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fafbfc' }}>
                 <td style={{ padding: '18px 24px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.evrak_turu === 'Çek' ? '#3b82f6' : '#7c3aed' }} />
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.evrak_turu === 'Ã‡ek' ? '#3b82f6' : '#7c3aed' }} />
                     <div>
                       <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>{item.evrak_turu}</div>
                       <div style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8' }}>#{item.belge_no || 'No Yok'}</div>
@@ -356,10 +356,10 @@ export default function CekSenetYonetimi() {
                   </div>
                 </td>
                 <td style={{ padding: '18px 24px' }}>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>{item.cari?.yetkili || '—'}</div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>{item.cari?.yetkili || 'â€”'}</div>
                   {item.durum === 'Ciro Edildi' && (
                     <div style={{ fontSize: '11px', color: '#10b981', fontWeight: 700, marginTop: '2px' }}>
-                      ↳ Ciro: {item.ciro_cari?.yetkili || '...'}
+                      â†³ Ciro: {item.ciro_cari?.yetkili || '...'}
                     </div>
                   )}
                 </td>
@@ -370,8 +370,8 @@ export default function CekSenetYonetimi() {
                 <td style={{ padding: '18px 24px' }}>
                   <span style={{ 
                     padding: '6px 14px', borderRadius: '10px', fontSize: '11px', fontWeight: 800,
-                    background: item.durum === 'Bekliyor' ? '#fff7ed' : (item.durum === 'Tahsil Edildi' || item.durum === 'Ödendi' ? '#ecfdf5' : '#f1f5f9'),
-                    color: item.durum === 'Bekliyor' ? '#c2410c' : (item.durum === 'Tahsil Edildi' || item.durum === 'Ödendi' ? '#065f46' : '#475569'),
+                    background: item.durum === 'Bekliyor' ? '#fff7ed' : (item.durum === 'Tahsil Edildi' || item.durum === 'Ã–dendi' ? '#ecfdf5' : '#f1f5f9'),
+                    color: item.durum === 'Bekliyor' ? '#c2410c' : (item.durum === 'Tahsil Edildi' || item.durum === 'Ã–dendi' ? '#065f46' : '#475569'),
                     border: '1px solid currentColor', opacity: 0.8
                   }}>
                     {item.durum}
@@ -379,7 +379,7 @@ export default function CekSenetYonetimi() {
                 </td>
                 <td style={{ padding: '18px 24px' }}>
                   <div style={{ fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>
-                    {item.tutar?.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} <span style={{ fontSize: '12px' }}>₺</span>
+                    {item.tutar?.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} <span style={{ fontSize: '12px' }}>â‚º</span>
                   </div>
                 </td>
                 <td style={{ padding: '18px 24px' }}>
@@ -388,12 +388,12 @@ export default function CekSenetYonetimi() {
                       <>
                         <button 
                           onClick={() => { setTahsilForm({ ...tahsilForm, kasa_id: '' }); setTahsilModal({ open: true, item }) }}
-                          title={activeTab === 'Alınan' ? 'Tahsil Et' : 'Ödendi Yap'}
+                          title={activeTab === 'AlÄ±nan' ? 'Tahsil Et' : 'Ã–dendi Yap'}
                           style={{ padding: '8px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', color: '#10b981' }}
                         >
                           <Icon d={icons.check} size={18} />
                         </button>
-                        {activeTab === 'Alınan' && (
+                        {activeTab === 'AlÄ±nan' && (
                           <button 
                             onClick={() => { setCiroForm({ cari_id: '' }); setCiroModal({ open: true, item }) }}
                             title="Ciro Et"
@@ -420,7 +420,7 @@ export default function CekSenetYonetimi() {
         {filtered.length === 0 && !loading && (
           <div style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>
             <Icon d={icons.alert} size={48} />
-            <p style={{ marginTop: '12px', fontWeight: 600 }}>Sonuç bulunamadı</p>
+            <p style={{ marginTop: '12px', fontWeight: 600 }}>SonuÃ§ bulunamadÄ±</p>
           </div>
         )}
 
@@ -432,14 +432,14 @@ export default function CekSenetYonetimi() {
         />
       </div>
 
-      {/* ─── SlideOver: Yeni/Düzenle ─── */}
-      <SlideOver isOpen={formPanel} onClose={() => setFormPanel(false)} title={form.id ? "Evrak Düzenle" : "Yeni Evrak Girişi"}>
+      {/* â”€â”€â”€ SlideOver: Yeni/DÃ¼zenle â”€â”€â”€ */}
+      <SlideOver isOpen={formPanel} onClose={() => setFormPanel(false)} title={form.id ? "Evrak DÃ¼zenle" : "Yeni Evrak GiriÅŸi"}>
         <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
-              <label style={labelStyle}>Evrak Türü</label>
+              <label style={labelStyle}>Evrak TÃ¼rÃ¼</label>
               <select style={inputStyle} value={form.evrak_turu} onChange={e => setForm({ ...form, evrak_turu: e.target.value })}>
-                <option value="Çek">Çek</option>
+                <option value="Ã‡ek">Ã‡ek</option>
                 <option value="Senet">Senet</option>
               </select>
             </div>
@@ -447,32 +447,32 @@ export default function CekSenetYonetimi() {
               <label style={labelStyle}>Belge No</label>
               <input 
                 style={{ ...inputStyle, border: errors.belge_no ? '1.5px solid #ef4444' : '1.5px solid #e2e8f0' }} 
-                placeholder="Örn: 102345"
+                placeholder="Ã–rn: 102345"
                 value={form.belge_no} onChange={e => { setForm({ ...form, belge_no: e.target.value }); if(errors.belge_no) setErrors({...errors, belge_no: false}) }} 
               />
-              {errors.belge_no && <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600, marginTop: '4px', display: 'block' }}>Evrak numarası gereklidir</span>}
+              {errors.belge_no && <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600, marginTop: '4px', display: 'block' }}>Evrak numarasÄ± gereklidir</span>}
             </div>
           </div>
 
           <div>
-            <label style={labelStyle}>{activeTab === 'Alınan' ? 'Müşteri (Alınan Cari)' : 'Tedarikçi (Verilen Cari)'}</label>
+            <label style={labelStyle}>{activeTab === 'AlÄ±nan' ? 'MÃ¼ÅŸteri (AlÄ±nan Cari)' : 'TedarikÃ§i (Verilen Cari)'}</label>
             <CariSec 
               value={form.cari_id} 
               onChange={id => { setForm({ ...form, cari_id: id }); if(errors.cari_id) setErrors({...errors, cari_id: false}) }} 
-              placeholder="Cari seçin veya yeni oluşturun..."
+              placeholder="Cari seÃ§in veya yeni oluÅŸturun..."
             />
-            {errors.cari_id && <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600, marginTop: '4px', display: 'block' }}>Lütfen bir cari seçiniz</span>}
+            {errors.cari_id && <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600, marginTop: '4px', display: 'block' }}>LÃ¼tfen bir cari seÃ§iniz</span>}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '12px' }}>
             <div>
-              <label style={labelStyle}>Tutar (₺)</label>
+              <label style={labelStyle}>Tutar (â‚º)</label>
               <input 
                 type="number" step="0.01" 
                 style={{ ...inputStyle, fontSize: '18px', fontWeight: 800, color: '#0f172a', border: errors.tutar ? '1.5px solid #ef4444' : '1.5px solid #e2e8f0' }} 
                 value={form.tutar} onChange={e => { setForm({ ...form, tutar: e.target.value }); if(errors.tutar) setErrors({...errors, tutar: false}) }} 
               />
-              {errors.tutar && <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600, marginTop: '4px', display: 'block' }}>Geçerli bir tutar giriniz</span>}
+              {errors.tutar && <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600, marginTop: '4px', display: 'block' }}>GeÃ§erli bir tutar giriniz</span>}
             </div>
             <div>
               <label style={labelStyle}>Vade Tarihi</label>
@@ -481,55 +481,55 @@ export default function CekSenetYonetimi() {
           </div>
 
           <div>
-            <label style={labelStyle}>Açıklama</label>
+            <label style={labelStyle}>AÃ§Ä±klama</label>
             <textarea rows={3} style={{ ...inputStyle, resize: 'none' }} value={form.aciklama} onChange={e => setForm({ ...form, aciklama: e.target.value })} />
           </div>
 
           <button type="submit" disabled={saving} style={{ marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '16px', borderRadius: '16px', border: 'none', background: '#3b82f6', color: '#fff', fontSize: '16px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 20px rgba(59,130,246,0.3)' }}>
-            {saving ? 'Kaydediliyor...' : (<><Icon d={icons.check} size={20} color="#fff" /> Evrakı Kaydet</>)}
+            {saving ? 'Kaydediliyor...' : (<><Icon d={icons.check} size={20} color="#fff" /> EvrakÄ± Kaydet</>)}
           </button>
         </form>
       </SlideOver>
 
-      {/* ─── Modal: Tahsil Et ─── */}
-      <Modal isOpen={tahsilModal.open} onClose={() => setTahsilModal({ open: false, item: null })} title={tahsilModal.item?.islem_yonu === 'Müşteriden Alınan' ? 'Tahsilat İşlemi' : 'Ödeme İşlemi'} size="sm">
+      {/* â”€â”€â”€ Modal: Tahsil Et â”€â”€â”€ */}
+      <Modal isOpen={tahsilModal.open} onClose={() => setTahsilModal({ open: false, item: null })} title={tahsilModal.item?.islem_yonu === 'MÃ¼ÅŸteriden AlÄ±nan' ? 'Tahsilat Ä°ÅŸlemi' : 'Ã–deme Ä°ÅŸlemi'} size="sm">
         <form onSubmit={handleTahsilEt} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-            <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>İŞLEM TUTARI</div>
-            <div style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a' }}>{tahsilModal.item?.tutar?.toLocaleString('tr-TR')} ₺</div>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>Ä°ÅLEM TUTARI</div>
+            <div style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a' }}>{tahsilModal.item?.tutar?.toLocaleString('tr-TR')} â‚º</div>
           </div>
           <div>
             <label style={labelStyle}>Hangi Hesaba? (Kasa/Banka)</label>
             <select required style={inputStyle} value={tahsilForm.kasa_id} onChange={e => setTahsilForm({ ...tahsilForm, kasa_id: e.target.value })}>
-              <option value="">Seçiniz...</option>
+              <option value="">SeÃ§iniz...</option>
               {kasalar.map(k => <option key={k.id} value={k.id}>{k.kasa_adi}</option>)}
             </select>
           </div>
           <div>
-            <label style={labelStyle}>İşlem Tarihi</label>
+            <label style={labelStyle}>Ä°ÅŸlem Tarihi</label>
             <input type="date" required style={inputStyle} value={tahsilForm.tarih} onChange={e => setTahsilForm({ ...tahsilForm, tarih: e.target.value })} />
           </div>
           <button type="submit" disabled={saving} style={{ width: '100%', padding: '14px', borderRadius: '12px', border: 'none', background: '#10b981', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
-            {saving ? 'İşleniyor...' : (activeTab === 'Alınan' ? 'Tahsilatı Tamamla' : 'Ödemeyi Tamamla')}
+            {saving ? 'Ä°ÅŸleniyor...' : (activeTab === 'AlÄ±nan' ? 'TahsilatÄ± Tamamla' : 'Ã–demeyi Tamamla')}
           </button>
         </form>
       </Modal>
 
-      {/* ─── Modal: Ciro Et ─── */}
-      <Modal isOpen={ciroModal.open} onClose={() => setCiroModal({ open: false, item: null })} title="Evrak Ciro (Devir) İşlemi" size="sm">
+      {/* â”€â”€â”€ Modal: Ciro Et â”€â”€â”€ */}
+      <Modal isOpen={ciroModal.open} onClose={() => setCiroModal({ open: false, item: null })} title="Evrak Ciro (Devir) Ä°ÅŸlemi" size="sm">
         <form onSubmit={handleCiroEt} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ fontSize: '14px', color: '#64748b', lineHeight: 1.5 }}>
-            Bu çek/senet başka bir firmaya devredilecek. Lütfen ciro edilecek firmayı seçin.
+            Bu Ã§ek/senet baÅŸka bir firmaya devredilecek. LÃ¼tfen ciro edilecek firmayÄ± seÃ§in.
           </div>
           <div>
             <label style={labelStyle}>Ciro Edilecek Cari</label>
             <select required style={inputStyle} value={ciroForm.cari_id} onChange={e => setCiroForm({ ...ciroForm, cari_id: e.target.value })}>
-              <option value="">Firmayı Seçin...</option>
+              <option value="">FirmayÄ± SeÃ§in...</option>
               {cariler.map(c => <option key={c.id} value={c.id}>{c.yetkili}</option>)}
             </select>
           </div>
           <button type="submit" disabled={saving} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '14px', borderRadius: '12px', border: 'none', background: '#3b82f6', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
-            {saving ? 'İşleniyor...' : (<><Icon d={icons.check} size={18} color="#fff" /> Ciro İşlemini Onayla</>)}
+            {saving ? 'Ä°ÅŸleniyor...' : (<><Icon d={icons.check} size={18} color="#fff" /> Ciro Ä°ÅŸlemini Onayla</>)}
           </button>
         </form>
       </Modal>
@@ -539,8 +539,8 @@ export default function CekSenetYonetimi() {
         onClose={() => setConfirmDelete({ open: false, id: null })}
         onConfirm={() => confirmDelete.id && handleDelete(confirmDelete.id)}
         type="danger"
-        title="Evrak Kaydını Sil"
-        message="Bu çek/senet kaydını silmek istediğinizden emin misiniz? Bu işlem finansal verileri etkileyebilir."
+        title="Evrak KaydÄ±nÄ± Sil"
+        message="Bu Ã§ek/senet kaydÄ±nÄ± silmek istediÄŸinizden emin misiniz? Bu iÅŸlem finansal verileri etkileyebilir."
       />
 
     </div>

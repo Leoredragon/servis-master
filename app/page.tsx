@@ -34,12 +34,13 @@ export default function Home() {
   const [sonServisler, setSonServisler] = useState<any[]>([])
   const [statusDistrib, setStatusDistrib] = useState<Record<string, number>>({})
   const [criticalStocks, setCriticalStocks] = useState<any[]>([])
+  const [bugunkuRandevular, setBugunkuRandevular] = useState<any[]>([])
 
   const loadData = useCallback(async () => {
     setLoading(true)
     const today = new Date().toISOString().split('T')[0]
 
-    const [mCount, sActive, sToday, slData, stData] = await Promise.all([
+    const [mCount, sActive, sToday, slData, stData, bgRandevuData] = await Promise.all([
       // Total Customers
       supabase.from('cari_kart').select('*', { count: 'exact', head: true }),
       // Active Services
@@ -49,7 +50,9 @@ export default function Home() {
       // Recent Services
       supabase.from('servis_karti').select('id, servis_no, durum, giris_tarihi, arac(plaka, marka, model), cari_kart(yetkili)').order('giris_tarihi', { ascending: false }).limit(8),
       // All Stock for counting and distribution
-      supabase.from('stok').select('ad, miktar, kritik_seviye').limit(100)
+      supabase.from('stok').select('ad, miktar, kritik_seviye').limit(100),
+      // Today's appointments
+      supabase.from('ajanda').select('saat, baslik, cari_kart(yetkili)').eq('tarih', today).order('saat', { ascending: true }).limit(5)
     ])
 
     // Distribution & Stats
@@ -70,6 +73,7 @@ export default function Home() {
     setSonServisler(slData.data || [])
     setStatusDistrib(distrib)
     setCriticalStocks(critItems.slice(0, 5))
+    setBugunkuRandevular(bgRandevuData?.data || [])
     setLoading(false)
   }, [])
 
@@ -174,6 +178,29 @@ export default function Home() {
         {/* Sağ: Widgetlar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
+          {/* Bugünkü Randevular */}
+          <div className="card">
+            <div className="card-header">
+              <h3 style={{ fontSize: '14px', fontWeight: 800, margin: 0 }}>Bugünkü Randevular</h3>
+              <Link href="/randevu" style={{ fontSize: '11px', color: '#3b82f6', fontWeight: 700, textDecoration: 'none' }}>Tümünü Gör</Link>
+            </div>
+            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px 20px' }}>
+              {loading ? (
+                 [1, 2].map(i => <div key={i} className="skeleton" style={{ height: '40px', width: '100%' }} />)
+              ) : bugunkuRandevular.length === 0 ? (
+                <div style={{ fontSize: '12px', color: '#64748b', textAlign: 'center', fontWeight: 600 }}>Bugün için planlı randevu yok.</div>
+              ) : bugunkuRandevular.map((r, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '8px', borderBottom: '1px solid #f1f5f9' }}>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>{r.baslik}</div>
+                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>{r.cari_kart?.yetkili || 'Bilinmiyor'}</div>
+                  </div>
+                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#3b82f6', background: '#eff6ff', padding: '4px 8px', borderRadius: '6px' }}>{r.saat}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Servis Dağılımı */}
           <div className="card">
             <div className="card-header">

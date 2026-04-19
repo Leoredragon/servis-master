@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Inter } from 'next/font/google'
+import { supabase } from './lib/supabase'
 import './globals.css'
 
 const inter = Inter({
@@ -38,6 +39,7 @@ const icons = {
   extra:      'M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1 3-6z',
   support:    'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z',
   calendar:   'M19 4h-2V3a1 1 0 00-2 0v1H9V3a1 1 0 00-2 0v1H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2zm0 16H5V10h14v10z',
+  randevu:    'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
 }
 
 const menuGroups = [
@@ -62,7 +64,7 @@ const menuGroups = [
   {
     title: 'Operasyonel',
     items: [
-      { path: '/ajanda',           name: 'Ajanda & Takvim',  icon: icons.calendar   },
+      { path: '/randevu',          name: 'Randevu / Ajanda', icon: icons.randevu    },
       { path: '/stok',             name: 'Stok Yönetimi',    icon: icons.stock      },
       { path: '/teklif-siparis',   name: 'Teklif Sipariş',   icon: icons.order      },
       { path: '/raporlar',         name: 'Raporlar',         icon: icons.reports    },
@@ -81,8 +83,32 @@ const menuGroups = [
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [userEmail, setUserEmail] = useState('admin@servismaster.com')
+  const [userInitial, setUserInitial] = useState('A')
+
   const pathname = usePathname()
+  const router = useRouter()
   
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email) {
+        setUserEmail(session.user.email)
+        setUserInitial(session.user.email[0].toUpperCase())
+      }
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session && pathname !== '/login') {
+        router.push('/login')
+      } else if (session?.user?.email) {
+        setUserEmail(session.user.email)
+        setUserInitial(session.user.email[0].toUpperCase())
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [pathname, router])
+
   const isActive = useCallback((path: string) => 
     path === '/' ? pathname === '/' : pathname.startsWith(path), 
   [pathname])
@@ -90,6 +116,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const toggleSidebar = useCallback(() => setCollapsed(prev => !prev), [])
   const toggleProfile = useCallback(() => setProfileOpen(prev => !prev), [])
   const closeProfile = useCallback(() => setProfileOpen(false), [])
+
+  // Login sayfasıysa standart layout'u gizle
+  if (pathname === '/login') {
+    return (
+      <html lang="tr">
+        <head>
+          <title>Giriş Yap | Servis Master Pro</title>
+        </head>
+        <body className={inter.className} style={{ margin: 0, padding: 0, background: '#f0f2f5' }}>
+          {children}
+        </body>
+      </html>
+    )
+  }
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
 
   return (
     <html lang="tr">
@@ -242,7 +287,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
                     </div>
                     <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'linear-gradient(135deg,#3b82f6,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '14px', boxShadow: '0 2px 8px rgba(59,130,246,0.3)' }}>
-                      A
+                      {userInitial}
                     </div>
                   </div>
 
@@ -256,8 +301,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         border: '1px solid #f1f5f9', overflow: 'hidden', zIndex: 101, animation: 'slideInDown 0.2s ease-out' 
                       }}>
                         <div style={{ padding: '16px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
-                          <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>Hoş Geldiniz, Ali</div>
-                          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>admin@servismaster.com</div>
+                          <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Hoş Geldiniz</div>
+                          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{userEmail}</div>
                         </div>
                         <div style={{ padding: '8px' }}>
                           {[
@@ -279,7 +324,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                           ))}
                         </div>
                         <div style={{ padding: '8px', borderTop: '1px solid #f1f5f9' }}>
-                          <button onClick={closeProfile} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', border: 'none', background: 'none', borderRadius: '8px', cursor: 'pointer', textAlign: 'left', color: '#ef4444', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = '#fef2f2'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                          <button onClick={() => { closeProfile(); handleSignOut(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', border: 'none', background: 'none', borderRadius: '8px', cursor: 'pointer', textAlign: 'left', color: '#ef4444', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = '#fef2f2'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                             <Icon d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4 M16 17l5-5-5-5 M21 12H9" size={16} />
                             <span style={{ fontSize: '13px', fontWeight: 700 }}>Çıkış Yap</span>
                           </button>

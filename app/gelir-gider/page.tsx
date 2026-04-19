@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { supabase } from '../lib/supabase'
 import { useEffect, useState } from 'react'
@@ -6,8 +6,8 @@ import SlideOver from '../components/SlideOver'
 import ConfirmModal from '../components/ConfirmModal'
 import Pagination from '../components/Pagination'
 
-const KATEGORILER = ['Kira', 'Maaş', 'Yakıt', 'Yemek', 'Yedek Parça', 'Fatura', 'Vergi', 'Diğer']
-const HESAPLAR = ['Nakit Kasa', 'Banka', 'Kredi Kartı']
+const KATEGORILER = ['Kira', 'MaaÅŸ', 'YakÄ±t', 'Yemek', 'Yedek ParÃ§a', 'Fatura', 'Vergi', 'DiÄŸer']
+const HESAPLAR = ['Nakit Kasa', 'Banka', 'Kredi KartÄ±']
 
 const inputStyle = { width: '100%', padding: '12px 16px', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box' as const }
 const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '6px' }
@@ -18,7 +18,7 @@ export default function GelirGider() {
   const [panel, setPanel] = useState<{ open: boolean, tur: 'gelir' | 'gider' }>({ open: false, tur: 'gelir' })
   const [kasalar, setKasalar] = useState<any[]>([])
   const [form, setForm] = useState({
-    tutar: '', kategori: 'Diğer', kasa_id: '', aciklama: '', islem_tarihi: new Date().toISOString().split('T')[0]
+    tutar: '', kategori: 'DiÄŸer', kasa_id: '', aciklama: '', islem_tarihi: new Date().toISOString().split('T')[0]
   })
   const [editingId, setEditingId] = useState<number | null>(null)
   const [confirmData, setConfirmData] = useState<{ open: boolean, item: any }>({ open: false, item: null })
@@ -69,8 +69,8 @@ export default function GelirGider() {
       ? await supabase.from('kasa_hareket').update(payload).eq('id', editingId)
       : await supabase.from('kasa_hareket').insert([{
           ...payload,
-          kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
-          subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
+          kullaniciadi: (await supabase.auth.getUser()).data.user?.email || 'admin', // TODO: Oturum bilgisinden dinamik alÄ±nacak
+          subeadi:      'Merkez', // TODO: KullanÄ±cÄ± ÅŸubesinden dinamik alÄ±nacak
         }])
     
     setSaving(false)
@@ -78,7 +78,7 @@ export default function GelirGider() {
     
     setPanel({ ...panel, open: false })
     setEditingId(null)
-    setForm({ tutar: '', kategori: 'Diğer', kasa_id: kasalar[0]?.id || '', aciklama: '', islem_tarihi: new Date().toISOString().split('T')[0] })
+    setForm({ tutar: '', kategori: 'DiÄŸer', kasa_id: kasalar[0]?.id || '', aciklama: '', islem_tarihi: new Date().toISOString().split('T')[0] })
     fetchData()
   }
 
@@ -109,19 +109,19 @@ export default function GelirGider() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.5px' }}>Gelir & Gider Yönetimi</h1>
-          <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px', fontWeight: 500 }}>İşletmenizin nakit akışını ve harcamalarını takip edin</p>
+          <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.5px' }}>Gelir & Gider YÃ¶netimi</h1>
+          <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px', fontWeight: 500 }}>Ä°ÅŸletmenizin nakit akÄ±ÅŸÄ±nÄ± ve harcamalarÄ±nÄ± takip edin</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button 
-            onClick={() => { setPanel({ open: true, tur: 'gelir' }); setForm({ ...form, kategori: 'Servis Kazancı' })}}
+            onClick={() => { setPanel({ open: true, tur: 'gelir' }); setForm({ ...form, kategori: 'Servis KazancÄ±' })}}
             style={{ 
               padding: '12px 24px', background: '#10b981', color: '#fff', border: 'none', 
               borderRadius: '12px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s',
               boxShadow: '0 4px 12px rgba(16,185,129,0.25)', display: 'flex', alignItems: 'center', gap: '8px' 
             }}
           >
-            <span style={{ fontSize: '20px', lineHeight: 0 }}>+</span> Gelir Girişi
+            <span style={{ fontSize: '20px', lineHeight: 0 }}>+</span> Gelir GiriÅŸi
           </button>
           <button 
             onClick={() => { setPanel({ open: true, tur: 'gider' }); setForm({ ...form, kategori: 'Gider' })}}
@@ -131,7 +131,7 @@ export default function GelirGider() {
               boxShadow: '0 4px 12px rgba(239,68,68,0.25)', display: 'flex', alignItems: 'center', gap: '8px' 
             }}
           >
-            <span style={{ fontSize: '20px', lineHeight: 0 }}>-</span> Gider Çıkışı
+            <span style={{ fontSize: '20px', lineHeight: 0 }}>-</span> Gider Ã‡Ä±kÄ±ÅŸÄ±
           </button>
         </div>
       </div>
@@ -139,9 +139,9 @@ export default function GelirGider() {
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '32px' }}>
         {[
-          { label: 'TOPLAM GELİR', value: gelirToplami.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' ₺', color: '#10b981', bg: '#ecfdf5', icon: '↑' },
-          { label: 'TOPLAM GİDER', value: giderToplami.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' ₺', color: '#ef4444', bg: '#fef2f2', icon: '↓' },
-          { label: 'NET KASA',     value: netKasa.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' ₺', color: 'var(--primary)', bg: 'var(--primary-light)', icon: '💰' },
+          { label: 'TOPLAM GELÄ°R', value: gelirToplami.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' â‚º', color: '#10b981', bg: '#ecfdf5', icon: 'â†‘' },
+          { label: 'TOPLAM GÄ°DER', value: giderToplami.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' â‚º', color: '#ef4444', bg: '#fef2f2', icon: 'â†“' },
+          { label: 'NET KASA',     value: netKasa.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' â‚º', color: 'var(--primary)', bg: 'var(--primary-light)', icon: 'ğŸ’°' },
         ].map(stat => (
           <div key={stat.label} style={{ background: '#fff', padding: '24px', borderRadius: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', right: '20px', top: '20px', fontSize: '24px', opacity: 0.2 }}>{stat.icon}</div>
@@ -156,12 +156,12 @@ export default function GelirGider() {
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: 1 }}>
           <div style={{ display: 'flex', gap: '20px', alignItems: 'center', background: '#f8fafc', padding: '8px 20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8', marginBottom: '2px' }}>BAŞLANGIÇ</span>
+              <span style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8', marginBottom: '2px' }}>BAÅLANGIÃ‡</span>
               <input type="date" value={dateRange.start} onChange={e => setDateRange({ ...dateRange, start: e.target.value })} style={{ border: 'none', background: 'transparent', fontSize: '14px', fontWeight: 700, color: '#0f172a', outline: 'none' }} />
             </div>
             <div style={{ width: '1px', height: '28px', background: '#e2e8f0' }}></div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8', marginBottom: '2px' }}>BİTİŞ</span>
+              <span style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8', marginBottom: '2px' }}>BÄ°TÄ°Å</span>
               <input type="date" value={dateRange.end} onChange={e => setDateRange({ ...dateRange, end: e.target.value })} style={{ border: 'none', background: 'transparent', fontSize: '14px', fontWeight: 700, color: '#0f172a', outline: 'none' }} />
             </div>
           </div>
@@ -170,7 +170,7 @@ export default function GelirGider() {
             className="bg-blue-600 hover:bg-blue-700"
             style={{ padding: '12px 24px', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(37,99,235,0.2)' }}
           >
-            Süzgeçten Geçir
+            SÃ¼zgeÃ§ten GeÃ§ir
           </button>
         </div>
       </div>
@@ -179,14 +179,14 @@ export default function GelirGider() {
       <div style={{ background: '#fff', borderRadius: '24px', border: '1px solid #f1f5f9', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 10px 40px rgba(0,0,0,0.02)' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', margin: 0 }}>Son Hareketler</h2>
-          <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>{hareketler.length} kayıt listeleniyor</div>
+          <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>{hareketler.length} kayÄ±t listeleniyor</div>
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f8fafc' }}>
-                {['Tarih', 'Tür', 'Kategori', 'Açıklama', 'Hesap / Kasa', 'Tutar', 'İşlemler'].map(h => (
-                  <th key={h} style={{ padding: '16px 24px', textAlign: h === 'Tutar' || h === 'İşlemler' ? 'right' : 'left', fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '2px solid #f1f5f9' }}>{h}</th>
+                {['Tarih', 'TÃ¼r', 'Kategori', 'AÃ§Ä±klama', 'Hesap / Kasa', 'Tutar', 'Ä°ÅŸlemler'].map(h => (
+                  <th key={h} style={{ padding: '16px 24px', textAlign: h === 'Tutar' || h === 'Ä°ÅŸlemler' ? 'right' : 'left', fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '2px solid #f1f5f9' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -214,24 +214,24 @@ export default function GelirGider() {
                       color: h.tur === 'gelir' ? '#10b981' : '#ef4444',
                       fontSize: '18px', fontWeight: 800
                     }}>
-                      {h.tur === 'gelir' ? '↑' : '↓'}
+                      {h.tur === 'gelir' ? 'â†‘' : 'â†“'}
                     </div>
                   </td>
                   <td style={{ padding: '18px 24px' }}>
                     <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '14px' }}>{h.kategori}</div>
                   </td>
-                  <td style={{ padding: '18px 24px', color: '#64748b', fontSize: '14px', fontWeight: 500 }}>{h.aciklama || '—'}</td>
+                  <td style={{ padding: '18px 24px', color: '#64748b', fontSize: '14px', fontWeight: 500 }}>{h.aciklama || 'â€”'}</td>
                   <td style={{ padding: '18px 24px' }}>
                     <span style={{ fontSize: '12px', fontWeight: 800, padding: '6px 10px', borderRadius: '8px', background: '#f1f5f9', color: '#475569', textTransform: 'uppercase' }}>
-                      {h.kasalar?.kasa_adi || h.hesap || '—'}
+                      {h.kasalar?.kasa_adi || h.hesap || 'â€”'}
                     </span>
                   </td>
                   <td style={{ padding: '18px 24px', textAlign: 'right', fontWeight: 900, fontSize: '16px', color: h.tur === 'gelir' ? '#10b981' : '#ef4444', letterSpacing: '-0.5px' }}>
-                    {h.tur === 'gelir' ? '+' : '-'}{h.tutar?.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                    {h.tur === 'gelir' ? '+' : '-'}{h.tutar?.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} â‚º
                   </td>
                   <td style={{ padding: '18px 24px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                      <button onClick={() => handleDuzenle(h)} style={{ padding: '6px 10px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', transition: '0.2s' }}>Düzenle</button>
+                      <button onClick={() => handleDuzenle(h)} style={{ padding: '6px 10px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', transition: '0.2s' }}>DÃ¼zenle</button>
                       <button onClick={() => setConfirmData({ open: true, item: h })} style={{ padding: '6px 10px', background: '#fef2f2', color: '#dc2626', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', transition: '0.2s' }}>Sil</button>
                     </div>
                   </td>
@@ -239,8 +239,8 @@ export default function GelirGider() {
               ))}
               {!loading && hareketler.length === 0 && (
                 <tr><td colSpan={6} style={{ padding: '100px 24px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '40px', marginBottom: '12px' }}>📊</div>
-                  <div style={{ color: '#94a3b8', fontWeight: 700, fontSize: '15px' }}>Henüz bir hareket kaydı bulunmuyor.</div>
+                  <div style={{ fontSize: '40px', marginBottom: '12px' }}>ğŸ“Š</div>
+                  <div style={{ color: '#94a3b8', fontWeight: 700, fontSize: '15px' }}>HenÃ¼z bir hareket kaydÄ± bulunmuyor.</div>
                 </td></tr>
               )}
             </tbody>
@@ -259,14 +259,14 @@ export default function GelirGider() {
       <SlideOver 
         isOpen={panel.open} 
         onClose={() => { setPanel({ ...panel, open: false }); setEditingId(null); }} 
-        title={editingId ? 'Kaydı Düzenle' : (panel.tur === 'gelir' ? 'Gelir Girişi' : 'Gider Çıkışı')}
-        subtitle={editingId ? 'Kayıt detaylarını güncelleyin.' : `${panel.tur === 'gelir' ? 'Kasa veya bankaya' : 'Kasadan veya bankadan'} yapılacak işlem detaylarını girin.`}
+        title={editingId ? 'KaydÄ± DÃ¼zenle' : (panel.tur === 'gelir' ? 'Gelir GiriÅŸi' : 'Gider Ã‡Ä±kÄ±ÅŸÄ±')}
+        subtitle={editingId ? 'KayÄ±t detaylarÄ±nÄ± gÃ¼ncelleyin.' : `${panel.tur === 'gelir' ? 'Kasa veya bankaya' : 'Kasadan veya bankadan'} yapÄ±lacak iÅŸlem detaylarÄ±nÄ± girin.`}
       >
         <form onSubmit={handleEkle} style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
           <div style={{ background: panel.tur === 'gelir' ? '#ecfdf5' : '#fef2f2', padding: '24px', borderRadius: '20px', textAlign: 'center' }}>
-            <label style={{ ...labelStyle, textAlign: 'center', color: panel.tur === 'gelir' ? '#065f46' : '#991b1b' }}>İŞLEM TUTARI</label>
+            <label style={{ ...labelStyle, textAlign: 'center', color: panel.tur === 'gelir' ? '#065f46' : '#991b1b' }}>Ä°ÅLEM TUTARI</label>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ position: 'absolute', left: '20px', fontSize: '24px', fontWeight: 800, color: panel.tur === 'gelir' ? '#10b981' : '#ef4444' }}>₺</span>
+              <span style={{ position: 'absolute', left: '20px', fontSize: '24px', fontWeight: 800, color: panel.tur === 'gelir' ? '#10b981' : '#ef4444' }}>â‚º</span>
               <input 
                 type="number" step="0.01" required placeholder="0,00" autoFocus
                 style={{ 
@@ -285,9 +285,9 @@ export default function GelirGider() {
               <select style={inputStyle} value={form.kategori} onChange={e => setForm({ ...form, kategori: e.target.value })}>
                 {panel.tur === 'gelir' ? (
                   <>
-                    <option value="Servis Kazancı">Servis Kazancı</option>
-                    <option value="Satış">Satış</option>
-                    <option value="Diğer">Diğer</option>
+                    <option value="Servis KazancÄ±">Servis KazancÄ±</option>
+                    <option value="SatÄ±ÅŸ">SatÄ±ÅŸ</option>
+                    <option value="DiÄŸer">DiÄŸer</option>
                   </>
                 ) : (
                   KATEGORILER.map(k => <option key={k} value={k}>{k}</option>)
@@ -301,12 +301,12 @@ export default function GelirGider() {
                 <input type="date" style={inputStyle} value={form.islem_tarihi} onChange={e => setForm({ ...form, islem_tarihi: e.target.value })} />
               </div>
               <div>
-                <label style={labelStyle}>Kasa / Banka Hesabı</label>
+                <label style={labelStyle}>Kasa / Banka HesabÄ±</label>
                 <select style={inputStyle} value={form.kasa_id} onChange={e => setForm({ ...form, kasa_id: e.target.value })}>
-                  <option value="">Seçiniz...</option>
+                  <option value="">SeÃ§iniz...</option>
                   {kasalar.map(k => (
                     <option key={k.id} value={k.id}>
-                      {k.kasa_adi} ({(k.guncel_bakiye || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺)
+                      {k.kasa_adi} ({(k.guncel_bakiye || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} â‚º)
                     </option>
                   ))}
                 </select>
@@ -314,10 +314,10 @@ export default function GelirGider() {
             </div>
 
             <div>
-              <label style={labelStyle}>Açıklama</label>
+              <label style={labelStyle}>AÃ§Ä±klama</label>
               <textarea 
                 rows={4} style={{ ...inputStyle, resize: 'none' }} 
-                placeholder="İşlem detayı, fatura no vb..." 
+                placeholder="Ä°ÅŸlem detayÄ±, fatura no vb..." 
                 value={form.aciklama} onChange={e => setForm({ ...form, aciklama: e.target.value })}
               />
             </div>
@@ -335,7 +335,7 @@ export default function GelirGider() {
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
               onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
             >
-              {saving ? 'Kaydediliyor...' : `✓ ${panel.tur === 'gelir' ? 'Gelir Girişi' : 'Gider Çıkışı'} Kaydet`}
+              {saving ? 'Kaydediliyor...' : `âœ“ ${panel.tur === 'gelir' ? 'Gelir GiriÅŸi' : 'Gider Ã‡Ä±kÄ±ÅŸÄ±'} Kaydet`}
             </button>
           </div>
         </form>
@@ -346,10 +346,10 @@ export default function GelirGider() {
         onClose={() => setConfirmData({ open: false, item: null })}
         onConfirm={() => handleSil(confirmData.item)}
         type="danger"
-        title="Kaydı Sil"
+        title="KaydÄ± Sil"
         message={confirmData.item?.servis_id 
-          ? "DİKKAT: Bu işlem bir servis kaydına ait ödeme verisidir. Silerseniz servisin ödeme durumu etkilenebilir. Devam etmek istiyor musunuz?" 
-          : "Bu gelir/gider kaydını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz."}
+          ? "DÄ°KKAT: Bu iÅŸlem bir servis kaydÄ±na ait Ã¶deme verisidir. Silerseniz servisin Ã¶deme durumu etkilenebilir. Devam etmek istiyor musunuz?" 
+          : "Bu gelir/gider kaydÄ±nÄ± silmek istediÄŸinizden emin misiniz? Bu iÅŸlem geri alÄ±namaz."}
       />
       <style>{`
         .spinner { width: 36px; height: 36px; border: 4px solid #f1f5f9; border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }

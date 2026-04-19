@@ -20,7 +20,8 @@ function AyarlarContent() {
   const [toast, setToast] = useState<any>(null)
 
   // Form States
-  const [userData, setUserData] = useState({ adSoyad: 'Ali Yılmaz', email: 'admin@servismaster.com', tel: '0555 000 00 00', kullaniciadi: 'admin', subeadi: 'Merkez' })
+  const [userData, setUserData] = useState({ adSoyad: 'Ali Yılmaz', email: '', tel: '0555 000 00 00', kullaniciadi: 'admin', subeadi: 'Merkez' })
+  const [password, setPassword] = useState('')
   const [firmData, setFirmData] = useState({ ad: 'Servis Master Pro A.Ş.', vergiNo: '1234567890', vergiDairesi: 'Kadıköy', tel: '0216 111 22 33', adres: 'İstanbul, Türkiye', email: 'info@firma.com', web: 'www.firma.com' })
 
   const showToast = (msg: string, type = 'success') => {
@@ -38,6 +39,12 @@ function AyarlarContent() {
     if (savedUser) setUserData(JSON.parse(savedUser))
     if (savedFirm) setFirmData(JSON.parse(savedFirm))
 
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.email) {
+        setUserData(prev => ({ ...prev, email: user.email }))
+      }
+    })
+
     fetchStats()
   }, [searchParams])
 
@@ -50,10 +57,27 @@ function AyarlarContent() {
     setStats({ customers: c.count || 0, services: s.count || 0, stocks: st.count || 0 })
   }
 
-  const saveUser = (e: React.FormEvent) => {
+  const saveUser = async (e: React.FormEvent) => {
     e.preventDefault()
+    setLoading(true)
+
+    const updates: any = {}
+    if (userData.email) updates.email = userData.email
+    if (password) updates.password = password
+
+    if (Object.keys(updates).length > 0) {
+      const { error } = await supabase.auth.updateUser(updates)
+      if (error) {
+        showToast('Kimlik doğrulama ayarları güncellenemedi: ' + error.message, 'error')
+        setLoading(false)
+        return
+      }
+    }
+
     localStorage.setItem('sm_user_data', JSON.stringify(userData))
     showToast('Kullanıcı ayarları başarıyla kaydedildi.')
+    if (password) setPassword('')
+    setLoading(false)
   }
 
   const saveFirm = (e: React.FormEvent) => {
@@ -121,7 +145,8 @@ function AyarlarContent() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Şifre Değiştir</label>
-                  <input type="password" placeholder="••••••••" />
+                  <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} />
+                  <span style={{ fontSize: '11px', color: '#94a3b8' }}>Değiştirmek istemiyorsanız boş bırakın</span>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Sistem Kullanıcı Adı</label>

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
@@ -19,14 +19,14 @@ const Icons = {
   user: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
 }
 
-export default function CariSec({ value, onChange, placeholder = "Müşteri Ara...", error }: CariSecProps) {
+export default function CariSec({ value, onChange, placeholder = "MÃ¼ÅŸteri Ara...", error }: CariSecProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [results, setResults] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [selectedName, setSelectedName] = useState('')
   
-  // Hızlı Kayıt Modalı
+  // HÄ±zlÄ± KayÄ±t ModalÄ±
   const [quickAdd, setQuickAdd] = useState(false)
   const [quickForm, setQuickForm] = useState({ yetkili: '', tel: '' })
   const [saving, setSaving] = useState(false)
@@ -51,7 +51,7 @@ export default function CariSec({ value, onChange, placeholder = "Müşteri Ara.
     return () => clearTimeout(timer)
   }, [search, isOpen])
 
-  // Seçili ismi getir
+  // SeÃ§ili ismi getir
   useEffect(() => {
     if (value) {
       supabase.from('cari_kart').select('yetkili').eq('id', value).single().then(({ data }) => {
@@ -62,7 +62,7 @@ export default function CariSec({ value, onChange, placeholder = "Müşteri Ara.
     }
   }, [value])
 
-  // Kapanma kontrolü
+  // Kapanma kontrolÃ¼
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -81,8 +81,8 @@ export default function CariSec({ value, onChange, placeholder = "Müşteri Ara.
       const { data, error } = await supabase.from('cari_kart').insert([{
         yetkili: quickForm.yetkili,
         tel: quickForm.tel,
-        kullaniciadi: 'admin', // TODO: Oturum bilgisinden dinamik alınacak
-        subeadi:      'Merkez', // TODO: Kullanıcı şubesinden dinamik alınacak
+        kullaniciadi: (await supabase.auth.getUser()).data.user?.email || 'admin', // TODO: Oturum bilgisinden dinamik alÄ±nacak
+        subeadi:      'Merkez', // TODO: KullanÄ±cÄ± ÅŸubesinden dinamik alÄ±nacak
       }]).select().single()
       
       if (error) throw error
@@ -131,14 +131,14 @@ export default function CariSec({ value, onChange, placeholder = "Müşteri Ara.
             <div style={{ position: 'relative' }}>
               <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>{Icons.search}</span>
               <input 
-                autoFocus placeholder="İsim veya telefon yazın..." value={search} onChange={e => setSearch(e.target.value)}
+                autoFocus placeholder="Ä°sim veya telefon yazÄ±n..." value={search} onChange={e => setSearch(e.target.value)}
                 style={{ width: '100%', padding: '10px 10px 10px 36px', borderRadius: '10px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '13px' }}
               />
             </div>
           </div>
 
           <div style={{ maxHeight: '350px', overflowY: 'auto', paddingBottom: '8px' }}>
-            {loading && <div style={{ padding: '20px', textAlign: 'center', fontSize: '12px', color: '#64748b' }}>Aranıyor...</div>}
+            {loading && <div style={{ padding: '20px', textAlign: 'center', fontSize: '12px', color: '#64748b' }}>AranÄ±yor...</div>}
             
             {!loading && results.map(item => (
               <div 
@@ -158,18 +158,18 @@ export default function CariSec({ value, onChange, placeholder = "Müşteri Ara.
 
             {!loading && search && results.length === 0 && (
               <div style={{ padding: '24px', textAlign: 'center' }}>
-                <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 12px' }}>Aramanızla eşleşen müşteri bulunamadı.</p>
+                <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 12px' }}>AramanÄ±zla eÅŸleÅŸen mÃ¼ÅŸteri bulunamadÄ±.</p>
                 <button 
                   onClick={() => setQuickAdd(true)}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '10px', background: '#3b82f6', color: '#fff', border: 'none', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
                 >
-                  {Icons.plus} Yeni Müşteri Ekle
+                  {Icons.plus} Yeni MÃ¼ÅŸteri Ekle
                 </button>
               </div>
             )}
 
             {!loading && !search && results.length === 0 && (
-              <div style={{ padding: '20px', textAlign: 'center', fontSize: '12px', color: '#94a3b8' }}>Aramaya başlayın...</div>
+              <div style={{ padding: '20px', textAlign: 'center', fontSize: '12px', color: '#94a3b8' }}>Aramaya baÅŸlayÄ±n...</div>
             )}
           </div>
 
@@ -178,21 +178,21 @@ export default function CariSec({ value, onChange, placeholder = "Müşteri Ara.
                 onClick={() => setQuickAdd(true)}
                 style={{ width: '100%', padding: '10px', borderRadius: '8px', background: 'transparent', color: '#3b82f6', border: '1px dashed #3b82f6', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
              >
-                + Yeni Kart Oluştur
+                + Yeni Kart OluÅŸtur
              </button>
           </div>
         </div>
       )}
 
-      {/* ─── Hızlı Kayıt Modalı (İç Modal) ─── */}
+      {/* â”€â”€â”€ HÄ±zlÄ± KayÄ±t ModalÄ± (Ä°Ã§ Modal) â”€â”€â”€ */}
       {quickAdd && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)' }}>
            <div style={{ background: '#fff', width: '320px', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.2)', padding: '24px' }}>
-              <h3 style={{ margin: '0 0 4px', fontSize: '16px', fontWeight: 800 }}>Müşteri Hızlı Kayıt</h3>
-              <p style={{ margin: '0 0 20px', fontSize: '12px', color: '#64748b' }}>Müşteriyi sisteme anında ekleyin.</p>
+              <h3 style={{ margin: '0 0 4px', fontSize: '16px', fontWeight: 800 }}>MÃ¼ÅŸteri HÄ±zlÄ± KayÄ±t</h3>
+              <p style={{ margin: '0 0 20px', fontSize: '12px', color: '#64748b' }}>MÃ¼ÅŸteriyi sisteme anÄ±nda ekleyin.</p>
               <form onSubmit={handleQuickAdd} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                  <div>
-                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px', display: 'block' }}>Ad Soyad / Ünvan</label>
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px', display: 'block' }}>Ad Soyad / Ãœnvan</label>
                     <input autoFocus required style={{ ...inputStyle, padding: '10px' }} value={quickForm.yetkili} onChange={e => setQuickForm({...quickForm, yetkili: e.target.value})} />
                  </div>
                  <div>
@@ -203,7 +203,7 @@ export default function CariSec({ value, onChange, placeholder = "Müşteri Ara.
                     <button type="submit" disabled={saving} style={{ flex: 1, padding: '12px', borderRadius: '10px', background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer' }}>
                        {saving ? '...' : 'Kaydet'}
                     </button>
-                    <button type="button" onClick={() => setQuickAdd(false)} style={{ padding: '12px', borderRadius: '10px', background: '#f1f5f9', color: '#475569', border: 'none', fontWeight: 700, cursor: 'pointer' }}>İptal</button>
+                    <button type="button" onClick={() => setQuickAdd(false)} style={{ padding: '12px', borderRadius: '10px', background: '#f1f5f9', color: '#475569', border: 'none', fontWeight: 700, cursor: 'pointer' }}>Ä°ptal</button>
                  </div>
               </form>
            </div>
