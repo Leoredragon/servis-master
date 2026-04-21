@@ -346,7 +346,7 @@ export default function CekSenetYonetimi() {
           <tbody>
             {loading ? (
               [1,2,3,4,5].map(i => (
-                <tr key={i}><td colSpan={6} style={{ padding: '24px', textAlign: 'center' }}><div style={{ height: '30px', background: '#f1f5f9', borderRadius: '8px', animate: 'pulse 1.5s infinite' }} /></td></tr>
+                <tr key={i}><td colSpan={6} style={{ padding: '24px', textAlign: 'center' }}><div style={{ height: '30px', background: '#f1f5f9', borderRadius: '8px', animation: 'pulse 1.5s infinite' }} /></td></tr>
               ))
             ) : paginated.map((item, idx) => (
               <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fafbfc' }}>
