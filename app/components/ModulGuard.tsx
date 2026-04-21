@@ -1,7 +1,8 @@
 "use client"
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { hasModuleAccess } from '../lib/auth'
+import { supabase } from '../lib/supabase'
+import { hasModuleAccess, getTenantInfo } from '../lib/auth'
 
 export default function ModulGuard({ modulKodu, children }: { modulKodu: string, children: React.ReactNode }) {
   const [hasAccess, setHasAccess] = useState<boolean | null>(null)
