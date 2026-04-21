@@ -41,7 +41,7 @@ function AyarlarContent() {
 
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user?.email) {
-        setUserData(prev => ({ ...prev, email: user.email }))
+        setUserData(prev => ({ ...prev, email: user.email || "" }))
       }
     })
 
