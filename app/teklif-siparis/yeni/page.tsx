@@ -111,8 +111,8 @@ export default function YeniTeklifPage() {
   }
 
   const saveTeklif = async (durum: string) => {
-    if (!cariId) { alert('LÃ¼tfen mÃ¼ÅŸteri seÃ§in'); return }
-    if (kalemler.length === 0) { alert('LÃ¼tfen en az bir kalem ekleyin'); return }
+    if (!cariId) { alert('Lütfen müşteri seçin'); return }
+    if (kalemler.length === 0) { alert('Lütfen en az bir kalem ekleyin'); return }
 
     setLoading(true)
     try {
@@ -170,8 +170,8 @@ export default function YeniTeklifPage() {
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
         <button onClick={() => router.back()} style={{ width: '40px', height: '40px', borderRadius: '12px', border: '1.5px solid #e2e8f0', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>{Icons.back}</button>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px' }}>Yeni {tip} HazÄ±rla</h1>
-          <p style={{ color: '#64748b', fontSize: '14px' }}>MÃ¼ÅŸteriniz iÃ§in profesyonel bir evrak oluÅŸturun.</p>
+          <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px' }}>Yeni {tip} Hazırla</h1>
+          <p style={{ color: '#64748b', fontSize: '14px' }}>Müşteriniz için profesyonel bir evrak oluşturun.</p>
         </div>
       </div>
 
@@ -182,7 +182,7 @@ export default function YeniTeklifPage() {
             <div className="card-header">Genel Bilgiler</div>
             <div className="card-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                <div style={{ gridColumn: 'span 2' }}>
-                 <label style={labelStyle}>MÃ¼ÅŸteri SeÃ§imi *</label>
+                 <label style={labelStyle}>Müşteri Seçimi *</label>
                  <CariSec value={cariId} onChange={setCariId} />
                </div>
                <div>
@@ -193,7 +193,7 @@ export default function YeniTeklifPage() {
                  <label style={labelStyle}>Evrak Tipi</label>
                  <select style={inputStyle} value={tip} onChange={e => setTip(e.target.value)}>
                     <option value="Teklif">Teklif</option>
-                    <option value="SipariÅŸ">SipariÅŸ</option>
+                    <option value="Sipariş">Sipariş</option>
                  </select>
                </div>
                <div>
@@ -201,7 +201,7 @@ export default function YeniTeklifPage() {
                  <input type="date" style={inputStyle} value={tarih} onChange={e => setTarih(e.target.value)} />
                </div>
                <div>
-                 <label style={labelStyle}>GeÃ§erlilik Tarihi</label>
+                 <label style={labelStyle}>Geçerlilik Tarihi</label>
                  <input type="date" style={inputStyle} value={gecerlilikTarihi} onChange={e => setGecerlilikTarihi(e.target.value)} />
                </div>
             </div>
@@ -210,14 +210,14 @@ export default function YeniTeklifPage() {
           {/* Items Card */}
           <div className="card">
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800 }}>Hizmet ve ÃœrÃ¼n Kalemleri</h3>
-               <button onClick={addKalem} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '13px' }}>{Icons.plus} SatÄ±r Ekle</button>
+               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800 }}>Hizmet ve Ürün Kalemleri</h3>
+               <button onClick={addKalem} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '13px' }}>{Icons.plus} Satır Ekle</button>
             </div>
             <div className="card-body" style={{ padding: 0 }}>
                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                      <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                        <th style={{ textAlign: 'left', padding: '12px 20px', fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>ÃœrÃ¼n / AÃ§Ä±klama</th>
+                        <th style={{ textAlign: 'left', padding: '12px 20px', fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Ürün / Açıklama</th>
                         <th style={{ textAlign: 'center', padding: '12px 20px', fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', width: '80px' }}>Miktar</th>
                         <th style={{ textAlign: 'center', padding: '12px 20px', fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', width: '100px' }}>Birim Fiyat</th>
                         <th style={{ textAlign: 'center', padding: '12px 20px', fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', width: '80px' }}>KDV</th>
@@ -227,7 +227,7 @@ export default function YeniTeklifPage() {
                   </thead>
                   <tbody>
                      {kalemler.length === 0 && (
-                        <tr><td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>HenÃ¼z kalem eklenmedi. "SatÄ±r Ekle" butonuyla baÅŸlayÄ±n.</td></tr>
+                        <tr><td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>Henüz kalem eklenmedi. "Satır Ekle" butonuyla başlayın.</td></tr>
                      )}
                      {kalemler.map(k => (
                         <tr key={k.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -259,7 +259,7 @@ export default function YeniTeklifPage() {
                               </div>
                            </td>
                            <td style={{ padding: '12px 20px', textAlign: 'right', fontWeight: 700, fontSize: '14px', color: '#0f172a' }}>
-                              {(k.kdv_dahil ? (k.miktar * k.birim_fiyat) : (k.miktar * k.birim_fiyat * (1 + k.kdv_oran/100))).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} â‚º
+                              {(k.kdv_dahil ? (k.miktar * k.birim_fiyat) : (k.miktar * k.birim_fiyat * (1 + k.kdv_oran/100))).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                            </td>
                            <td style={{ padding: '12px 20px' }}>
                               <button onClick={() => removeKalem(k.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}>{Icons.trash}</button>
@@ -275,29 +275,29 @@ export default function YeniTeklifPage() {
         {/* Sidebar Summary */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', position: 'sticky', top: '20px' }}>
            <div className="card">
-              <div className="card-header">Evrak Ã–zeti</div>
+              <div className="card-header">Evrak Özeti</div>
               <div className="card-body">
                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                        <span style={{ color: '#64748b', fontWeight: 600 }}>Ara Toplam</span>
-                       <span style={{ fontWeight: 700 }}>{totals.araToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} â‚º</span>
+                       <span style={{ fontWeight: 700 }}>{totals.araToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                        <span style={{ color: '#64748b', fontWeight: 600 }}>KDV Toplam</span>
-                       <span style={{ fontWeight: 700 }}>{totals.kdvToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} â‚º</span>
+                       <span style={{ fontWeight: 700 }}>{totals.kdvToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
                     </div>
                     <div style={{ height: '1px', background: '#e2e8f0', margin: '8px 0' }}></div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px' }}>
                        <span style={{ color: '#0f172a', fontWeight: 800 }}>Genel Toplam</span>
-                       <span style={{ color: '#3b82f6', fontWeight: 900 }}>{totals.genelToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} â‚º</span>
+                       <span style={{ color: '#3b82f6', fontWeight: 900 }}>{totals.genelToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
                     </div>
                  </div>
 
                  <div style={{ marginTop: '32px' }}>
-                    <label style={labelStyle}>Teklif NotlarÄ±</label>
+                    <label style={labelStyle}>Teklif Notları</label>
                     <textarea 
                       style={{ ...inputStyle, height: '100px', resize: 'none' }} 
-                      placeholder="Ã–rn: GeÃ§erlilik sÃ¼resi 15 gÃ¼ndÃ¼r. Nakliye dahil deÄŸildir."
+                      placeholder="Örn: Geçerlilik süresi 15 gündür. Nakliye dahil değildir."
                       value={notlar}
                       onChange={e => setNotlar(e.target.value)}
                     />
@@ -310,7 +310,7 @@ export default function YeniTeklifPage() {
                       className="btn-primary" 
                       style={{ width: '100%', height: '52px', fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
                     >
-                      {Icons.send} {loading ? 'GÃ¶nderiliyor...' : 'Onaya GÃ¶nder'}
+                      {Icons.send} {loading ? 'Gönderiliyor...' : 'Onaya Gönder'}
                     </button>
                     <button 
                       disabled={loading} 
