@@ -219,7 +219,7 @@ function ProposalDetail() {
         birim_fiyat: k.birim_fiyat,
         kdv_oran: k.kdv_oran,
         kdv_dahil: k.kdv_dahil,
-        toplam_tutar: k.kdv_dahil ? (k.miktar * k.birim_fiyat) : (k.total_amount || 0), // this will be recalculated
+        toplam_tutar: k.kdv_dahil ? (k.miktar * k.birim_fiyat) : (k.toplam_tutar || 0), // this will be recalculated
         kullaniciadi: userEmail,
         subeadi: 'Merkez'
       }))
