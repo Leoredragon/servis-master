@@ -1,19 +1,21 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 const inputStyle = { width: '100%', padding: '14px 16px', border: '1px solid #e2e8f0', borderRadius: '12px', fontSize: '15px', outline: 'none', background: '#fff', color: '#0f172a', transition: 'all 0.2s' }
 const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' }
 
-export default function MusteriForm() {
+function MusteriFormContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const editId = searchParams.get('id')
-
+  
+  // ... (rest of the component logic)
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(editId ? true : false)
+  // ...
   const [form, setForm] = useState({
     yetkili: '',
     grup: 'Bireysel',
@@ -121,7 +123,6 @@ export default function MusteriForm() {
              </div>
              <div>
                 <label style={labelStyle}>Müşteri Grubu</label>
-                {/* Datalist benzeri veya serbest input için */}
                 <input list="grupList" style={inputStyle} value={form.grup} onChange={e => setForm({...form, grup: e.target.value})} placeholder="Seç veya Yeni Yaz" />
                 <datalist id="grupList">
                    {availableGroups.map(g => <option key={g} value={g} />)}
@@ -177,5 +178,13 @@ export default function MusteriForm() {
         </form>
       </div>
     </div>
+  )
+}
+
+export default function MusteriForm() {
+  return (
+    <Suspense fallback={<div style={{ padding: '60px', textAlign: 'center' }}>Yükleniyor...</div>}>
+      <MusteriFormContent />
+    </Suspense>
   )
 }
