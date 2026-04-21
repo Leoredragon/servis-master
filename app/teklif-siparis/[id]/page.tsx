@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation'
 import CariSec from '@/app/components/CariSec'
 import SmartProductSearch, { StokItem } from '@/app/components/SmartProductSearch'
 import { useReactToPrint } from 'react-to-print'
+import TeklifBaski from '../../components/print/TeklifBaski'
 
 const Icons = {
   back: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
@@ -53,10 +54,9 @@ function ProposalDetail() {
   const printRef = useRef<HTMLDivElement>(null)
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    documentTitle: `Teklif-${teklifNo}`
+    documentTitle: `${tip}-${teklifNo}`
   })
 
-  // Fetch Proposal Data
   useEffect(() => {
     if (!id) return
 
@@ -110,7 +110,6 @@ function ProposalDetail() {
     fetchProposal()
   }, [id])
 
-  // Calculate totals
   useEffect(() => {
     let ara = 0
     let kdv = 0
@@ -207,7 +206,6 @@ function ProposalDetail() {
 
       if (tErr) throw tErr
 
-      // Delete old items and insert new ones (simplest way to handle updates)
       await supabase.from('teklif_kalem').delete().eq('teklif_id', id)
 
       const kalemPayload = kalemler.map(k => ({
@@ -219,12 +217,11 @@ function ProposalDetail() {
         birim_fiyat: k.birim_fiyat,
         kdv_oran: k.kdv_oran,
         kdv_dahil: k.kdv_dahil,
-        toplam_tutar: k.kdv_dahil ? (k.miktar * k.birim_fiyat) : (k.toplam_tutar || 0), // this will be recalculated
+        toplam_tutar: k.kdv_dahil ? (k.miktar * k.birim_fiyat) : (k.toplam_tutar || 0),
         kullaniciadi: userEmail,
         subeadi: 'Merkez'
       }))
 
-      // Real totals for each line
       kalemPayload.forEach((kp, i) => {
         const k = kalemler[i]
         const lineAmount = k.miktar * k.birim_fiyat
@@ -267,7 +264,6 @@ function ProposalDetail() {
 
   return (
     <div className="animate-fadeIn">
-      {/* Top Nav */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button onClick={() => router.push('/teklif-siparis')} style={{ width: '40px', height: '40px', borderRadius: '12px', border: '1.5px solid #e2e8f0', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>{Icons.back}</button>
@@ -319,7 +315,6 @@ function ProposalDetail() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '32px', alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-          {/* General Info Card */}
           <div className="card">
             <div className="card-header">Genel Bilgiler</div>
             <div className="card-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
@@ -353,7 +348,6 @@ function ProposalDetail() {
             </div>
           </div>
 
-          {/* Items Card */}
           <div className="card">
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800 }}>Hizmet ve Ürün Kalemleri</h3>
@@ -440,11 +434,10 @@ function ProposalDetail() {
           </div>
         </div>
 
-        {/* Sidebar Summary */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', position: 'sticky', top: '20px' }}>
            <div className="card">
               <div className="card-header">Evrak Özeti</div>
-              <div className="card-body">
+              <div className="card-body" style={{ padding: '24px' }}>
                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                        <span style={{ color: '#64748b', fontWeight: 600 }}>Ara Toplam</span>
@@ -454,7 +447,7 @@ function ProposalDetail() {
                        <span style={{ color: '#64748b', fontWeight: 600 }}>KDV Toplam</span>
                        <span style={{ fontWeight: 700 }}>{totals.kdvToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
                     </div>
-                    <div style={{ height: '1px', background: '#e2e8f0', margin: '8px 0' }}></div>
+                    <div style={{ height: '2px', background: '#e2e8f0', margin: '8px 0' }}></div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px' }}>
                        <span style={{ color: '#0f172a', fontWeight: 800 }}>Genel Toplam</span>
                        <span style={{ color: '#3b82f6', fontWeight: 900 }}>{totals.genelToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
@@ -489,11 +482,10 @@ function ProposalDetail() {
         </div>
       </div>
 
-      {/* Hidden Printable Content */}
-      <div style={{ display: 'none' }}>
-        <PrintableTeklif 
+      <div style={{ opacity: 0, pointerEvents: 'none', position: 'absolute', top: '-9999px', left: '-9999px' }}>
+        <TeklifBaski 
           ref={printRef}
-          teklif={{ teklif_no: teklifNo, tarih, gecerlilikTarihi, tip, notlar, totals }}
+          teklif={{ teklif_no: teklifNo, tarih, gecerlilik_tarihi: gecerlilikTarihi, tip, notlar, toplam: totals.araToplam, kdv_toplam: totals.kdvToplam, genel_toplam: totals.genelToplam }}
           cari={cariData}
           kalemler={kalemler}
         />
@@ -501,89 +493,6 @@ function ProposalDetail() {
     </div>
   )
 }
-
-// Printable Component
-import React from 'react'
-const PrintableTeklif = React.forwardRef(({ teklif, cari, kalemler }: any, ref: any) => {
-  return (
-    <div ref={ref} style={{ padding: '40px', color: '#000', fontFamily: 'Arial, sans-serif' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '40px' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '32px', color: '#3b82f6' }}>{teklif.tip.toUpperCase()}</h1>
-          <p style={{ margin: '4px 0', fontWeight: 'bold' }}>No: {teklif.teklif_no}</p>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <h2 style={{ margin: 0 }}>SİSTEM YÖNETİMİ</h2>
-          <p style={{ margin: '4px 0' }}>Merkez Şube</p>
-          <p style={{ margin: '2px 0', fontSize: '12px', color: '#666' }}>{new Date().toLocaleDateString('tr-TR')}</p>
-        </div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginBottom: '40px' }}>
-        <div style={{ padding: '20px', border: '1px solid #eee', borderRadius: '8px' }}>
-          <h3 style={{ margin: '0 0 10px 0', borderBottom: '1px solid #eee', paddingBottom: '5px', fontSize: '14px', color: '#666' }}>MÜŞTERİ BİLGİLERİ</h3>
-          <p style={{ margin: '5px 0', fontWeight: 'bold', fontSize: '16px' }}>{cari?.yetkili}</p>
-          <p style={{ margin: '5px 0' }}>{cari?.tel}</p>
-          <p style={{ margin: '5px 0' }}>{cari?.mail}</p>
-          <p style={{ margin: '5px 0', fontSize: '12px' }}>{cari?.adres}</p>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <p style={{ margin: '5px 0' }}><strong>Evrak Tarihi:</strong> {new Date(teklif.tarih).toLocaleDateString('tr-TR')}</p>
-          <p style={{ margin: '5px 0' }}><strong>Geçerlilik:</strong> {teklif.gecerlilikTarihi ? new Date(teklif.gecerlilikTarihi).toLocaleDateString('tr-TR') : '—'}</p>
-        </div>
-      </div>
-
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '40px' }}>
-        <thead>
-          <tr style={{ background: '#f8fafc', borderBottom: '2px solid #3b82f6' }}>
-            <th style={{ textAlign: 'left', padding: '12px', fontSize: '12px' }}>AÇIKLAMA</th>
-            <th style={{ textAlign: 'center', padding: '12px', fontSize: '12px', width: '80px' }}>MİKTAR</th>
-            <th style={{ textAlign: 'right', padding: '12px', fontSize: '12px', width: '120px' }}>BİRİM FİYAT</th>
-            <th style={{ textAlign: 'right', padding: '12px', fontSize: '12px', width: '120px' }}>TOPLAM</th>
-          </tr>
-        </thead>
-        <tbody>
-          {kalemler.map((k: any, index: number) => {
-             const lineTotal = k.kdv_dahil ? (k.miktar * k.birim_fiyat) : (k.miktar * k.birim_fiyat * (1 + k.kdv_oran/100))
-             return (
-              <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{ padding: '12px', fontSize: '13px' }}>{k.aciklama}</td>
-                <td style={{ padding: '12px', fontSize: '13px', textAlign: 'center' }}>{k.miktar} {k.birim}</td>
-                <td style={{ padding: '12px', fontSize: '13px', textAlign: 'right' }}>{k.birim_fiyat.toLocaleString('tr-TR')} ₺</td>
-                <td style={{ padding: '12px', fontSize: '13px', textAlign: 'right', fontWeight: 'bold' }}>{lineTotal.toLocaleString('tr-TR')} ₺</td>
-              </tr>
-             )
-          })}
-        </tbody>
-      </table>
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <div style={{ width: '250px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #eee' }}>
-            <span>Ara Toplam</span>
-            <span>{teklif.totals.araToplam.toLocaleString('tr-TR')} ₺</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #eee' }}>
-            <span>KDV Toplam</span>
-            <span>{teklif.totals.kdvToplam.toLocaleString('tr-TR')} ₺</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', fontSize: '18px', fontWeight: 'bold', color: '#3b82f6' }}>
-            <span>GENEL TOPLAM</span>
-            <span>{teklif.totals.genelToplam.toLocaleString('tr-TR')} ₺</span>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ marginTop: '60px' }}>
-        <h4 style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#666' }}>NOTLAR</h4>
-        <div style={{ whiteSpace: 'pre-wrap', fontSize: '12px', padding: '15px', background: '#f8fafc', borderRadius: '8px' }}>
-          {teklif.notlar || 'Herhangi bir not bulunmamaktadır.'}
-        </div>
-      </div>
-    </div>
-  )
-})
-PrintableTeklif.displayName = 'PrintableTeklif'
 
 export default function Page() {
   return (
