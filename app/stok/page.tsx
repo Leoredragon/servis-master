@@ -35,7 +35,7 @@ export default function StokYonetimi() {
   // Görünüm & Sayfalama
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table')
   const [currentPage, setCurrentPage] = useState(1)
-  const pageSize = 24
+  const [pageSize, setPageSize] = useState(24)
 
   // Modals
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean, id: number | null }>({ open: false, id: null })
@@ -268,7 +268,7 @@ export default function StokYonetimi() {
                 </div>
              )}
              <div style={{ marginTop: '24px' }}>
-                <Pagination totalItems={filteredItems.length} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} />
+                <Pagination totalItems={filteredItems.length} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
              </div>
           </>
        )}

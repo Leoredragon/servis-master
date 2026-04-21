@@ -37,7 +37,7 @@ export default function KasaYonetimi() {
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
-  const pageSize = 50
+  const [pageSize, setPageSize] = useState(50)
 
   // Modals
   const [yeniKasaModal, setYeniKasaModal] = useState(false)
@@ -355,7 +355,7 @@ export default function KasaYonetimi() {
       </div>
       
       <div style={{ marginTop: '24px' }}>
-        <Pagination totalItems={filteredHareketler.length} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} />
+        <Pagination totalItems={filteredHareketler.length} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
       </div>
 
       {/* ─── MODALLAR ─── */}

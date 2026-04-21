@@ -400,7 +400,7 @@ export default function ServisKayitlariListesi() {
             </table>
           </div>
           <div style={{ padding: '16px 24px' }}>
-            <Pagination totalItems={filtered.length} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} />
+            <Pagination totalItems={filtered.length} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
           </div>
         </div>
       )}

@@ -29,7 +29,7 @@ export default function Musteriler() {
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
-  const pageSize = 50
+  const [pageSize, setPageSize] = useState(50)
 
   // Modals
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean, id: number | null }>({ open: false, id: null })
@@ -239,7 +239,7 @@ export default function Musteriler() {
       </div>
       
       <div style={{ marginTop: '24px' }}>
-        <Pagination totalItems={filteredMusteriler.length} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} />
+        <Pagination totalItems={filteredMusteriler.length} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
       </div>
 
       <ConfirmModal 
