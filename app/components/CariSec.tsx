@@ -4,10 +4,11 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
 interface CariSecProps {
-  value: string | number
-  onChange: (id: string) => void
+  value?: string | number
+  onChange?: (id: string) => void
+  onSelect?: (cari: any) => void
   placeholder?: string
-  error?: boolean
+  error?: boolean | string
 }
 
 const inputStyle = { width: '100%', padding: '12px 16px', border: '1.5px solid #e2e8f0', borderRadius: '12px', fontSize: '14px', outline: 'none' }
@@ -19,7 +20,7 @@ const Icons = {
   user: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
 }
 
-export default function CariSec({ value, onChange, placeholder = "Müşteri Ara...", error }: CariSecProps) {
+export default function CariSec({ value, onChange, onSelect, placeholder = "Müşteri Ara...", error }: CariSecProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [results, setResults] = useState<any[]>([])
@@ -87,7 +88,8 @@ export default function CariSec({ value, onChange, placeholder = "Müşteri Ara.
       
       if (error) throw error
       if (data) {
-        onChange(data.id.toString())
+        if (onChange) onChange(data.id.toString())
+        if (onSelect) onSelect(data)
         setSelectedName(data.yetkili)
         setQuickAdd(false)
         setIsOpen(false)
@@ -143,7 +145,12 @@ export default function CariSec({ value, onChange, placeholder = "Müşteri Ara.
             {!loading && results.map(item => (
               <div 
                 key={item.id} 
-                onClick={() => { onChange(item.id.toString()); setSelectedName(item.yetkili); setIsOpen(false); }}
+                onClick={() => { 
+                  if (onChange) onChange(item.id.toString()); 
+                  if (onSelect) onSelect(item);
+                  setSelectedName(item.yetkili); 
+                  setIsOpen(false); 
+                }}
                 style={{ padding: '12px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', transition: 'background 0.2s' }}
                 onMouseEnter={e => e.currentTarget.style.background = '#eff6ff'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}

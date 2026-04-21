@@ -317,7 +317,7 @@ export default function AjandaPage() {
                   <div>
                      <label className="form-label">Müşteri (Opsiyonel)</label>
                      <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '4px' }}>
-                        <CariSec onSelect={(cari) => setForm({...form, cari_id: cari ? cari.id : null})} error="" />
+                        <CariSec onSelect={(cari: any) => setForm({...form, cari_id: cari ? cari.id : null})} error="" />
                      </div>
                      <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>Takvime tıklanıldığında doğrudan cariye ait bilgileri gösterir.</div>
                   </div>
