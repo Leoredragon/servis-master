@@ -35,7 +35,7 @@ export default function ModulGuard({ modulKodu, children }: { modulKodu: string,
         // localStorage'da yoksa API çağrısı yapalım
         const session = await supabase.auth.getSession()
         if (session.data.session?.user) {
-          const { data: { user } } = session.data.session
+          const { user } = session.data.session
           const remoteInfo = await getTenantInfo(user.id)
           if (remoteInfo) {
              localStorage.setItem('sm_tenant_info', JSON.stringify(remoteInfo))
