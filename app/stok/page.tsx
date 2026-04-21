@@ -6,6 +6,7 @@ import Link from 'next/link'
 import ConfirmModal from '../components/ConfirmModal'
 import Pagination from '../components/Pagination'
 import StokHareketiModal from '../components/StokHareketiModal'
+import StockCardModal from '../components/StockCardModal'
 import { useRouter } from 'next/navigation'
 
 const Icons = {
@@ -39,6 +40,7 @@ export default function StokYonetimi() {
   // Modals
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean, id: number | null }>({ open: false, id: null })
   const [hareketModal, setHareketModal] = useState<{ open: boolean, stok: any }>({ open: false, stok: null })
+  const [selectedStokId, setSelectedStokId] = useState<number | null>(null)
 
   // İlk yükleme ve localstorage algılama
   useEffect(() => {
@@ -56,7 +58,7 @@ export default function StokYonetimi() {
     const { data } = await supabase.from('stok').select('*').order('ad')
     setItems(data || [])
     
-    // Grupları derle (dinamik) + veritabanından ek gruptablosu da çekilebilir fakat en sade logic distinct gruptur.
+    // Grupları derle (dinamik)
     const grps = Array.from(new Set((data || []).map(x => x.grup).filter(Boolean)))
     setGruplar(grps as string[])
 
@@ -72,7 +74,6 @@ export default function StokYonetimi() {
 
   const handleDelete = async () => {
     if (!confirmDelete.id) return
-    // Önce hareketleri temizle ki cascade constraint patlamasın
     await supabase.from('stok_hareket').delete().eq('stok_id', confirmDelete.id)
     await supabase.from('stok').delete().eq('id', confirmDelete.id)
     setConfirmDelete({ open: false, id: null })
@@ -199,7 +200,7 @@ export default function StokYonetimi() {
                         {paginated.map(u => {
                            const lvl = getStyleForLevel(u.miktar, u.kritik_seviye || 10)
                            return (
-                             <tr key={u.id} className="hover-row" style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }} onClick={() => router.push(`/stok/${u.id}`)}>
+                             <tr key={u.id} className="hover-row" style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }} onClick={() => setSelectedStokId(u.id)}>
                                 <td style={{ padding: '12px 24px', width: '60px' }}>
                                    <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
                                       {u.resimyolu ? <img src={u.resimyolu} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} /> : Icons.box}
@@ -223,8 +224,7 @@ export default function StokYonetimi() {
                                 </td>
                                 <td style={{ padding: '12px 24px' }} onClick={e => e.stopPropagation()}>
                                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                                      <button onClick={() => setHareketModal({ open: true, stok: u })} style={{ padding: '8px', borderRadius: '8px', background: '#f0fdf4', color: '#16a34a', border: 'none', cursor: 'pointer' }} title="Hızlı Stok Hareketi">{Icons.arrowUpDown}</button>
-                                      <button onClick={() => router.push(`/stok/${u.id}`)} style={{ padding: '8px', borderRadius: '8px', background: '#eff6ff', color: '#3b82f6', border: 'none', cursor: 'pointer' }} title="Düzenle">{Icons.edit}</button>
+                                      <button onClick={() => setHareketModal({ open: true, stok: u })} style={{ padding: '8px', borderRadius: '8px', background: '#eff6ff', color: '#3b82f6', border: 'none', cursor: 'pointer' }} title="Stok Hareketi / Düzenle">{Icons.edit}</button>
                                       <button onClick={() => setConfirmDelete({ open: true, id: u.id })} style={{ padding: '8px', borderRadius: '8px', background: '#fef2f2', color: '#ef4444', border: 'none', cursor: 'pointer' }} title="Sil">{Icons.trash}</button>
                                    </div>
                                 </td>
@@ -241,7 +241,7 @@ export default function StokYonetimi() {
                    {paginated.map(u => {
                       const lvl = getStyleForLevel(u.miktar, u.kritik_seviye || 10)
                       return (
-                         <div key={u.id} className="card" style={{ padding: '24px', position: 'relative', overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.2s' }} onClick={() => router.push(`/stok/${u.id}`)}>
+                         <div key={u.id} className="card" style={{ padding: '24px', position: 'relative', overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.2s' }} onClick={() => setSelectedStokId(u.id)}>
                             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: lvl.text }}></div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                                <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px' }}>{u.grup}</span>
@@ -281,6 +281,7 @@ export default function StokYonetimi() {
            stokId={hareketModal.stok.id}
            stokAd={hareketModal.stok.ad}
            mevcutMiktar={hareketModal.stok.miktar}
+           resimYolu={hareketModal.stok.resimyolu}
          />
        )}
 
@@ -291,6 +292,12 @@ export default function StokYonetimi() {
          title="Ürünü ve Geçmişini Sil"
          message="Bu işlemi geri alamazsınız. Stok kaydı ve bu ürüne bağlı tüm hareket geçmişi kalıcı olarak silinecektir."
          type="danger"
+       />
+
+       <StockCardModal 
+         isOpen={!!selectedStokId} 
+         onClose={() => setSelectedStokId(null)} 
+         stokId={selectedStokId} 
        />
     </div>
   )

@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/app/lib/supabase'
@@ -116,6 +116,9 @@ export default function YeniTeklifPage() {
 
     setLoading(true)
     try {
+      const { data: userData } = await supabase.auth.getUser()
+      const userEmail = userData.user?.email || 'admin'
+
       const { data: tData, error: tErr } = await supabase.from('teklif').insert([{
         teklif_no: teklifNo,
         cari_id: parseInt(cariId),
@@ -127,7 +130,7 @@ export default function YeniTeklifPage() {
         kdv_toplam: totals.kdvToplam,
         genel_toplam: totals.genelToplam,
         notlar: notlar,
-        kullaniciadi: (await supabase.auth.getUser()).data.user?.email || 'admin',
+        kullaniciadi: userEmail,
         subeadi: 'Merkez'
       }]).select().single()
 
@@ -143,7 +146,7 @@ export default function YeniTeklifPage() {
         kdv_oran: k.kdv_oran,
         kdv_dahil: k.kdv_dahil,
         toplam_tutar: k.kdv_dahil ? (k.miktar * k.birim_fiyat) : (k.miktar * k.birim_fiyat * (1 + k.kdv_oran/100)),
-        kullaniciadi: (await supabase.auth.getUser()).data.user?.email || 'admin',
+        kullaniciadi: userEmail,
         subeadi: 'Merkez'
       }))
 

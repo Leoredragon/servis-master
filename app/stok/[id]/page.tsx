@@ -5,9 +5,9 @@ import { supabase } from '../../lib/supabase'
 import { useRouter } from 'next/navigation'
 
 const GRUPLAR = [
-  "Filtre ve BakÄ±m", "Mekanik/Motor", "Elektrik", "Kaporta/Aksesuar", "Sarf Malzeme", "Lastik/Jant", "Madeni YaÄŸ", "DiÄŸer"
+  "Filtre ve Bakım", "Mekanik/Motor", "Elektrik", "Kaporta/Aksesuar", "Sarf Malzeme", "Lastik/Jant", "Madeni Yağ", "Diğer"
 ]
-const BIRIMLER = ["Adet", "Litre", "Set", "Kg", "Metre", "TakÄ±m"]
+const BIRIMLER = ["Adet", "Litre", "Set", "Kg", "Metre", "Takım"]
 
 const inputStyle = { width: '100%', padding: '14px 16px', border: '1px solid #e2e8f0', borderRadius: '12px', fontSize: '15px', outline: 'none', background: '#fff' }
 const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' }
@@ -24,7 +24,7 @@ export default function YeniStok() {
 
     const miktar = parseFloat(formDataObj.miktar) || 0
     
-    // kdv_oran'Ä±n string atanmasÄ± talebi
+    // kdv_oran'ın string atanması talebi
     const payload = {
       ad: formDataObj.ad,
       kod: formDataObj.kod || null,
@@ -48,9 +48,9 @@ export default function YeniStok() {
       if (miktar > 0 && data) {
          await supabase.from('stok_hareket').insert([{
            stok_id: data.id, 
-           hareket_turu: 'GiriÅŸ', 
+           hareket_turu: 'Giriş', 
            miktar: miktar, 
-           aciklama: 'AÃ§Ä±lÄ±ÅŸ bakiyesi giriÅŸi',
+           aciklama: 'Açılış bakiyesi girişi',
            kullaniciadi: (await supabase.auth.getUser()).data.user?.email || 'admin', subeadi: 'Merkez'
          }])
       }
@@ -65,12 +65,12 @@ export default function YeniStok() {
   return (
     <div className="animate-fadeIn" style={{ maxWidth: '800px', margin: '0 auto', padding: '0 24px 60px' }}>
       <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '15px', fontWeight: 700, cursor: 'pointer', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        â† Geri DÃ¶n
+        â† Geri Dön
       </button>
 
       <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.5px' }}>Yeni Stok KartÄ±</h1>
-        <p style={{ color: '#64748b', fontSize: '15px', marginTop: '8px' }}>Deponuza yeni bir Ã¼rÃ¼n veya hizmet kalemi tanÄ±mlayÄ±n.</p>
+        <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.5px' }}>Yeni Stok Kartı</h1>
+        <p style={{ color: '#64748b', fontSize: '15px', marginTop: '8px' }}>Deponuza yeni bir ürün veya hizmet kalemi tanımlayın.</p>
       </div>
 
       <div className="card">
@@ -78,8 +78,8 @@ export default function YeniStok() {
             
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '20px' }}>
                <div style={{ gridColumn: 'span 2' }}>
-                 <label style={labelStyle}>ÃœrÃ¼n AdÄ± *</label>
-                 <input autoFocus required name="ad" style={inputStyle} placeholder="Ã–rn: 5W-30 Motor YaÄŸÄ± 4Lt" />
+                 <label style={labelStyle}>Ürün Adı *</label>
+                 <input autoFocus required name="ad" style={inputStyle} placeholder="Örn: 5W-30 Motor Yağı 4Lt" />
                </div>
 
                <div>
@@ -109,15 +109,15 @@ export default function YeniStok() {
 
             <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '16px', border: '1px solid #f1f5f9', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                <div>
-                 <label style={labelStyle}>AlÄ±ÅŸ FiyatÄ± (â‚º)</label>
+                 <label style={labelStyle}>Alış Fiyatı (₺)</label>
                  <input type="number" step="0.01" name="a_fiyat" placeholder="0.00" style={inputStyle} />
                </div>
                <div>
-                 <label style={labelStyle}>SatÄ±ÅŸ FiyatÄ± (â‚º)</label>
+                 <label style={labelStyle}>Satış Fiyatı (₺)</label>
                  <input type="number" step="0.01" name="s_fiyat" placeholder="0.00" style={inputStyle} />
                </div>
                <div>
-                 <label style={labelStyle}>KDV OranÄ±</label>
+                 <label style={labelStyle}>KDV Oranı</label>
                  <select name="kdv_oran" defaultValue="20" style={inputStyle}>
                     <option value="0">%0</option>
                     <option value="1">%1</option>
@@ -129,22 +129,22 @@ export default function YeniStok() {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '20px' }}>
                <div>
-                 <label style={labelStyle}>AÃ§Ä±lÄ±ÅŸ Stok MiktarÄ±</label>
+                 <label style={labelStyle}>Açılış Stok Miktarı</label>
                  <input type="number" step="0.01" name="miktar" placeholder="0" defaultValue="0" style={inputStyle} />
                </div>
                <div>
-                 <label style={labelStyle}>Kritik Stok Seviyesi (UyarÄ±)</label>
+                 <label style={labelStyle}>Kritik Stok Seviyesi (Uyarı)</label>
                  <input type="number" step="0.01" name="kritik_seviye" placeholder="10" defaultValue="10" style={inputStyle} />
                </div>
             </div>
 
             <div>
-               <label style={labelStyle}>AÃ§Ä±klama / Notlar</label>
-               <textarea name="aciklama" rows={3} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Rafa, tedarikÃ§iye veya Ã¼rÃ¼ne dair ek bilgiler..." />
+               <label style={labelStyle}>Açıklama / Notlar</label>
+               <textarea name="aciklama" rows={3} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Rafa, tedarikçiye veya ürüne dair ek bilgiler..." />
             </div>
 
             <div style={{ marginTop: '16px', borderTop: '1px solid #e2e8f0', paddingTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-               <button type="button" onClick={() => router.back()} disabled={saving} style={{ padding: '16px 24px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 700, cursor: 'pointer' }}>Ä°ptal</button>
+               <button type="button" onClick={() => router.back()} disabled={saving} style={{ padding: '16px 24px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 700, cursor: 'pointer' }}>İptal</button>
                <button type="submit" disabled={saving} className="btn-primary" style={{ padding: '16px 32px', borderRadius: '12px', fontSize: '16px' }}>
                   {saving ? 'Kaydediliyor...' : 'Stok Ekle â†’'}
                </button>

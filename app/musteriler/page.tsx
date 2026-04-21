@@ -6,6 +6,7 @@ import Link from 'next/link'
 import ConfirmModal from '../components/ConfirmModal'
 import Pagination from '../components/Pagination'
 import { useRouter } from 'next/navigation'
+import CustomerCardModal from '../components/CustomerCardModal'
 
 const Icons = {
   plus: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
@@ -32,6 +33,8 @@ export default function Musteriler() {
 
   // Modals
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean, id: number | null }>({ open: false, id: null })
+  const [cardOpen, setCardOpen] = useState(false)
+  const [selectedCariId, setSelectedCariId] = useState<number | null>(null)
 
   // Summary Data
   const [summary, setSummary] = useState({ toplamMusteri: 0, toplamArac: 0, buAyYeni: 0, aktifServis: 0 })
@@ -196,10 +199,10 @@ export default function Musteriler() {
                   ) : paginatedMusteriler.length === 0 ? (
                      <tr><td colSpan={7} style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>Müşteri kaydı bulunamadı.</td></tr>
                   ) : paginatedMusteriler.map(m => (
-                     <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }} className="hover-row">
+                     <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }} className="hover-row" onClick={() => { setSelectedCariId(m.id); setCardOpen(true); }}>
                         <td style={{ padding: '16px 24px', fontWeight: 600, color: '#94a3b8', fontSize: '13px' }}>{m.id}</td>
                         <td style={{ padding: '16px 24px' }}>
-                           <Link href={`/musteriler/${m.id}`} style={{ fontWeight: 800, color: '#0f172a', fontSize: '15px', textDecoration: 'none', display: 'block' }}>{m.yetkili}</Link>
+                           <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '15px' }}>{m.yetkili}</div>
                            {m.grup && <span style={{ display: 'inline-block', padding: '2px 8px', background: '#f1f5f9', color: '#64748b', fontSize: '11px', fontWeight: 700, borderRadius: '4px', marginTop: '4px' }}>{m.grup}</span>}
                         </td>
                         <td style={{ padding: '16px 24px' }}>
@@ -215,12 +218,11 @@ export default function Musteriler() {
                         <td style={{ padding: '16px 24px', textAlign: 'center', fontSize: '13px', color: '#64748b' }}>
                            {m.sonIslemTarihi ? new Date(m.sonIslemTarihi).toLocaleDateString('tr-TR') : '—'}
                         </td>
-                        <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                        <td style={{ padding: '16px 24px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                              <Link href={`/musteriler/${m.id}`} style={{ padding: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#3b82f6', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                              <button onClick={() => { setSelectedCariId(m.id); setCardOpen(true); }} style={{ padding: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#3b82f6', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
                                  {Icons.user}
-                              </Link>
-                              {/* Edit triggers navigation to the unified edit page (could be new page with query param or just detail view edit button). We'll go to detail page */}
+                              </button>
                               <Link href={`/musteriler/yeni?id=${m.id}`} style={{ padding: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#475569', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
                                  {Icons.edit}
                               </Link>
@@ -248,6 +250,12 @@ export default function Musteriler() {
         message="Bu müşteriyi silmek istediğinizden emin misiniz? Müşteriye ait tüm geçmiş kayıtlar (eğer veritabanı kaskad silmeyi destekliyorsa) veri kaybına yol açabilir."
         type="danger"
         confirmText="Evet, Sil"
+      />
+
+      <CustomerCardModal 
+        isOpen={cardOpen} 
+        onClose={() => setCardOpen(false)} 
+        cariId={selectedCariId} 
       />
     </div>
   )

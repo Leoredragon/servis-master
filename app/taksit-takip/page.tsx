@@ -1,14 +1,13 @@
-﻿"use client"
+"use client"
 
 import { supabase } from '../lib/supabase'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import Pagination from '../components/Pagination'
 import Modal from '../components/Modal'
 import ConfirmModal from '../components/ConfirmModal'
-import SlideOver from '../components/SlideOver'
 import CariSec from '../components/CariSec'
 
-// SVG Ä°konlarÄ±
+// SVG İkonları
 const Icons = {
   plus: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
   check: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>,
@@ -25,13 +24,13 @@ const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, color:
 export default function TaksitTakip() {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<any[]>([])
-  const [activeTab, setActiveTab] = useState<'Gecikenler' | 'Bu Ay' | 'TÃ¼mÃ¼'>('Bu Ay')
+  const [activeTab, setActiveTab] = useState<'Gecikenler' | 'Bu Ay' | 'Tümü'>('Bu Ay')
   const [arama, setArama] = useState('')
   const [kasalar, setKasalar] = useState<any[]>([])
   const [cariler, setCariler] = useState<any[]>([])
   const [toast, setToast] = useState<{msg: string, type: 'success'|'error'}|null>(null)
 
-  // KayÄ±t/DÃ¼zenleme State
+  // Kayıt/Düzenleme State
   const [formOpen, setFormOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [form, setForm] = useState({
@@ -39,15 +38,15 @@ export default function TaksitTakip() {
     cari_id: '',
     tutar: '',
     aciklama: '',
-    // Toplu Ãœretim AlanlarÄ±
+    // Toplu Üretim Alanları
     pesinat: '0',
     pesinat_kasa_id: '',
     taksit_sayisi: '3',
     ilk_vade: new Date().toISOString().split('T')[0],
-    vade_tarihi: new Date().toISOString().split('T')[0] // Tekil dÃ¼zenleme iÃ§in
+    vade_tarihi: new Date().toISOString().split('T')[0] // Tekil düzenleme için
   })
 
-  // DiÄŸer Modallar
+  // Diğer Modallar
   const [tahsilModal, setTahsilModal] = useState<{ open: boolean, item: any | null }>({ open: false, item: null })
   const [tahsilForm, setTahsilForm] = useState({ kasa_id: '', tutar: '', tarih: new Date().toISOString().split('T')[0] })
   const [confirmData, setConfirmData] = useState<{ open: boolean, id: number | null }>({ open: false, id: null })
@@ -73,7 +72,7 @@ export default function TaksitTakip() {
       setCariler(cData || [])
       setKasalar(kData || [])
     } catch (err: any) {
-      showToast('Veriler yÃ¼klenemedi: ' + err.message, 'error')
+      showToast('Veriler yüklenemedi: ' + err.message, 'error')
     } finally {
       setLoading(false)
     }
@@ -84,13 +83,13 @@ export default function TaksitTakip() {
   const filtered = useMemo(() => {
     const bugun = new Date()
     bugun.setHours(0,0,0,0)
-    const ayBasÄ± = new Date(bugun.getFullYear(), bugun.getMonth(), 1)
+    const ayBasi = new Date(bugun.getFullYear(), bugun.getMonth(), 1)
     const aySonu = new Date(bugun.getFullYear(), bugun.getMonth() + 1, 0)
 
     let list = data.filter(item => {
       const vade = new Date(item.vade_tarihi)
-      if (activeTab === 'Gecikenler') return item.durum !== 'Ã–dendi' && vade < bugun
-      if (activeTab === 'Bu Ay') return item.durum !== 'Ã–dendi' && vade >= ayBasÄ± && vade <= aySonu
+      if (activeTab === 'Gecikenler') return item.durum !== 'Ödendi' && vade < bugun
+      if (activeTab === 'Bu Ay') return item.durum !== 'Ödendi' && vade >= ayBasi && vade <= aySonu
       return true
     })
 
@@ -107,14 +106,17 @@ export default function TaksitTakip() {
 
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
-  // â”€â”€â”€ Kaydet / GÃ¼ncelle (Bulk Logic) â”€â”€â”€
+  // â”€â”€â”€ Kaydet / Güncelle (Bulk Logic) â”€â”€â”€
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
 
     try {
+      const { data: userData } = await supabase.auth.getUser()
+      const userEmail = userData.user?.email || 'admin'
+
       if (isEditing && form.id) {
-        // Tekil DÃ¼zenleme
+        // Tekil Düzenleme
         const { error } = await supabase.from('taksitler').update({
           cari_id: parseInt(form.cari_id),
           tutar: parseFloat(form.tutar),
@@ -122,57 +124,57 @@ export default function TaksitTakip() {
           aciklama: form.aciklama
         }).eq('id', form.id)
         if (error) throw error
-        showToast('Taksit gÃ¼ncellendi')
+        showToast('Taksit güncellendi')
       } else {
-        // Toplu OluÅŸturma (Bulk Creation)
-        const anaTutarÄ± = parseFloat(form.tutar)
+        // Toplu Oluşturma (Bulk Creation)
+        const anaTutari = parseFloat(form.tutar)
         const pesinat = parseFloat(form.pesinat || '0')
-        const taksitSayÄ±sÄ± = parseInt(form.taksit_sayisi)
-        const kalanTutarÄ± = anaTutarÄ± - pesinat
+        const taksitSayisi = parseInt(form.taksit_sayisi)
+        const kalanTutari = anaTutari - pesinat
 
-        // 1. PeÅŸinat varsa kasaya iÅŸle
+        // 1. Peşinat varsa kasaya işle
         if (pesinat > 0 && form.pesinat_kasa_id) {
           await supabase.from('kasa_hareket').insert([{
             kasa_id: parseInt(form.pesinat_kasa_id),
             tur: 'gelir',
             tutar: pesinat,
-            kategori: 'Manuel PeÅŸinat',
-            aciklama: `Manuel taksitlendirme peÅŸinatÄ±`,
+            kategori: 'Manuel Peşinat',
+            aciklama: `Manuel taksitlendirme peşinatı`,
             islem_tarihi: new Date().toISOString().split('T')[0],
-            kullaniciadi: (await supabase.auth.getUser()).data.user?.email || 'admin', // TODO: Oturum bilgisinden dinamik alÄ±nacak
-            subeadi:      'Merkez', // TODO: KullanÄ±cÄ± ÅŸubesinden dinamik alÄ±nacak
+            kullaniciadi: userEmail,
+            subeadi:      'Merkez',
           }])
         }
 
-        // 2. Taksitleri oluÅŸtur (Yuvarlama farkÄ± sonuncu taksite)
-        const birimTaksit = Math.floor((kalanTutarÄ± / taksitSayÄ±sÄ±) * 100) / 100
+        // 2. Taksitleri oluştur (Yuvarlama farkı sonuncu taksite)
+        const birimTaksit = Math.floor((kalanTutari / taksitSayisi) * 100) / 100
         const taksitlerArray = []
         let ilkVadeDate = new Date(form.ilk_vade)
 
-        for (let i = 0; i < taksitSayÄ±sÄ±; i++) {
+        for (let i = 0; i < taksitSayisi; i++) {
           const vDate = new Date(ilkVadeDate)
           vDate.setMonth(vDate.getMonth() + i)
           
           let tTutar = birimTaksit
-          if (i === taksitSayÄ±sÄ± - 1) {
-            tTutar = Math.round((kalanTutarÄ± - (birimTaksit * (taksitSayÄ±sÄ± - 1))) * 100) / 100
+          if (i === taksitSayisi - 1) {
+            tTutar = Math.round((kalanTutari - (birimTaksit * (taksitSayisi - 1))) * 100) / 100
           }
 
           taksitlerArray.push({
             cari_id: parseInt(form.cari_id),
-            taksit_sirasi: `${i + 1}/${taksitSayÄ±sÄ±}`,
+            taksit_sirasi: `${i + 1}/${taksitSayisi}`,
             vade_tarihi: vDate.toISOString().split('T')[0],
             tutar: tTutar,
             durum: 'Bekliyor',
             aciklama: form.aciklama || 'Manuel Taksitlendirme',
-            kullaniciadi: (await supabase.auth.getUser()).data.user?.email || 'admin', // TODO: Oturum bilgisinden dinamik alÄ±nacak
-            subeadi:      'Merkez', // TODO: KullanÄ±cÄ± ÅŸubesinden dinamik alÄ±nacak
+            kullaniciadi: userEmail,
+            subeadi:      'Merkez',
           })
         }
 
         const { error: tError } = await supabase.from('taksitler').insert(taksitlerArray)
         if (tError) throw tError
-        showToast(`${taksitSayÄ±sÄ±} adet taksit oluÅŸturuldu`)
+        showToast(`${taksitSayisi} adet taksit oluşturuldu`)
       }
 
       setFormOpen(false)
@@ -190,7 +192,7 @@ export default function TaksitTakip() {
     try {
       const { error } = await supabase.from('taksitler').delete().eq('id', confirmData.id)
       if (error) throw error
-      showToast('KayÄ±t silindi')
+      showToast('Kayıt silindi')
       setConfirmData({ open: false, id: null })
       fetchData()
     } catch (err: any) {
@@ -205,22 +207,25 @@ export default function TaksitTakip() {
     if (!tahsilModal.item || !tahsilForm.kasa_id || !tahsilForm.tutar) return
     setSaving(true)
     try {
+      const { data: userData } = await supabase.auth.getUser()
+      const userEmail = userData.user?.email || 'admin'
+
       const item = tahsilModal.item
       const miktar = parseFloat(tahsilForm.tutar)
       const yeni = (parseFloat(item.odenen_tutar || '0')) + miktar
-      const durum = yeni >= item.tutar - 0.01 ? 'Ã–dendi' : 'KÄ±smi Ã–dendi'
+      const durum = yeni >= item.tutar - 0.01 ? 'Ödendi' : 'Kısmi Ödendi'
 
       await supabase.from('kasa_hareket').insert([{
         kasa_id: parseInt(tahsilForm.kasa_id),
-        tur: 'gelir', tutar: miktar, kategori: 'Taksit TahsilatÄ±',
-        aciklama: `${item.taksit_sirasi} nolu taksit tahsilatÄ±`,
+        tur: 'gelir', tutar: miktar, kategori: 'Taksit Tahsilatı',
+        aciklama: `${item.taksit_sirasi} nolu taksit tahsilatı`,
         islem_tarihi: tahsilForm.tarih,
-        kullaniciadi: (await supabase.auth.getUser()).data.user?.email || 'admin', // TODO: Oturum bilgisinden dinamik alÄ±nacak
-        subeadi:      'Merkez', // TODO: KullanÄ±cÄ± ÅŸubesinden dinamik alÄ±nacak
+        kullaniciadi: userEmail,
+        subeadi:      'Merkez',
       }])
       await supabase.from('taksitler').update({ odenen_tutar: yeni, durum }).eq('id', item.id)
 
-      showToast('Tahsilat iÅŸlendi')
+      showToast('Tahsilat işlendi')
       setTahsilModal({ open: false, item: null })
       fetchData()
     } catch (err: any) {
@@ -248,7 +253,7 @@ export default function TaksitTakip() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', margin: 0 }}>Taksit Takip Sistemi</h1>
-          <p style={{ color: '#64748b', fontSize: '15px', fontWeight: 500 }}>Bakiye ve taksit yÃ¶netimini kolayca gerÃ§ekleÅŸtirin</p>
+          <p style={{ color: '#64748b', fontSize: '15px', fontWeight: 500 }}>Bakiye ve taksit yönetimini kolayca gerçekleştirin</p>
         </div>
         <button 
           onClick={() => {
@@ -258,14 +263,14 @@ export default function TaksitTakip() {
           }}
           style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28px', borderRadius: '16px', background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 20px rgba(59,130,246,0.3)' }}
         >
-          {Icons.plus} Yeni Taksit KaydÄ±
+          {Icons.plus} Yeni Taksit Kaydı
         </button>
       </div>
 
       {/* â”€â”€â”€ Filter Bar â”€â”€â”€ */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '12px 20px', borderRadius: '20px', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', border: '1px solid #f1f5f9' }}>
         <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '12px' }}>
-          {['Gecikenler', 'Bu Ay', 'TÃ¼mÃ¼'].map(tab => (
+          {['Gecikenler', 'Bu Ay', 'Tümü'].map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab as any)}
               style={{ padding: '10px 24px', borderRadius: '10px', border: 'none', background: activeTab === tab ? '#fff' : 'transparent', color: activeTab === tab ? (tab === 'Gecikenler' ? '#ef4444' : '#0f172a') : '#64748b', fontWeight: 800, fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s' }}>
               {tab}
@@ -274,7 +279,7 @@ export default function TaksitTakip() {
         </div>
         <div style={{ position: 'relative', width: '300px' }}>
           <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>{Icons.search}</span>
-          <input type="text" placeholder="HÄ±zlÄ± ara..." value={arama} onChange={e => setArama(e.target.value)}
+          <input type="text" placeholder="Hızlı ara..." value={arama} onChange={e => setArama(e.target.value)}
             style={{ ...inputStyle, paddingLeft: '44px', background: '#f8fafc' }} />
         </div>
       </div>
@@ -284,7 +289,7 @@ export default function TaksitTakip() {
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-              {['MÃ¼ÅŸteri / AraÃ§', 'Taksit', 'Vade Tarihi', 'Kalan Tutar', 'Durum', 'Ä°ÅŸlemler'].map(h => (
+              {['Müşteri / Araç', 'Taksit', 'Vade Tarihi', 'Kalan Tutar', 'Durum', 'İşlemler'].map(h => (
                 <th key={h} style={{ padding: '18px 24px', fontSize: '12px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>{h}</th>
               ))}
             </tr>
@@ -292,13 +297,13 @@ export default function TaksitTakip() {
           <tbody>
             {!loading && paginated.map((item, idx) => {
               const kalan = (item.tutar || 0) - (parseFloat(item.odenen_tutar || '0'))
-              const statusColor = item.durum === 'Ã–dendi' ? '#10b981' : (item.durum === 'KÄ±smi Ã–dendi' ? '#3b82f6' : '#f59e0b')
-              const isOverdue = new Date(item.vade_tarihi) < new Date() && item.durum !== 'Ã–dendi'
+              const statusColor = item.durum === 'Ödendi' ? '#10b981' : (item.durum === 'Kısmi Ödendi' ? '#3b82f6' : '#f59e0b')
+              const isOverdue = new Date(item.vade_tarihi) < new Date() && item.durum !== 'Ödendi'
 
               return (
                 <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fafbfc' }}>
                   <td style={{ padding: '18px 24px' }}>
-                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>{item.cari_kart?.yetkili || 'â€”'}</div>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>{item.cari_kart?.yetkili || '—'}</div>
                     <div style={{ fontSize: '12px', color: '#94a3b8' }}>{item.servis_karti?.arac?.plaka || 'Plaka Yok'}</div>
                   </td>
                   <td style={{ padding: '18px 24px' }}>
@@ -308,14 +313,14 @@ export default function TaksitTakip() {
                     <div style={{ fontSize: '14px', fontWeight: 700, color: isOverdue ? '#ef4444' : '#0f172a' }}>{new Date(item.vade_tarihi).toLocaleDateString('tr-TR')}</div>
                   </td>
                   <td style={{ padding: '18px 24px' }}>
-                    <div style={{ fontSize: '15px', fontWeight: 900, color: '#0f172a' }}>{kalan.toLocaleString('tr-TR')} â‚º</div>
+                    <div style={{ fontSize: '15px', fontWeight: 900, color: '#0f172a' }}>{kalan.toLocaleString('tr-TR')} ₺</div>
                   </td>
                   <td style={{ padding: '18px 24px' }}>
                     <span style={{ padding: '6px 14px', borderRadius: '10px', fontSize: '11px', fontWeight: 800, background: statusColor + '15', color: statusColor }}>{item.durum}</span>
                   </td>
                   <td style={{ padding: '18px 24px' }}>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      {item.durum !== 'Ã–dendi' && (
+                      {item.durum !== 'Ödendi' && (
                         <button onClick={() => { setTahsilForm({ ...tahsilForm, tutar: kalan.toString() }); setTahsilModal({ open: true, item }) }}
                           style={{ padding: '8px 12px', borderRadius: '8px', background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}>
                           Tahsil
@@ -337,21 +342,21 @@ export default function TaksitTakip() {
         <Pagination totalItems={filtered.length} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
       </div>
 
-      {/* â”€â”€â”€ SlideOver: KayÄ±t/DÃ¼zenleme â”€â”€â”€ */}
-      <SlideOver isOpen={formOpen} onClose={() => setFormOpen(false)} title={isEditing ? 'Taksit DÃ¼zenle' : 'Yeni Taksitlendirme (Toplu)'}>
+      {/* ─── Modal: Kayıt/Düzenleme ─── */}
+      <Modal isOpen={formOpen} onClose={() => setFormOpen(false)} title={isEditing ? 'Taksit Düzenle' : 'Yeni Taksitlendirme (Toplu)'}>
         <form onSubmit={handleSave} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
-            <label style={labelStyle}>MÃ¼ÅŸteri SeÃ§imi</label>
+            <label style={labelStyle}>Müşteri Seçimi</label>
             <CariSec 
               value={form.cari_id} 
               onChange={id => setForm({ ...form, cari_id: id })} 
-              placeholder="MÃ¼ÅŸteri adÄ±nÄ± yazÄ±n veya yeni ekleyin..."
+              placeholder="Müşteri adını yazın veya yeni ekleyin..."
             />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '12px' }}>
             <div>
-              <label style={labelStyle}>{isEditing ? 'Taksit TutarÄ±' : 'Toplam Tutar (BÃ¶lÃ¼necek)'}</label>
+              <label style={labelStyle}>{isEditing ? 'Taksit Tutarı' : 'Toplam Tutar (Bölünecek)'}</label>
               <input type="number" step="0.01" required style={{ ...inputStyle, fontSize: '18px', fontWeight: 800 }} value={form.tutar} onChange={e => setForm({ ...form, tutar: e.target.value })} />
             </div>
             {isEditing && (
@@ -366,24 +371,24 @@ export default function TaksitTakip() {
              <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                    <div>
-                      <label style={labelStyle}>PeÅŸinat (Opsiyonel)</label>
+                      <label style={labelStyle}>Peşinat (Opsiyonel)</label>
                       <input type="number" step="0.01" style={inputStyle} value={form.pesinat} onChange={e => setForm({...form, pesinat: e.target.value})} />
                    </div>
                    <div>
-                      <label style={labelStyle}>PeÅŸinat KasasÄ±</label>
+                      <label style={labelStyle}>Peşinat Kasası</label>
                       <select style={inputStyle} value={form.pesinat_kasa_id} onChange={e => setForm({...form, pesinat_kasa_id: e.target.value})} required={parseFloat(form.pesinat) > 0}>
-                         <option value="">SeÃ§iniz...</option>
+                         <option value="">Seçiniz...</option>
                          {kasalar.map(k => <option key={k.id} value={k.id}>{k.kasa_adi}</option>)}
                       </select>
                    </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                    <div>
-                      <label style={labelStyle}>Taksit SayÄ±sÄ±</label>
+                      <label style={labelStyle}>Taksit Sayısı</label>
                       <input type="number" min="2" max="24" style={inputStyle} value={form.taksit_sayisi} onChange={e => setForm({...form, taksit_sayisi: e.target.value})} />
                    </div>
                    <div>
-                      <label style={labelStyle}>Ä°lk Vade</label>
+                      <label style={labelStyle}>İlk Vade</label>
                       <input type="date" style={inputStyle} value={form.ilk_vade} onChange={e => setForm({...form, ilk_vade: e.target.value})} />
                    </div>
                 </div>
@@ -391,7 +396,7 @@ export default function TaksitTakip() {
           )}
 
           <div>
-            <label style={labelStyle}>AÃ§Ä±klama / Not</label>
+            <label style={labelStyle}>Açıklama / Not</label>
             <textarea rows={3} style={{ ...inputStyle, resize: 'none' }} value={form.aciklama} onChange={e => setForm({ ...form, aciklama: e.target.value })} />
           </div>
 
@@ -400,29 +405,29 @@ export default function TaksitTakip() {
             background: '#3b82f6', color: '#fff', fontSize: '16px', fontWeight: 800, cursor: 'pointer',
             border: 'none', boxShadow: '0 8px 20px rgba(59,130,246,0.2)' 
           }}>
-            {saving ? 'Ä°ÅŸleniyor...' : (isEditing ? 'DeÄŸiÅŸiklikleri Kaydet' : 'Taksitleri OluÅŸtur')}
+            {saving ? 'İşleniyor...' : (isEditing ? 'Değişiklikleri Kaydet' : 'Taksitleri Oluştur')}
           </button>
-        </form>
-      </SlideOver>
-
-      {/* â”€â”€â”€ Modals â”€â”€â”€ */}
-      <Modal isOpen={tahsilModal.open} onClose={() => setTahsilModal({ open: false, item: null })} title="Taksit TahsilatÄ±" size="sm">
-        <form onSubmit={handleTahsilEt} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
-            <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b' }}>Ã–DENECEK TUTAR</div>
-            <div style={{ fontSize: '24px', fontWeight: 900 }}>{((tahsilModal.item?.tutar || 0) - (parseFloat(tahsilModal.item?.odenen_tutar || '0'))).toLocaleString('tr-TR')} â‚º</div>
-          </div>
-          <input type="number" step="0.01" required style={{ ...inputStyle, fontSize: '18px', fontWeight: 800 }} value={tahsilForm.tutar} onChange={e => setTahsilForm({ ...tahsilForm, tutar: e.target.value })} max={tahsilModal.item?.tutar - (tahsilModal.item?.odenen_tutar || 0)} />
-          <select required style={inputStyle} value={tahsilForm.kasa_id} onChange={e => setTahsilForm({ ...tahsilForm, kasa_id: e.target.value })}>
-             <option value="">Hesap SeÃ§iniz...</option>
-             {kasalar.map(k => <option key={k.id} value={k.id}>{k.kasa_adi} ({(k.guncel_bakiye||0).toLocaleString('tr-TR')} â‚º)</option>)}
-          </select>
-          <input type="date" required style={inputStyle} value={tahsilForm.tarih} onChange={e => setTahsilForm({ ...tahsilForm, tarih: e.target.value })} />
-          <button type="submit" disabled={saving} style={{ padding: '14px', borderRadius: '12px', background: '#3b82f6', color: '#fff', fontWeight: 800, border: 'none', cursor: 'pointer' }}>{saving ? 'Ä°ÅŸleniyor...' : 'TahsilatÄ± Onayla'}</button>
         </form>
       </Modal>
 
-      <ConfirmModal isOpen={confirmData.open} title="Taksit Sil" message="Bu taksit kaydÄ±nÄ± silmek istediÄŸinize emin misiniz? Bu iÅŸlem geri alÄ±namaz." onConfirm={handleDelete} onClose={() => setConfirmData({ open: false, id: null })} />
+      {/* â”€â”€â”€ Modals â”€â”€â”€ */}
+      <Modal isOpen={tahsilModal.open} onClose={() => setTahsilModal({ open: false, item: null })} title="Taksit Tahsilatı" size="sm">
+        <form onSubmit={handleTahsilEt} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
+            <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b' }}>ÖDENECEK TUTAR</div>
+            <div style={{ fontSize: '24px', fontWeight: 900 }}>{((tahsilModal.item?.tutar || 0) - (parseFloat(tahsilModal.item?.odenen_tutar || '0'))).toLocaleString('tr-TR')} ₺</div>
+          </div>
+          <input type="number" step="0.01" required style={{ ...inputStyle, fontSize: '18px', fontWeight: 800 }} value={tahsilForm.tutar} onChange={e => setTahsilForm({ ...tahsilForm, tutar: e.target.value })} max={tahsilModal.item?.tutar - (tahsilModal.item?.odenen_tutar || 0)} />
+          <select required style={inputStyle} value={tahsilForm.kasa_id} onChange={e => setTahsilForm({ ...tahsilForm, kasa_id: e.target.value })}>
+             <option value="">Hesap Seçiniz...</option>
+             {kasalar.map(k => <option key={k.id} value={k.id}>{k.kasa_adi} ({(k.guncel_bakiye||0).toLocaleString('tr-TR')} ₺)</option>)}
+          </select>
+          <input type="date" required style={inputStyle} value={tahsilForm.tarih} onChange={e => setTahsilForm({ ...tahsilForm, tarih: e.target.value })} />
+          <button type="submit" disabled={saving} style={{ padding: '14px', borderRadius: '12px', background: '#3b82f6', color: '#fff', fontWeight: 800, border: 'none', cursor: 'pointer' }}>{saving ? 'İşleniyor...' : 'Tahsilatı Onayla'}</button>
+        </form>
+      </Modal>
+
+      <ConfirmModal isOpen={confirmData.open} title="Taksit Sil" message="Bu taksit kaydını silmek istediğinize emin misiniz? Bu işlem geri alınamaz." onConfirm={handleDelete} onClose={() => setConfirmData({ open: false, id: null })} />
 
     </div>
   )
