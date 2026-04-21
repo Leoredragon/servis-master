@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
@@ -505,7 +505,7 @@ export default function RandevuPage() {
         title="Randevuyu Sil"
         message="Bu randevuyu silmek istediÄŸinize emin misiniz? Bu iÅŸlem geri alÄ±namaz."
         onConfirm={handleDelete}
-        onCancel={() => setIsDeleteOpen(false)}
+        onClose={() => setIsDeleteOpen(false)}
       />
 
     </div>
