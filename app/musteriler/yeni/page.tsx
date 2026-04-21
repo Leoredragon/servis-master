@@ -11,11 +11,9 @@ function MusteriFormContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const editId = searchParams.get('id')
-  
-  // ... (rest of the component logic)
+
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(editId ? true : false)
-  // ...
   const [form, setForm] = useState({
     yetkili: '',
     grup: 'Bireysel',
