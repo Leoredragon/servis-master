@@ -71,7 +71,7 @@ export default function CekSenetYonetimi() {
 
   // Sayfalama
   const [currentPage, setCurrentPage] = useState(1)
-  const pageSize = 15
+  const [pageSize, setPageSize] = useState(15)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -433,6 +433,7 @@ export default function CekSenetYonetimi() {
           pageSize={pageSize}
           currentPage={currentPage}
           onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
         />
       </div>
 
