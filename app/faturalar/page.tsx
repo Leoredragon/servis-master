@@ -26,14 +26,24 @@ export default function FaturalarPage() {
     return () => window.removeEventListener('resize', check)
   }, [])
 
+  const [faturalar, setFaturalar] = useState<any[]>([])
+  const [activeTab, setActiveTab] = useState('Tümü')
+  const [search, setSearch] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [dateRange, setDateRange] = useState({ start: '', end: '' })
+
   const fetchData = useCallback(async () => {
     setLoading(true)
-    const { data, error } = await supabase
+    let query = supabase
       .from('fatura')
       .select('*, cari_kart(yetkili, tel), fat_isl(count)')
-      .gte('fat_tarih', dateRange.start)
-      .lte('fat_tarih', dateRange.end + 'T23:59:59')
       .order('fat_tarih', { ascending: false })
+    
+    if (dateRange.start) query = query.gte('fat_tarih', dateRange.start)
+    if (dateRange.end) query = query.lte('fat_tarih', dateRange.end + 'T23:59:59')
+
+    const { data, error } = await query
     
     if (error) console.error(error)
     else setFaturalar(data || [])
