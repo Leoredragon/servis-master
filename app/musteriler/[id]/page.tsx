@@ -287,11 +287,11 @@ function MusteriForm() {
                   </div>
                </div>
             </div>
-            <div style={{ marginTop: '12px', display: 'flex', gap: '12px' }}>
-               <button type="submit" disabled={aracSaving} className="btn-primary" style={{ flex: 1, padding: '14px', borderRadius: '12px', fontSize: '15px' }}>
-                  {aracSaving ? 'Kaydediliyor...' : 'Aracı Kaydet'}
+            <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+               <button type="button" onClick={() => setAracModalAcik(false)} style={{ padding: '14px 24px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer' }}>Vazgeç</button>
+               <button type="submit" disabled={aracSaving} className="btn-primary" style={{ padding: '14px 40px', borderRadius: '12px', fontSize: '15px' }}>
+                  {aracSaving ? 'İşleniyor...' : 'Aracı Kaydet'}
                </button>
-               <button type="button" onClick={() => setAracModalAcik(false)} style={{ padding: '14px 20px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer' }}>İptal</button>
             </div>
          </form>
       </Modal>

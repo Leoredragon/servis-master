@@ -28,8 +28,7 @@ export default function Modal({ isOpen, onClose, title, subtitle, children, size
     <div
       style={{
         position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-        background: 'rgba(15, 23, 42, 0.6)',
-        backdropFilter: 'blur(6px)',
+        background: 'rgba(15, 23, 42, 0.75)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 9999, padding: '20px',
         animation: 'fadeIn 0.2s ease-out',

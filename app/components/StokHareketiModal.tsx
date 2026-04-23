@@ -22,7 +22,6 @@ export default function StokHareketiModal({ isOpen, onClose, onSuccess, stokId, 
   const [miktar, setMiktar] = useState('')
   const [birimFiyat, setBirimFiyat] = useState('')
   const [aciklama, setAciklama] = useState('')
-  const [resimUrl, setResimUrl] = useState(resimYolu || '')
   const [saving, setSaving] = useState(false)
 
   if (!isOpen || !stokId) return null
@@ -60,10 +59,6 @@ export default function StokHareketiModal({ isOpen, onClose, onSuccess, stokId, 
           birim_fiyat: parseFloat(birimFiyat) || null, aciklama: aciklama || `Manuel ${type} İşlemi`,
           kullaniciadi: (await supabase.auth.getUser()).data.user?.email || 'admin', subeadi: 'Merkez'
         }])
-      }
-
-      if (resimUrl !== resimYolu) {
-        await supabase.from('stok').update({ resimyolu: resimUrl }).eq('id', stokId)
       }
 
       setMiktar('')
@@ -128,10 +123,7 @@ export default function StokHareketiModal({ isOpen, onClose, onSuccess, stokId, 
            <textarea rows={2} style={{ ...inputStyle, resize: 'none' }} value={aciklama} onChange={e => setAciklama(e.target.value)} placeholder="Sebevini veya detayları buraya yazabilirsiniz..." />
          </div>
 
-         <div>
-           <label style={labelStyle}>Ürün Görseli (URL)</label>
-           <input type="text" style={inputStyle} value={resimUrl} onChange={e => setResimUrl(e.target.value)} placeholder="https://...image.jpg" />
-         </div>
+         {/* Görsel URL alanı kaldırıldı */}
 
          <div style={{ display: 'flex', gap: '12px', marginTop: '8px', paddingTop: '24px', borderTop: '1px solid #f1f5f9' }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: '16px', borderRadius: '12px', background: '#f1f5f9', color: '#475569', border: 'none', fontWeight: 800, cursor: 'pointer' }}>Vazgeç</button>

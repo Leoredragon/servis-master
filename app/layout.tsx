@@ -176,34 +176,35 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             transition: 'width 0.26s cubic-bezier(0.4,0,0.2,1), min-width 0.26s cubic-bezier(0.4,0,0.2,1)',
             willChange: 'width, min-width',
             overflow: 'hidden',
-            boxShadow: '4px 0 28px rgba(0,0,0,0.22)',
-            position: 'relative', zIndex: 10,
+            boxShadow: '4px 0 28px rgba(0,0,0,0.1)'
           }}>
-            {/* Logo */}
             <div style={{
               height: '64px', display: 'flex', alignItems: 'center',
-              padding: '0 18px', borderBottom: '1px solid rgba(255,255,255,0.06)',
+              padding: collapsed ? '0' : '0 18px', borderBottom: '1px solid rgba(255,255,255,0.06)',
+              justifyContent: collapsed ? 'center' : 'space-between',
               gap: '12px', flexShrink: 0,
             }}>
-              <div style={{
-                width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
-                background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(59,130,246,0.45)',
-                color: '#fff',
-              }}>
-                <Icon d={icons.service} size={18} />
-              </div>
               {!collapsed && (
-                <div>
-                  <div style={{ color: '#fff', fontWeight: 800, fontSize: '14px', letterSpacing: '-0.2px', lineHeight: 1 }}>SERVIS</div>
-                  <div style={{ color: '#60a5fa', fontWeight: 700, fontSize: '10px', letterSpacing: '2.5px', marginTop: '2px' }}>MASTER PRO</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 4px 12px rgba(59,130,246,0.45)',
+                    color: '#fff',
+                  }}>
+                    <Icon d={icons.service} size={18} />
+                  </div>
+                  <div>
+                    <div style={{ color: '#fff', fontWeight: 800, fontSize: '14px', letterSpacing: '-0.2px', lineHeight: 1 }}>SERVIS</div>
+                    <div style={{ color: '#60a5fa', fontWeight: 700, fontSize: '10px', letterSpacing: '2.5px', marginTop: '2px' }}>MASTER PRO</div>
+                  </div>
                 </div>
               )}
               <button onClick={toggleSidebar} style={{
-                marginLeft: 'auto', background: 'rgba(255,255,255,0.05)',
+                background: 'rgba(255,255,255,0.05)',
                 border: '1px solid rgba(255,255,255,0.08)', color: '#64748b',
-                borderRadius: '8px', width: '28px', height: '28px',
+                borderRadius: '8px', width: '32px', height: '32px',
                 cursor: 'pointer', flexShrink: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'all 0.15s',

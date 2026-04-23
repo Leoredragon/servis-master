@@ -103,32 +103,30 @@ export default function YeniServis() {
       <div style={{ background: '#fff', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
         <form onSubmit={handleSubmit} style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
-          <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '16px', border: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-             <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', margin: 0 }}>Cari & Araç Bilgisi</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
              
-             <div>
-                <label style={labelStyle}>Müşteri Seçin *</label>
-                <CariSec value={form.cari_id} onChange={(id) => setForm({...form, cari_id: id})} />
+             {/* Cari ve Araç Seçimi */}
+             <div style={{ gridColumn: 'span 2', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                <div>
+                   <label style={labelStyle}>Müşteri Seçin *</label>
+                   <CariSec value={form.cari_id} onChange={(id) => setForm({...form, cari_id: id})} />
+                </div>
+                <div>
+                   <label style={labelStyle}>Araç Seçin *</label>
+                   <select required disabled={!form.cari_id} style={{ ...inputStyle, background: !form.cari_id ? '#f8fafc' : '#fff' }} value={form.arac_id} onChange={e => setForm({...form, arac_id: e.target.value})}>
+                     <option value="">{form.cari_id ? 'Araç Seçiniz' : 'Önce Müşteri Seçin'}</option>
+                     {araclar.map(a => <option key={a.id} value={a.id}>{a.plaka} - {a.marka} {a.model}</option>)}
+                   </select>
+                   {form.cari_id && araclar.length === 0 && (
+                      <div style={{ marginTop: '8px', fontSize: '12px', color: '#ef4444' }}>
+                         Müşterinin kayıtlı aracı yok. <Link href={`/musteriler/${form.cari_id}?arac_ekle=true`} style={{ color: '#3b82f6', textDecoration: 'none', fontWeight: 700 }}>Yeni Araç Ekle</Link>
+                      </div>
+                   )}
+                </div>
              </div>
 
-             {form.cari_id && (
-               <div>
-                  <label style={labelStyle}>Araç Seçin *</label>
-                  <select required style={inputStyle} value={form.arac_id} onChange={e => setForm({...form, arac_id: e.target.value})}>
-                    <option value="">Araç Seçiniz</option>
-                    {araclar.map(a => <option key={a.id} value={a.id}>{a.plaka} - {a.marka} {a.model}</option>)}
-                  </select>
-                  {araclar.length === 0 && (
-                     <div style={{ marginTop: '12px', fontSize: '13px', color: '#ef4444', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        Bu müşteriye ait kayıtlı araç yok. 
-                        <Link href={`/musteriler/${form.cari_id}?arac_ekle=true`} style={{ color: '#3b82f6', textDecoration: 'none' }}>Yeni Araç Ekle →</Link>
-                     </div>
-                  )}
-               </div>
-             )}
-          </div>
+             <div style={{ gridColumn: 'span 2', height: '1px', background: '#f1f5f9', margin: '8px 0' }}></div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '20px' }}>
              <div>
                 <label style={labelStyle}>Servis No</label>
                 <input disabled style={{ ...inputStyle, background: '#f8fafc', color: '#64748b', fontWeight: 800, fontFamily: 'monospace' }} value={defaultSrvNo} />
