@@ -279,7 +279,7 @@ export default function ServisKayitlariListesi() {
         <div style={{ display: 'flex', gap: '12px' }}>
           <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '12px' }}>
             <button onClick={() => handleViewToggle('kanban')} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: viewMode === 'kanban' ? '#fff' : 'transparent', color: viewMode === 'kanban' ? '#0f172a' : '#64748b', fontWeight: 700, fontSize: '14px', cursor: 'pointer', boxShadow: viewMode === 'kanban' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', transition: '0.2s' }}>
-               📋 İş Akışı
+               İş Akışı
             </button>
             <button onClick={() => handleViewToggle('list')} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: viewMode === 'list' ? '#fff' : 'transparent', color: viewMode === 'list' ? '#0f172a' : '#64748b', fontWeight: 700, fontSize: '14px', cursor: 'pointer', boxShadow: viewMode === 'list' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', transition: '0.2s' }}>
                ☰ Liste

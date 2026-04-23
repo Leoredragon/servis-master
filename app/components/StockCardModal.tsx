@@ -3,12 +3,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import Modal from './Modal'
-import StokHareketiModal from './StokHareketiModal'
 
 interface StockCardModalProps {
   isOpen: boolean
   onClose: () => void
   stokId: number | null
+  onOpenHareket?: (stok: any) => void
 }
 
 const Icons = {
@@ -20,11 +20,10 @@ const Icons = {
   edit: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
 }
 
-export default function StockCardModal({ isOpen, onClose, stokId }: StockCardModalProps) {
+export default function StockCardModal({ isOpen, onClose, stokId, onOpenHareket }: StockCardModalProps) {
   const [loading, setLoading] = useState(false)
   const [stok, setStok] = useState<any>(null)
   const [hareketler, setHareketler] = useState<any[]>([])
-  const [isHareketModalOpen, setIsHareketModalOpen] = useState(false)
 
   const fetchData = useCallback(async () => {
     if (!stokId) return
@@ -115,7 +114,7 @@ export default function StockCardModal({ isOpen, onClose, stokId }: StockCardMod
           {/* Actions */}
           <div style={{ display: 'flex', gap: '12px' }}>
              <button 
-                onClick={() => setIsHareketModalOpen(true)}
+                onClick={() => onOpenHareket && onOpenHareket(stok)}
                 style={{ flex: 1, height: '52px', borderRadius: '12px', background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', boxShadow: '0 4px 12px rgba(59,130,246,0.2)' }}
              >
                 {Icons.edit} Stok Hareketi İşle (Giriş/Çıkış)
@@ -172,16 +171,7 @@ export default function StockCardModal({ isOpen, onClose, stokId }: StockCardMod
             </div>
           </div>
 
-          {/* Stok Hareketi Modal Entegrasyonu */}
-          <StokHareketiModal 
-            isOpen={isHareketModalOpen} 
-            onClose={() => setIsHareketModalOpen(false)} 
-            onSuccess={() => { fetchData() }}
-            stokId={stokId}
-            stokAd={stok.ad}
-            mevcutMiktar={stok.miktar}
-            resimYolu={stok.resimyolu}
-          />
+          {/* Stok Hareketi Modal buradaydı, kaldırıldı. */}
 
         </div>
       ) : null}

@@ -298,6 +298,10 @@ export default function StokYonetimi() {
          isOpen={!!selectedStokId} 
          onClose={() => setSelectedStokId(null)} 
          stokId={selectedStokId} 
+         onOpenHareket={(stok) => {
+           setSelectedStokId(null);
+           setHareketModal({ open: true, stok });
+         }}
        />
     </div>
   )
