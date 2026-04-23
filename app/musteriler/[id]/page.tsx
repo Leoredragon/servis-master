@@ -8,7 +8,7 @@ import Modal from '../../components/Modal'
 const inputStyle = { width: '100%', padding: '14px 16px', border: '1px solid #e2e8f0', borderRadius: '12px', fontSize: '15px', outline: 'none', background: '#fff', color: '#0f172a', transition: 'all 0.2s' }
 const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' }
 
-export default function MusteriForm() {
+function MusteriForm() {
   const router = useRouter()
   const params = useParams()
   const searchParams = useSearchParams()
