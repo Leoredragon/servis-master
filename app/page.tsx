@@ -3,6 +3,7 @@
 import { supabase } from './lib/supabase'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 /* ─── Sabitler & İkonlar ─── */
 const DURUM_RENKLER: Record<string, [string, string]> = {
@@ -35,6 +36,7 @@ export default function Home() {
   const [statusDistrib, setStatusDistrib] = useState<Record<string, number>>({})
   const [criticalStocks, setCriticalStocks] = useState<any[]>([])
   const [bugunkuRandevular, setBugunkuRandevular] = useState<any[]>([])
+  const router = useRouter()
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -101,6 +103,7 @@ export default function Home() {
           value={stats.totalCustomers} 
           color="#3b82f6" 
           loading={loading}
+          href="/musteriler"
         />
         <StatCard 
           icon={Icons.tool} 
@@ -108,6 +111,7 @@ export default function Home() {
           value={stats.activeServices} 
           color="#f59e0b" 
           loading={loading}
+          href="/servis-kayitlari"
         />
         <StatCard 
           icon={Icons.money} 
@@ -115,6 +119,7 @@ export default function Home() {
           value={stats.todayRevenue.toLocaleString('tr-TR') + ' ₺'} 
           color="#10b981" 
           loading={loading}
+          href="/kasa"
         />
         <StatCard 
           icon={Icons.alert} 
@@ -123,6 +128,7 @@ export default function Home() {
           color="#ef4444" 
           loading={loading}
           warning={stats.criticalStockCount > 0}
+          href="/stok"
         />
       </div>
 
@@ -156,7 +162,12 @@ export default function Home() {
                 ) : sonServisler.map(s => {
                   const d = DURUM_RENKLER[s.durum] || ['#64748b', '#f1f5f9']
                   return (
-                    <tr key={s.id} onClick={() => window.location.href = `/servis-kayitlari/${s.id}`} style={{ cursor: 'pointer' }}>
+                    <tr 
+                      key={s.id} 
+                      onClick={() => router.push(`/servis-kayitlari/${s.id}`)} 
+                      style={{ cursor: 'pointer' }}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
                       <td style={{ fontWeight: 700, color: '#3b82f6' }}>#{s.servis_no}</td>
                       <td style={{ fontWeight: 600 }}>{s.cari_kart?.yetkili}</td>
                       <td>
@@ -266,9 +277,9 @@ export default function Home() {
   )
 }
 
-function StatCard({ icon, label, value, color, loading, warning = false }: any) {
-  return (
-    <div className="stat-card" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+function StatCard({ icon, label, value, color, loading, warning = false, href }: any) {
+  const content = (
+    <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ color: color, background: `${color}15`, padding: '10px', borderRadius: '12px' }}>
           {icon}
@@ -281,6 +292,20 @@ function StatCard({ icon, label, value, color, loading, warning = false }: any) 
           {loading ? <div className="skeleton" style={{ height: '34px', width: '60px' }} /> : value}
         </div>
       </div>
+    </>
+  )
+
+  if (href) {
+    return (
+      <Link href={href} className="stat-card" style={{ display: 'flex', flexDirection: 'column', gap: '8px', textDecoration: 'none', cursor: 'pointer' }}>
+        {content}
+      </Link>
+    )
+  }
+
+  return (
+    <div className="stat-card" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      {content}
     </div>
   )
 }
