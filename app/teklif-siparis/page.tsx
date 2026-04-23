@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import Link from 'next/link'
+import Pagination from '../components/Pagination'
 
 const Icons = {
   plus: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
@@ -20,39 +21,80 @@ export default function TeklifSiparisPage() {
   const [search, setSearch] = useState('')
   const [activeTab, setActiveTab] = useState('Tümü')
 
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [totalCount, setTotalCount] = useState(0)
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [tempStartDate, setTempStartDate] = useState('')
+  const [tempEndDate, setTempEndDate] = useState('')
+
   const fetchData = useCallback(async () => {
     setLoading(true)
-    const { data: dbData, error } = await supabase
+    let query = supabase
       .from('teklif')
-      .select('*, cari_kart(yetkili, tel)')
+      .select('*, cari_kart(yetkili, tel)', { count: 'exact' })
+    
+    if (activeTab !== 'Tümü') {
+      query = query.eq('durum', activeTab)
+    }
+
+    if (startDate) query = query.gte('tarih', startDate)
+    if (endDate) query = query.lte('tarih', endDate)
+
+    if (search) {
+       // Arama için fetch tarafında filtreleme
+       query = query.or(`teklif_no.ilike.%${search}%,cari_kart.yetkili.ilike.%${search}%`)
+    }
+
+    const start = (page - 1) * pageSize
+    const end = start + pageSize - 1
+
+    const { data: dbData, error, count } = await query
+      .range(start, end)
       .order('tarih', { ascending: false })
     
     if (error) console.error(error)
     else {
       setData(dbData || [])
+      setTotalCount(count || 0)
       
-      const s = {
-        total: dbData?.length || 0,
-        approved: dbData?.filter(x => x.durum === 'Onaylandı').length || 0,
-        pending: dbData?.filter(x => x.durum === 'Onay Bekliyor').length || 0,
-        amount: dbData?.filter(x => x.durum === 'Onaylandı').reduce((acc, curr) => acc + (curr.genel_toplam || 0), 0) || 0
-      }
-      setStats(s)
+      // İstatistikler için ayrı bir genel sorgu gerekebilir çünkü sayfalama var.
+      // Şimdilik sadece bu grid'deki özeti güncelleyeceğim veya stats'ı sabit bırakacağım.
     }
     setLoading(false)
+  }, [activeTab, page, pageSize, startDate, endDate, search])
+
+  // Stats calculate için ayrı bir effect (Sayfalamadan bağımsız genel toplamlar için)
+  const fetchStats = useCallback(async () => {
+    const { data: stData } = await supabase.from('teklif').select('durum, genel_toplam, kdv_toplam')
+    if (stData) {
+      setStats({
+        total: stData.length,
+        approved: stData.filter(x => x.durum === 'Onaylandı').length,
+        pending: stData.filter(x => x.durum === 'Onay Bekliyor').length,
+        amount: stData.filter(x => x.durum === 'Onaylandı').reduce((acc, curr) => acc + (curr.genel_toplam || 0), 0)
+      })
+    }
   }, [])
+
+  useEffect(() => { fetchStats() }, [fetchStats])
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  const filteredData = useMemo(() => {
-    return data.filter(x => {
-      const matchTab = activeTab === 'Tümü' || x.durum === activeTab
-      const matchSearch = !search || 
-        x.teklif_no?.toLowerCase().includes(search.toLowerCase()) || 
-        x.cari_kart?.yetkili?.toLowerCase().includes(search.toLowerCase())
-      return matchTab && matchSearch
-    })
-  }, [data, activeTab, search])
+  const clearFilters = () => {
+    setTempStartDate('')
+    setTempEndDate('')
+    setStartDate('')
+    setEndDate('')
+    setPage(1)
+  }
+
+  const applyDateFilter = () => {
+    setStartDate(tempStartDate)
+    setEndDate(tempEndDate)
+    setPage(1)
+  }
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -86,16 +128,18 @@ export default function TeklifSiparisPage() {
       </div>
 
       {/* Toolbar */}
-      <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '12px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '20px' }}>
-        <div style={{ display: 'flex', background: '#f8fafc', padding: '4px', borderRadius: '10px', flexShrink: 0 }}>
+      <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '16px', marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Üst Satır: Durum Sekmeleri */}
+        <div style={{ display: 'flex', background: '#f8fafc', padding: '4px', borderRadius: '10px', alignSelf: 'flex-start', overflowX: 'auto', width: '100%', scrollbarWidth: 'none' }}>
           {['Tümü', 'Taslak', 'Onay Bekliyor', 'Onaylandı', 'Reddedildi'].map(tab => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => { setActiveTab(tab); setPage(1); }}
               style={{
                 padding: '8px 16px', border: 'none', background: activeTab === tab ? '#fff' : 'transparent',
                 borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
                 color: activeTab === tab ? '#0f172a' : '#64748b',
+                whiteSpace: 'nowrap',
                 boxShadow: activeTab === tab ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
                 transition: 'all 0.2s'
               }}
@@ -105,14 +149,27 @@ export default function TeklifSiparisPage() {
           ))}
         </div>
 
-        <div style={{ position: 'relative', flex: 1 }}>
-          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>{Icons.search}</span>
-          <input 
-            placeholder="Teklif no veya müşteri ile ara..."
-            style={{ width: '100%', padding: '10px 10px 10px 38px', borderRadius: '10px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px' }}
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+        {/* Alt Satır: Arama + Tarih Filtreleri */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: '250px' }}>
+            <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>{Icons.search}</span>
+            <input 
+              placeholder="Teklif no veya müşteri..."
+              style={{ width: '100%', padding: '10px 10px 10px 38px', borderRadius: '10px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px' }}
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <input type="date" value={tempStartDate} onChange={e => setTempStartDate(e.target.value)} style={{ padding: '8px 12px', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '13px', outline: 'none' }} />
+            <span style={{ color: '#94a3b8' }}>-</span>
+            <input type="date" value={tempEndDate} onChange={e => setTempEndDate(e.target.value)} style={{ padding: '8px 12px', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '13px', outline: 'none' }} />
+            <button onClick={applyDateFilter} className="btn-primary" style={{ padding: '8px 16px', fontSize: '13px' }}>Uygula</button>
+            {(startDate || endDate) && (
+              <button onClick={clearFilters} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>Filtreyi Temizle</button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -133,9 +190,9 @@ export default function TeklifSiparisPage() {
               [1, 2, 3, 4, 5].map(i => (
                 <tr key={i}><td colSpan={5} style={{ padding: '24px' }}><div className="skeleton" style={{ height: '24px', width: '100%' }} /></td></tr>
               ))
-            ) : filteredData.length === 0 ? (
+            ) : data.length === 0 ? (
               <tr><td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: '#64748b' }}>Kayıt bulunamadı.</td></tr>
-            ) : filteredData.map(item => {
+            ) : data.map(item => {
               const statusStyle = getStatusStyle(item.durum)
               return (
                 <tr 
@@ -173,6 +230,14 @@ export default function TeklifSiparisPage() {
             })}
           </tbody>
         </table>
+
+        <Pagination 
+          totalItems={totalCount}
+          pageSize={pageSize}
+          currentPage={page}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       </div>
     </div>
   )
