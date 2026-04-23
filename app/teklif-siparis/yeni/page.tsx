@@ -245,17 +245,23 @@ export default function YeniTeklifPage() {
                               <input type="number" style={{ ...inputStyle, padding: '8px', textAlign: 'right' }} value={k.birim_fiyat} onChange={e => updateKalem(k.id, { birim_fiyat: parseFloat(e.target.value) || 0 })} />
                            </td>
                            <td style={{ padding: '12px 20px' }}>
-                              <select style={{ ...inputStyle, padding: '8px' }} value={k.kdv_oran} onChange={e => updateKalem(k.id, { kdv_oran: parseInt(e.target.value) })}>
-                                 <option value={0}>%0</option>
-                                 <option value={1}>%1</option>
-                                 <option value={10}>%10</option>
-                                 <option value={20}>%20</option>
-                              </select>
-                              <div style={{ marginTop: '4px', textAlign: 'center' }}>
-                                <label style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                                  <input type="checkbox" checked={k.kdv_dahil} onChange={e => updateKalem(k.id, { kdv_dahil: e.target.checked })} />
-                                  Dahil
-                                </label>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                 <select style={{ ...inputStyle, padding: '8px', width: '70px', flexShrink: 0 }} value={k.kdv_oran} onChange={e => updateKalem(k.id, { kdv_oran: parseInt(e.target.value) })}>
+                                    <option value={0}>%0</option>
+                                    <option value={1}>%1</option>
+                                    <option value={10}>%10</option>
+                                    <option value={20}>%20</option>
+                                 </select>
+                                 <div style={{ display: 'flex', background: '#f1f5f9', padding: '2px', borderRadius: '8px', width: '100px' }}>
+                                    <button 
+                                      onClick={() => updateKalem(k.id, { kdv_dahil: true })}
+                                      style={{ flex: 1, padding: '6px 0', border: 'none', borderRadius: '6px', fontSize: '10px', fontWeight: 800, cursor: 'pointer', background: k.kdv_dahil ? '#3b82f6' : 'transparent', color: k.kdv_dahil ? '#fff' : '#64748b', transition: '0.2s' }}
+                                    >Dahil</button>
+                                    <button 
+                                      onClick={() => updateKalem(k.id, { kdv_dahil: false })}
+                                      style={{ flex: 1, padding: '6px 0', border: 'none', borderRadius: '6px', fontSize: '10px', fontWeight: 800, cursor: 'pointer', background: !k.kdv_dahil ? '#3b82f6' : 'transparent', color: !k.kdv_dahil ? '#fff' : '#64748b', transition: '0.2s' }}
+                                    >Hariç</button>
+                                 </div>
                               </div>
                            </td>
                            <td style={{ padding: '12px 20px', textAlign: 'right', fontWeight: 700, fontSize: '14px', color: '#0f172a' }}>

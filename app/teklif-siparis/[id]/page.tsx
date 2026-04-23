@@ -7,6 +7,7 @@ import CariSec from '@/app/components/CariSec'
 import SmartProductSearch, { StokItem } from '@/app/components/SmartProductSearch'
 import { useReactToPrint } from 'react-to-print'
 import TeklifBaski from '../../components/print/TeklifBaski'
+import ConfirmModal from '@/app/components/ConfirmModal'
 
 const Icons = {
   back: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
@@ -50,6 +51,7 @@ function ProposalDetail() {
   const [notlar, setNotlar] = useState('')
   const [kalemler, setKalemler] = useState<Kalem[]>([])
   const [totals, setTotals] = useState({ araToplam: 0, kdvToplam: 0, genelToplam: 0 })
+  const [transferType, setTransferType] = useState<'service' | 'invoice' | null>(null)
 
   const printRef = useRef<HTMLDivElement>(null)
   const handlePrint = useReactToPrint({
@@ -175,73 +177,86 @@ function ProposalDetail() {
     })
   }
 
-  const saveTeklif = async (newDurum?: string) => {
-    if (!cariId) { alert('Lütfen müşteri seçin'); return }
-    if (kalemler.length === 0) { alert('Lütfen en az bir kalem ekleyin'); return }
-
+  const handleTransfer = async () => {
+    if (!transferType) return
     setSaving(true)
     try {
-      const { data: userData } = await supabase.auth.getUser()
-      const userEmail = userData.user?.email || 'admin'
+      if (transferType === 'service') {
+        const { data: servis, error: sErr } = await supabase
+          .from('servis_karti')
+          .insert([{
+            cari_id: parseInt(cariId),
+            servis_no: `SRV-${Date.now()}`,
+            durum: 'İşlemde',
+            giris_tarihi: new Date().toISOString(),
+            kullaniciadi: 'admin',
+            subeadi: 'Merkez'
+          }])
+          .select()
+          .single()
 
-      const updatePayload = {
-        teklif_no: teklifNo,
-        cari_id: parseInt(cariId),
-        tarih: new Date(tarih).toISOString(),
-        gecerlilik_tarihi: gecerlilikTarihi ? new Date(gecerlilikTarihi).toISOString() : null,
-        durum: newDurum || durum,
-        tip: tip,
-        toplam: totals.araToplam,
-        kdv_toplam: totals.kdvToplam,
-        genel_toplam: totals.genelToplam,
-        notlar: notlar,
-        kullaniciadi: userEmail,
-        subeadi: 'Merkez'
+        if (sErr) throw sErr
+
+        const islemler = kalemler.map(k => ({
+          servis_karti_id: servis.id,
+          stok_id: k.stok_id || null,
+          islem_turu: 'parca',
+          aciklama: k.aciklama,
+          miktar: k.miktar,
+          birim: k.birim,
+          birim_fiyat: k.birim_fiyat,
+          kdv_oran: k.kdv_oran,
+          kdv_dahil: k.kdv_dahil,
+          toplam_tutar: k.kdv_dahil ? (k.miktar * k.birim_fiyat) : (k.miktar * k.birim_fiyat * (1 + k.kdv_oran/100)),
+          kullaniciadi: 'admin',
+          subeadi: 'Merkez'
+        }))
+        await supabase.from('servis_islem').insert(islemler)
+        await supabase.from('teklif').update({ durum: 'Onaylandı' }).eq('id', id)
+        alert("Servis kaydı oluşturuldu!")
+        router.push(`/servis-kayitlari/${servis.id}`)
+      } else {
+        const { data: fatura, error: fErr } = await supabase
+          .from('fatura')
+          .insert([{
+            cari_id: parseInt(cariId),
+            evrak_no: `FAT-${Date.now()}`,
+            fat_tarih: new Date().toISOString(),
+            fatura_turu: 'Satış',
+            toplam: totals.araToplam,
+            kdv: totals.kdvToplam,
+            gtoplam: totals.genelToplam,
+            kullaniciadi: 'admin',
+            subeadi: 'Merkez'
+          }])
+          .select()
+          .single()
+
+        if (fErr) throw fErr
+
+        const kalemlerFat = kalemler.map(k => ({
+          fatura_id: fatura.id,
+          stok_id: k.stok_id || null,
+          aciklama: k.aciklama,
+          miktar: k.miktar,
+          birim: k.birim,
+          birim_fiyat: k.birim_fiyat,
+          kdv_oran: k.kdv_oran,
+          kdv_dahil: k.kdv_dahil,
+          toplam_tutar: k.kdv_dahil ? (k.miktar * k.birim_fiyat) : (k.miktar * k.birim_fiyat * (1 + k.kdv_oran/100)),
+          kullaniciadi: 'admin',
+          subeadi: 'Merkez'
+        }))
+        await supabase.from('fat_isl').insert(kalemlerFat)
+        await supabase.from('teklif').update({ durum: 'Onaylandı' }).eq('id', id)
+        alert("Fatura oluşturuldu!")
+        router.push(`/faturalar/${fatura.id}`)
       }
-
-      const { error: tErr } = await supabase
-        .from('teklif')
-        .update(updatePayload)
-        .eq('id', id)
-
-      if (tErr) throw tErr
-
-      await supabase.from('teklif_kalem').delete().eq('teklif_id', id)
-
-      const kalemPayload = kalemler.map(k => ({
-        teklif_id: parseInt(id),
-        stok_id: k.stok_id,
-        aciklama: k.aciklama,
-        miktar: k.miktar,
-        birim: k.birim,
-        birim_fiyat: k.birim_fiyat,
-        kdv_oran: k.kdv_oran,
-        kdv_dahil: k.kdv_dahil,
-        toplam_tutar: k.kdv_dahil ? (k.miktar * k.birim_fiyat) : (k.toplam_tutar || 0),
-        kullaniciadi: userEmail,
-        subeadi: 'Merkez'
-      }))
-
-      kalemPayload.forEach((kp, i) => {
-        const k = kalemler[i]
-        const lineAmount = k.miktar * k.birim_fiyat
-        if (k.kdv_dahil) {
-          kp.toplam_tutar = lineAmount
-        } else {
-          kp.toplam_tutar = lineAmount * (1 + k.kdv_oran / 100)
-        }
-      })
-
-      const { error: kErr } = await supabase.from('teklif_kalem').insert(kalemPayload)
-      if (kErr) throw kErr
-
-      setIsEditing(false)
-      if (newDurum) setDurum(newDurum)
-      alert('Teklif başarıyla güncellendi.')
     } catch (err: any) {
       alert(err.message)
     } finally {
       setSaving(false)
+      setTransferType(null)
     }
   }
 
@@ -275,6 +290,20 @@ function ProposalDetail() {
         <div style={{ display: 'flex', gap: '12px' }}>
           {!isEditing && (
             <>
+              <button 
+                onClick={() => setTransferType('service')}
+                className="btn-primary" 
+                style={{ display: 'flex', alignItems: 'center', background: '#059669', border: 'none', gap: '8px', padding: '12px 24px' }}
+              >
+                Servise Aktar
+              </button>
+              <button 
+                onClick={() => setTransferType('invoice')}
+                className="btn-primary" 
+                style={{ display: 'flex', alignItems: 'center', background: '#2563eb', border: 'none', gap: '8px', padding: '12px 24px' }}
+              >
+                Faturaya Aktar
+              </button>
               <button 
                 onClick={handlePrint}
                 className="btn-secondary" 
@@ -400,20 +429,24 @@ function ProposalDetail() {
                            </td>
                            <td style={{ padding: '12px 20px' }}>
                               {isEditing ? (
-                                <>
-                                  <select style={{ ...inputStyle(false), padding: '8px' }} value={k.kdv_oran} onChange={e => updateKalem(k.id, { kdv_oran: parseInt(e.target.value) })}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <select style={{ ...inputStyle(false), padding: '8px', width: '70px', flexShrink: 0 }} value={k.kdv_oran} onChange={e => updateKalem(k.id, { kdv_oran: parseInt(e.target.value) })}>
                                      <option value={0}>%0</option>
                                      <option value={1}>%1</option>
                                      <option value={10}>%10</option>
                                      <option value={20}>%20</option>
                                   </select>
-                                  <div style={{ marginTop: '4px', textAlign: 'center' }}>
-                                    <label style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                                      <input type="checkbox" checked={k.kdv_dahil} onChange={e => updateKalem(k.id, { kdv_dahil: e.target.checked })} />
-                                      Dahil
-                                    </label>
+                                  <div style={{ display: 'flex', background: '#f1f5f9', padding: '2px', borderRadius: '8px', width: '100px' }}>
+                                     <button 
+                                       onClick={() => updateKalem(k.id, { kdv_dahil: true })}
+                                       style={{ flex: 1, padding: '6px 0', border: 'none', borderRadius: '6px', fontSize: '10px', fontWeight: 800, cursor: 'pointer', background: k.kdv_dahil ? '#3b82f6' : 'transparent', color: k.kdv_dahil ? '#fff' : '#64748b', transition: '0.2s' }}
+                                     >Dahil</button>
+                                     <button 
+                                       onClick={() => updateKalem(k.id, { kdv_dahil: false })}
+                                       style={{ flex: 1, padding: '6px 0', border: 'none', borderRadius: '6px', fontSize: '10px', fontWeight: 800, cursor: 'pointer', background: !k.kdv_dahil ? '#3b82f6' : 'transparent', color: !k.kdv_dahil ? '#fff' : '#64748b', transition: '0.2s' }}
+                                     >Hariç</button>
                                   </div>
-                                </>
+                                </div>
                               ) : (
                                 <div style={{ textAlign: 'center' }}>%{k.kdv_oran} {k.kdv_dahil ? '(D)' : '(H)'}</div>
                               )}
@@ -481,6 +514,16 @@ function ProposalDetail() {
            </div>
         </div>
       </div>
+      
+      <ConfirmModal 
+        isOpen={transferType !== null}
+        onClose={() => setTransferType(null)}
+        onConfirm={handleTransfer}
+        title={transferType === 'service' ? "Servise Aktar" : "Faturaya Aktar"}
+        message={transferType === 'service' ? "Bu teklif servis kaydına dönüştürülecek. Devam?" : "Bu teklif faturaya dönüştürülecek. Devam?"}
+        confirmText="Evet, Aktar"
+        type="info"
+      />
 
       <div style={{ opacity: 0, pointerEvents: 'none', position: 'absolute', top: '-9999px', left: '-9999px' }}>
         <TeklifBaski 
