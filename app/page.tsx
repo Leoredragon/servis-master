@@ -22,6 +22,11 @@ const Icons = {
   alert: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
   plus: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
   box: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>,
+  menu: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
+  bell: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
+  home: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+  more: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>,
+  calendar: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
 }
 
 export default function Home() {
@@ -43,21 +48,14 @@ export default function Home() {
     const today = new Date().toISOString().split('T')[0]
 
     const [mCount, sActive, sToday, slData, stData, bgRandevuData] = await Promise.all([
-      // Total Customers
       supabase.from('cari_kart').select('*', { count: 'exact', head: true }),
-      // Active Services
       supabase.from('servis_karti').select('*', { count: 'exact', head: true }).in('durum', ['Araç Kabul', 'İşlemde', 'Arıza Tespiti', 'Onay Bekliyor']),
-      // Today's Revenue (Completed services today)
       supabase.from('servis_karti').select('toplam_tutar').gte('giris_tarihi', today), 
-      // Recent Services
-      supabase.from('servis_karti').select('id, servis_no, durum, giris_tarihi, arac(plaka, marka, model), cari_kart(yetkili)').order('giris_tarihi', { ascending: false }).limit(8),
-      // All Stock for counting and distribution
+      supabase.from('servis_karti').select('id, servis_no, durum, gtoplam, giris_tarihi, arac(plaka, marka, model), cari_kart(yetkili)').order('giris_tarihi', { ascending: false }).limit(8),
       supabase.from('stok').select('ad, miktar, kritik_seviye').limit(100),
-      // Today's appointments
       supabase.from('ajanda').select('saat, baslik, cari_kart(yetkili)').eq('tarih', today).order('saat', { ascending: true }).limit(5)
     ])
 
-    // Distribution & Stats
     const { data: allServices } = await supabase.from('servis_karti').select('durum')
     const distrib: Record<string, number> = {}
     allServices?.forEach(s => distrib[s.durum] = (distrib[s.durum] || 0) + 1)
@@ -76,270 +74,234 @@ export default function Home() {
     setStatusDistrib(distrib)
     setCriticalStocks(critItems.slice(0, 5))
     setBugunkuRandevular(bgRandevuData?.data || [])
-    setLoadin  const [isMobile, setIsMobile] = useState(false)
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 1024)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
+    setLoading(false)
   }, [])
 
   useEffect(() => { loadData() }, [loadData])
 
   return (
-    <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '20px' : '32px' }}>
-      {/* ─── Header ─── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h1 style={{ fontSize: isMobile ? '24px' : '32px', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-1px' }}>
-            Panel Özeti
-          </h1>
-          <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px', fontWeight: 500 }}>
-            {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-          </p>
-        </div>
-      </div>
-
-      {/* ─── KPI Cards ─── */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: isMobile ? '12px' : '24px' }}>
-        <StatCard 
-          icon={Icons.users} 
-          label="Toplam Müşteri" 
-          value={stats.totalCustomers} 
-          color="#3b82f6" 
-          loading={loading}
-          href="/musteriler"
-          isMobile={isMobile}
-        />
-        <StatCard 
-          icon={Icons.tool} 
-          label="Aktif Servis" 
-          value={stats.activeServices} 
-          color="#f59e0b" 
-          loading={loading}
-          href="/servis-kayitlari"
-          isMobile={isMobile}
-        />
-        <StatCard 
-          icon={Icons.money} 
-          label="Günlük Ciro" 
-          value={stats.todayRevenue.toLocaleString('tr-TR') + ' ₺'} 
-          color="#10b981" 
-          loading={loading}
-          href="/kasa"
-          isMobile={isMobile}
-        />
-        <StatCard 
-          icon={Icons.alert} 
-          label="Kritik Stok" 
-          value={stats.criticalStockCount} 
-          color="#ef4444" 
-          loading={loading}
-          warning={stats.criticalStockCount > 0}
-          href="/stok"
-          isMobile={isMobile}
-        />
-      </div>
-
-      {/* ─── Main Content Grid ─── */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: isMobile ? '24px' : '32px' }}>
-        
-        {/* Sol: Son Servisler */}
-        <div className="card">
-          <div className="card-header">
-            <h2 style={{ fontSize: '16px', fontWeight: 800, margin: 0 }}>Son Kayıtlar</h2>
-            <Link href="/servis-kayitlari" className="btn-secondary" style={{ fontSize: '11px', padding: '6px 12px' }}>Tümünü Gör</Link>
-          </div>
-          <div className="table-responsive">
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  <th>No</th>
-                  <th>Müşteri</th>
-                  <th>Araç</th>
-                  <th>Durum</th>
-                  {!isMobile && <th>Tarih</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  [1, 2, 3, 4, 5].map(i => (
-                    <tr key={i}><td colSpan={5}><div className="skeleton" style={{ height: '40px', width: '100%' }} /></td></tr>
-                  ))
-                ) : sonServisler.length === 0 ? (
-                  <tr><td colSpan={5} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Kayıt bulunamadı</td></tr>
-                ) : sonServisler.map(s => {
-                  const d = DURUM_RENKLER[s.durum] || ['#64748b', '#f1f5f9']
-                  return (
-                    <tr 
-                      key={s.id} 
-                      onClick={() => router.push(`/servis-kayitlari/${s.id}`)} 
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <td style={{ fontWeight: 700, color: '#3b82f6' }}>#{s.servis_no} {isMobile && <div style={{ fontSize: '9px', color: '#94a3b8', fontWeight: 500 }}>{new Date(s.giris_tarihi).toLocaleDateString('tr-TR')}</div>}</td>
-                      <td style={{ fontWeight: 600 }}>{s.cari_kart?.yetkili}</td>
-                      <td>
-                        <div style={{ fontWeight: 700, fontSize: '12px' }}>{s.arac?.plaka}</div>
-                        <div style={{ fontSize: '11px', color: '#64748b' }}>{s.arac?.marka}</div>
-                      </td>
-                      <td>
-                        <span className="badge" style={{ background: d[1], color: d[0], fontSize: isMobile ? '10px' : '12px' }}>{s.durum}</span>
-                      </td>
-                      {!isMobile && <td style={{ fontSize: '12px', color: '#64748b' }}>{new Date(s.giris_tarihi).toLocaleDateString('tr-TR')}</td>}
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Sağ: Widgetlar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          
-          {/* Bugünkü Randevular */}
-          <div className="card">
-            <div className="card-header">
-              <h3 style={{ fontSize: '14px', fontWeight: 800, margin: 0 }}>Bugünkü Randevular</h3>
-              <Link href="/randevu" style={{ fontSize: '11px', color: '#3b82f6', fontWeight: 700, textDecoration: 'none' }}>Tümü</Link>
-            </div>
-            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px 20px' }}>
-              {loading ? (
-                 [1, 2].map(i => <div key={i} className="skeleton" style={{ height: '40px', width: '100%' }} />)
-              ) : bugunkuRandevular.length === 0 ? (
-                <div style={{ fontSize: '12px', color: '#64748b', textAlign: 'center', fontWeight: 600 }}>Bugün için planlı randevu yok.</div>
-              ) : bugunkuRandevular.map((r, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '8px', borderBottom: '1px solid #f1f5f9' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>{r.baslik}</div>
-                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>{r.cari_kart?.yetkili || 'Bilinmiyor'}</div>
-                  </div>
-                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#3b82f6', background: '#eff6ff', padding: '4px 8px', borderRadius: '6px' }}>{r.saat}</div>
-                </div>
-              ))}
-            </div>
+    <div className="animate-fadeIn">
+      {/* ─── DESKTOP LAYOUT ─── */}
+      <div className="desktop-only">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          <div>
+            <h1 style={{ fontSize: '32px', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-1px' }}>Panel Özeti</h1>
+            <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px', fontWeight: 500 }}>
+              {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
           </div>
 
-          {!isMobile && (
-            <>
-              {/* Servis Dağılımı */}
-              <div className="card">
-                <div className="card-header">
-                  <h3 style={{ fontSize: '14px', fontWeight: 800, margin: 0 }}>Servis Dağılımı</h3>
-                </div>
-                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {loading ? (
-                    [1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: '32px', width: '100%' }} />)
-                  ) : Object.keys(statusDistrib).length === 0 ? (
-                    <div style={{ fontSize: '13px', color: '#94a3b8', textAlign: 'center' }}>Veri yok</div>
-                  ) : Object.entries(statusDistrib).map(([status, count]) => {
-                    const d = DURUM_RENKLER[status] || ['#64748b', '#f1f5f9']
-                    return (
-                      <div key={status} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: d[0] }} />
-                          <span style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>{status}</span>
-                        </div>
-                        <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{count}</span>
-                      </div>
-                    )
-                  })}
-                </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
+            <StatCard icon={Icons.users} label="Toplam Müşteri" value={stats.totalCustomers} color="#3b82f6" loading={loading} href="/musteriler" />
+            <StatCard icon={Icons.tool} label="Aktif Servis" value={stats.activeServices} color="#f59e0b" loading={loading} href="/servis-kayitlari" />
+            <StatCard icon={Icons.money} label="Günlük Ciro" value={stats.todayRevenue.toLocaleString('tr-TR') + ' ₺'} color="#10b981" loading={loading} href="/kasa" />
+            <StatCard icon={Icons.alert} label="Kritik Stok" value={stats.criticalStockCount} color="#ef4444" loading={loading} warning={stats.criticalStockCount > 0} href="/stok" />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '32px' }}>
+            <div className="card">
+              <div className="card-header">
+                <h2 style={{ fontSize: '16px', fontWeight: 800, margin: 0 }}>Son Kayıtlar</h2>
+                <Link href="/servis-kayitlari" className="btn-secondary" style={{ fontSize: '11px', padding: '6px 12px' }}>Tümünü Gör</Link>
               </div>
+              <div className="table-responsive">
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr><th>No</th><th>Müşteri</th><th>Araç</th><th>Durum</th><th>Tarih</th></tr>
+                  </thead>
+                  <tbody>
+                    {loading ? [1,2,3,4,5].map(i => <tr key={i}><td colSpan={5}><div className="skeleton" style={{ height: '40px', width: '100%' }} /></td></tr>) : sonServisler.map(s => {
+                      const d = DURUM_RENKLER[s.durum] || ['#64748b', '#f1f5f9']
+                      return (
+                        <tr key={s.id} onClick={() => router.push(`/servis-kayitlari/${s.id}`)} style={{ cursor: 'pointer' }}>
+                          <td style={{ fontWeight: 700, color: '#3b82f6' }}>#{s.servis_no}</td>
+                          <td style={{ fontWeight: 600 }}>{s.cari_kart?.yetkili}</td>
+                          <td><div style={{ fontWeight: 700, fontSize: '12px' }}>{s.arac?.plaka}</div></td>
+                          <td><span className="badge" style={{ background: d[1], color: d[0] }}>{s.durum}</span></td>
+                          <td style={{ fontSize: '12px', color: '#64748b' }}>{new Date(s.giris_tarihi).toLocaleDateString('tr-TR')}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-              {/* Kritik Stok Widget */}
-              <div className="card" style={{ borderLeft: stats.criticalStockCount > 0 ? '4px solid #ef4444' : 'none' }}>
-                <div className="card-header">
-                  <h3 style={{ fontSize: '14px', fontWeight: 800, margin: 0 }}>Kritik Stoklar</h3>
-                  <Link href="/stok" style={{ fontSize: '11px', color: '#3b82f6', fontWeight: 700, textDecoration: 'none' }}>Tümü</Link>
-                </div>
-                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px 20px' }}>
-                  {loading ? (
-                    [1, 2].map(i => <div key={i} className="skeleton" style={{ height: '40px', width: '100%' }} />)
-                  ) : criticalStocks.length === 0 ? (
-                    <div style={{ fontSize: '12px', color: '#10b981', textAlign: 'center', fontWeight: 600 }}>Tüm stoklar yeterli seviyede.</div>
-                  ) : criticalStocks.map(item => (
-                    <div key={item.ad} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '8px', borderBottom: '1px solid #f1f5f9' }}>
-                      <div>
-                        <div style={{ fontSize: '13px', fontWeight: 700 }}>{item.ad}</div>
-                        <div style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600 }}>Mevcut: {item.miktar} / Kritik: {item.kritik_seviye}</div>
-                      </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div className="card">
+                <div className="card-header"><h3 style={{ fontSize: '14px', fontWeight: 800, margin: 0 }}>Randevular</h3></div>
+                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {bugunkuRandevular.length === 0 ? <div style={{ textAlign: 'center', fontSize: '12px', color: '#64748b' }}>Randevu yok</div> : bugunkuRandevular.map((r, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                      <div><div style={{ fontSize: '13px', fontWeight: 700 }}>{r.baslik}</div><div style={{ fontSize: '11px', color: '#64748b' }}>{r.cari_kart?.yetkili}</div></div>
+                      <div style={{ fontSize: '12px', fontWeight: 800, color: '#3b82f6' }}>{r.saat}</div>
                     </div>
                   ))}
                 </div>
               </div>
-            </>
-          )}
+              <div className="card">
+                <div className="card-header"><h3 style={{ fontSize: '14px', fontWeight: 800, margin: 0 }}>Kritik Stoklar</h3></div>
+                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {criticalStocks.map(item => (
+                    <div key={item.ad} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                      <div style={{ fontSize: '13px', fontWeight: 700 }}>{item.ad}</div>
+                      <div style={{ fontSize: '11px', color: '#ef4444', fontWeight: 800 }}>{item.miktar}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ─── Hızlı Erişim ─── */}
-      <div>
-        <h3 style={{ fontSize: '13px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>
-          Hızlı Erişim
-        </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(200px, 1fr))', gap: isMobile ? '10px' : '16px' }}>
-          <QuickButton label="Yeni Servis" href="/servis-kayitlari/yeni" icon={Icons.tool} primary isMobile={isMobile} />
-          <QuickButton label="Yeni Müşteri" href="/musteriler/yeni" icon={Icons.users} isMobile={isMobile} />
-          <QuickButton label="Ürün Ekle" href="/stok/yeni" icon={Icons.plus} isMobile={isMobile} />
-          <QuickButton label="Stoklar" href="/stok" icon={Icons.box} isMobile={isMobile} />
-        </div>
+      {/* ─── MOBILE LAYOUT ─── */}
+      <div className="mobile-only" style={{ background: '#f8fafc', minHeight: '100vh', paddingBottom: '90px', margin: '-32px -32px 0' }}>
+         {/* Sticky Header */}
+         <div className="mobile-header-sticky" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button 
+               onClick={() => window.dispatchEvent(new CustomEvent('toggle-sidebar'))}
+               style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}
+            >
+               {Icons.menu}
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+               <div style={{ background: '#fff', color: '#0f172a', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{Icons.tool}</div>
+               <span style={{ fontWeight: 900, letterSpacing: '-0.5px', fontSize: '17px' }}>Servis Master</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+               <button style={{ background: 'none', border: 'none', color: 'white' }}>{Icons.bell}</button>
+               <div style={{ width: '32px', height: '32px', borderRadius: '16px', background: '#3b82f6', border: '2px solid rgba(255,255,255,0.2)' }} />
+            </div>
+         </div>
+         <div style={{ padding: '4px 16px', color: '#94a3b8', fontSize: '10px', fontWeight: 700, background: '#0f172a' }}>
+            {new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' })}
+         </div>
+
+         <div style={{ padding: '16px' }}>
+            {/* Welcome Card */}
+            <div style={{ 
+               background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', 
+               borderRadius: '20px', padding: '24px', color: 'white', marginBottom: '24px',
+               boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)'
+            }}>
+               <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0 }}>Hoş geldin, Mucahit</h2>
+               <p style={{ opacity: 0.8, fontSize: '13px', marginTop: '4px' }}>Bugün {stats.activeServices} aktif servis ve {bugunkuRandevular.length} randevu seni bekliyor.</p>
+            </div>
+
+            {/* Quick Stats Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+               <MStatCard label="Müşteri" value={stats.totalCustomers} icon={Icons.users} color="#3b82f6" href="/musteriler" />
+               <MStatCard label="Aktif Servis" value={stats.activeServices} icon={Icons.tool} color="#f59e0b" href="/servis-kayitlari" />
+               <MStatCard label="Bugün Ciro" value={stats.todayRevenue.toLocaleString('tr-TR') + ' ₺'} icon={Icons.money} color="#10b981" href="/kasa" />
+               <MStatCard label="Kritik Stok" value={stats.criticalStockCount} icon={Icons.alert} color="#ef4444" href="/stok" />
+            </div>
+
+            {/* Quick Actions Grid */}
+            <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#475569', marginBottom: '12px' }}>Hızlı İşlemler</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '32px' }}>
+               <MActionButton label="Yeni Servis" href="/servis-kayitlari/yeni" icon={Icons.tool} color="#3b82f6" />
+               <MActionButton label="Yeni Müşteri" href="/musteriler/yeni" icon={Icons.users} color="#10b981" />
+               <MActionButton label="Yeni Randevu" href="/randevu" icon={Icons.calendar} color="#7c3aed" />
+               <MActionButton label="Stok Giriş" href="/stok" icon={Icons.box} color="#f59e0b" />
+            </div>
+
+            {/* Recent Services List */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+               <h3 style={{ fontSize: '16px', fontWeight: 800 }}>Son Servisler</h3>
+               <Link href="/servis-kayitlari" style={{ fontSize: '12px', color: '#3b82f6', fontWeight: 700, textDecoration: 'none' }}>Tümü →</Link>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+               {sonServisler.slice(0, 5).map(s => {
+                  const d = DURUM_RENKLER[s.durum] || ['#64748b', '#f1f5f9']
+                  return (
+                     <div key={s.id} onClick={() => router.push(`/servis-kayitlari/${s.id}`)} className="card" style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ flex: 1 }}>
+                           <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>{s.arac?.plaka || 'Plakasız'}</div>
+                           <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>{s.cari_kart?.yetkili} <span style={{ opacity: 0.5 }}>#{s.servis_no}</span></div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                           <span style={{ fontSize: '10px', fontWeight: 800, background: d[1], color: d[0], padding: '4px 8px', borderRadius: '6px' }}>{s.durum}</span>
+                           <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '4px', color: '#0f172a' }}>{s.gtoplam?.toLocaleString('tr-TR')} ₺</div>
+                        </div>
+                     </div>
+                  )
+               })}
+            </div>
+
+            {/* Today's Appointments */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+               <h3 style={{ fontSize: '16px', fontWeight: 800 }}>Bugünkü Randevular</h3>
+               <Link href="/randevu" style={{ fontSize: '12px', color: '#3b82f6', fontWeight: 700, textDecoration: 'none' }}>Tümü →</Link>
+            </div>
+            <div style={{ marginBottom: '40px' }}>
+               {bugunkuRandevular.length === 0 ? (
+                  <div className="card" style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>Bugün randevu yok</div>
+               ) : bugunkuRandevular.map((r, i) => (
+                  <div key={i} className="card" style={{ padding: '12px 16px', marginBottom: '8px', borderLeft: '4px solid #3b82f6' }}>
+                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 800, color: '#3b82f6' }}>{r.saat}</span>
+                        <span style={{ fontSize: '13px', fontWeight: 700 }}>{r.cari_kart?.yetkili}</span>
+                     </div>
+                     <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{r.baslik}</div>
+                  </div>
+               ))}
+            </div>
+         </div>
+
+         {/* Bottom Nav */}
+         <div className="bottom-nav">
+            <Link href="/" className="bottom-nav-item active">{Icons.home} <span>Ana Sayfa</span></Link>
+            <Link href="/musteriler" className="bottom-nav-item">{Icons.users} <span>Müşteriler</span></Link>
+            <Link href="/servis-kayitlari" className="bottom-nav-item">{Icons.tool} <span>Servis</span></Link>
+            <Link href="/stok" className="bottom-nav-item">{Icons.box} <span>Stok</span></Link>
+            <button style={{ background: 'none', border: 'none' }} className="bottom-nav-item">{Icons.more} <span>Daha Fazla</span></button>
+         </div>
       </div>
     </div>
   )
 }
 
-function StatCard({ icon, label, value, color, loading, warning = false, href, isMobile }: any) {
+/* ─── Mobile Specific Components ─── */
+function MStatCard({ label, value, icon, color, href }: any) {
+   return (
+      <Link href={href} className="card" style={{ padding: '16px', textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+         <div style={{ color: color }}>{icon}</div>
+         <div>
+            <div style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a' }}>{value}</div>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>{label}</div>
+         </div>
+      </Link>
+   )
+}
+
+function MActionButton({ label, href, icon, color }: any) {
+   return (
+      <Link href={href} style={{ 
+         background: '#fff', borderRadius: '16px', padding: '16px', 
+         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+         textDecoration: 'none', border: '1px solid #e2e8f0'
+      }}>
+         <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: `${color}15`, color: color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {icon}
+         </div>
+         <span style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b' }}>{label}</span>
+      </Link>
+   )
+}
+
+function StatCard({ icon, label, value, color, loading, warning = false, href }: any) {
   const content = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '8px' : '12px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ color: color, background: `${color}15`, padding: isMobile ? '8px' : '10px', borderRadius: '10px' }}>
-          {icon}
-        </div>
+        <div style={{ color: color, background: `${color}15`, padding: '10px', borderRadius: '10px' }}>{icon}</div>
         {warning && <div style={{ background: '#fef2f2', color: '#ef4444', fontSize: '9px', fontWeight: 800, padding: '2px 6px', borderRadius: '4px' }}>!</div>}
       </div>
       <div>
-        <div style={{ fontSize: isMobile ? '11px' : '13px', fontWeight: 700, color: '#64748b' }}>{label}</div>
-        <div style={{ fontSize: isMobile ? '18px' : '26px', fontWeight: 900, color: '#0f172a', margin: '2px 0' }}>
-          {loading ? <div className="skeleton" style={{ height: isMobile ? '24px' : '32px', width: '60px' }} /> : value}
-        </div>
+        <div style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>{label}</div>
+        <div style={{ fontSize: '26px', fontWeight: 900, color: '#0f172a', margin: '2px 0' }}>{loading ? <div className="skeleton" style={{ height: '32px', width: '60px' }} /> : value}</div>
       </div>
     </div>
   )
-
-  if (href) {
-    return (
-      <Link href={href} className="stat-card" style={{ textDecoration: 'none', cursor: 'pointer', padding: isMobile ? '12px' : '1.25rem' }}>
-        {content}
-      </Link>
-    )
-  }
-
-  return (
-    <div className="stat-card" style={{ padding: isMobile ? '12px' : '1.25rem' }}>
-      {content}
-    </div>
-  )
-}
-
-function QuickButton({ label, href, icon, primary = false, isMobile }: any) {
-  return (
-    <Link 
-      href={href} 
-      className={primary ? "btn-primary" : "btn-secondary"} 
-      style={{ 
-        padding: isMobile ? '10px' : '16px', 
-        borderRadius: '14px', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        gap: isMobile ? '8px' : '12px',
-        height: isMobile ? '52px' : '64px',
-        fontSize: isMobile ? '13px' : '14px'
-      }}
-    >
-      {icon}
-      <span style={{ fontWeight: 700 }}>{label}</span>
-    </Link>
-  )
+  return href ? <Link href={href} className="stat-card" style={{ textDecoration: 'none', padding: '1.25rem' }}>{content}</Link> : <div className="stat-card" style={{ padding: '1.25rem' }}>{content}</div>
 }

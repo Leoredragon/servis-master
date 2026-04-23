@@ -97,7 +97,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     }
     checkMobile()
     window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
+    
+    const handleToggle = () => setCollapsed(prev => !prev)
+    window.addEventListener('open-sidebar', () => setCollapsed(false))
+    window.addEventListener('toggle-sidebar', handleToggle)
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile)
+      window.removeEventListener('open-sidebar', () => setCollapsed(false))
+      window.removeEventListener('toggle-sidebar', handleToggle)
+    }
   }, [])
   const [userEmail, setUserEmail] = useState('admin@servismaster.com')
   const [userInitial, setUserInitial] = useState('A')
@@ -106,6 +115,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname()
   const router = useRouter()
   
+  const isDashboard = pathname === '/'
+
   useEffect(() => {
     // Initial fetch
     let mounted = true
@@ -187,7 +198,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               onClick={() => setCollapsed(true)}
               style={{
                 position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)',
-                zIndex: 90, animation: 'fadeIn 0.2s ease'
+                zIndex: 150, animation: 'fadeIn 0.2s ease'
               }}
             />
           )}
@@ -205,7 +216,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             willChange: 'width, left',
             overflow: 'hidden',
             boxShadow: '4px 0 28px rgba(0,0,0,0.15)',
-            zIndex: 100,
+            zIndex: 200,
           }}>
             {/* Logo & Close Button (Mobile Only) */}
             <div style={{
@@ -299,64 +310,71 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           {/* ─── Main ─── */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-            {/* Top Bar */}
-            <header style={{
-              height: '68px', background: '#ffffff', borderBottom: '1px solid #e8ecf0',
-              display: 'flex', alignItems: 'center', padding: isMobile ? '0 16px' : '0 28px', gap: '16px',
-              flexShrink: 0, position: 'sticky', top: 0, zIndex: 50
-            }}>
-              {isMobile && (
-                <button onClick={() => setCollapsed(false)} style={{
-                  background: '#f1f5f9', border: 'none', color: '#0f172a',
-                  width: '40px', height: '40px', borderRadius: '10px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
-                }}>
-                  <Icon d={icons.list} size={20} />
-                </button>
-              )}
+            {/* Top Bar - Hide on Mobile Dashboard */}
+            {!(isMobile && isDashboard) && (
+              <header style={{
+                height: '68px', background: '#ffffff', borderBottom: '1px solid #e8ecf0',
+                display: 'flex', alignItems: 'center', padding: isMobile ? '0 16px' : '0 28px', gap: '16px',
+                flexShrink: 0, position: 'sticky', top: 0, zIndex: 50
+              }}>
+                {isMobile && (
+                  <button onClick={() => setCollapsed(false)} style={{
+                    background: '#f1f5f9', border: 'none', color: '#0f172a',
+                    width: '40px', height: '40px', borderRadius: '10px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
+                  }}>
+                    <Icon d={icons.list} size={20} />
+                  </button>
+                )}
 
-              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: isMobile ? '14px' : '16px', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {menuGroups.flatMap(g => g.items).find(m => isActive(m.path))?.name || 'Panel'}
-              </div>
-
-              <div style={{ flex: 1 }}></div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '20px' }}>
-                <div style={{ position: 'relative' }}>
-                  <div 
-                    onClick={toggleProfile}
-                    style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
-                  >
-                    {!isMobile && (
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>{userEmail.split('@')[0]}</div>
-                        <div style={{ fontSize: '11px', color: '#64748b' }}>Yönetici</div>
-                      </div>
-                    )}
-                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg,#3b82f6,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800 }}>
-                      {userInitial}
-                    </div>
-                  </div>
-
-                  {profileOpen && (
-                    <>
-                      <div onClick={closeProfile} style={{ position: 'fixed', inset: 0, zIndex: 100 }}></div>
-                      <div style={{ position: 'absolute', top: 'calc(100% + 10px)', right: 0, width: '200px', background: '#fff', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', border: '1px solid #f1f5f9', zIndex: 101 }}>
-                        <div style={{ padding: '8px' }}>
-                          <button onClick={handleSignOut} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', border: 'none', background: 'none', borderRadius: '8px', cursor: 'pointer', color: '#ef4444' }}>
-                            <Icon d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4 M16 17l5-5-5-5 M21 12H9" size={16} />
-                            <span style={{ fontSize: '13px', fontWeight: 700 }}>Çıkış Yap</span>
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  )}
+                <div style={{ fontWeight: 800, color: '#0f172a', fontSize: isMobile ? '14px' : '16px', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {menuGroups.flatMap(g => g.items).find(m => isActive(m.path))?.name || 'Panel'}
                 </div>
-              </div>
-            </header>
+
+                <div style={{ flex: 1 }}></div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '20px' }}>
+                  <div style={{ position: 'relative' }}>
+                    <div 
+                      onClick={toggleProfile}
+                      style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+                    >
+                      {!isMobile && (
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>{userEmail.split('@')[0]}</div>
+                          <div style={{ fontSize: '11px', color: '#64748b' }}>Yönetici</div>
+                        </div>
+                      )}
+                      <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg,#3b82f6,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800 }}>
+                        {userInitial}
+                      </div>
+                    </div>
+
+                    {profileOpen && (
+                      <>
+                        <div onClick={closeProfile} style={{ position: 'fixed', inset: 0, zIndex: 100 }}></div>
+                        <div style={{ position: 'absolute', top: 'calc(100% + 10px)', right: 0, width: '200px', background: '#fff', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', border: '1px solid #f1f5f9', zIndex: 101 }}>
+                          <div style={{ padding: '8px' }}>
+                            <button onClick={handleSignOut} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', border: 'none', background: 'none', borderRadius: '8px', cursor: 'pointer', color: '#ef4444' }}>
+                              <Icon d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4 M16 17l5-5-5-5 M21 12H9" size={16} />
+                              <span style={{ fontSize: '13px', fontWeight: 700 }}>Çıkış Yap</span>
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </header>
+            )}
 
             {/* Page */}
-            <main style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '16px' : '32px', background: '#f0f2f5' }}>
+            <main style={{ 
+              flex: 1, 
+              overflowY: 'auto', 
+              padding: (isMobile && isDashboard) ? '0' : (isMobile ? '16px' : '32px'), 
+              background: '#f0f2f5' 
+            }}>
               {children}
             </main>
           </div>
