@@ -83,8 +83,22 @@ const menuGroups = [
 ]
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const [isMobile, setIsMobile] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  
+  // Mobil Kontrolü
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768
+      setIsMobile(mobile)
+      if (mobile) setCollapsed(true)
+      else setCollapsed(false)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
   const [userEmail, setUserEmail] = useState('admin@servismaster.com')
   const [userInitial, setUserInitial] = useState('A')
   const [tenantCache, setTenantCache] = useState<any>(null)
@@ -165,67 +179,86 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="description" content="Profesyonel Teknik Servis Yönetim Sistemi" />
       </head>
       <body className={inter.className} style={{ margin: 0, padding: 0, background: '#f0f2f5' }}>
-        <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', position: 'relative' }}>
           
+          {/* Mobil Overlay */}
+          {isMobile && !collapsed && (
+            <div 
+              onClick={() => setCollapsed(true)}
+              style={{
+                position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)',
+                zIndex: 90, animation: 'fadeIn 0.2s ease'
+              }}
+            />
+          )}
+
           {/* ─── Sidebar ─── */}
           <aside style={{
-            width: collapsed ? '72px' : '256px',
-            minWidth: collapsed ? '72px' : '256px',
+            position: isMobile ? 'fixed' : 'relative',
+            left: isMobile && collapsed ? '-280px' : '0',
+            top: 0, bottom: 0,
+            width: collapsed && !isMobile ? '72px' : '260px',
+            minWidth: collapsed && !isMobile ? '72px' : '260px',
             background: 'linear-gradient(175deg, #0d1b2a 0%, #132040 55%, #0d1929 100%)',
             display: 'flex', flexDirection: 'column',
-            transition: 'width 0.26s cubic-bezier(0.4,0,0.2,1), min-width 0.26s cubic-bezier(0.4,0,0.2,1)',
-            willChange: 'width, min-width',
+            transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
+            willChange: 'width, left',
             overflow: 'hidden',
-            boxShadow: '4px 0 28px rgba(0,0,0,0.1)'
+            boxShadow: '4px 0 28px rgba(0,0,0,0.15)',
+            zIndex: 100,
           }}>
+            {/* Logo & Close Button (Mobile Only) */}
             <div style={{
               height: '64px', display: 'flex', alignItems: 'center',
-              padding: collapsed ? '0' : '0 18px', borderBottom: '1px solid rgba(255,255,255,0.06)',
-              justifyContent: collapsed ? 'center' : 'space-between',
-              gap: '12px', flexShrink: 0,
+              padding: '0 18px', borderBottom: '1px solid rgba(255,255,255,0.06)',
+              justifyContent: 'space-between', flexShrink: 0,
             }}>
-              {!collapsed && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{
-                    width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
-                    background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: '0 4px 12px rgba(59,130,246,0.45)',
-                    color: '#fff',
-                  }}>
-                    <Icon d={icons.service} size={18} />
-                  </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(59,130,246,0.45)',
+                  color: '#fff',
+                }}>
+                  <Icon d={icons.service} size={18} />
+                </div>
+                {(!collapsed || isMobile) && (
                   <div>
                     <div style={{ color: '#fff', fontWeight: 800, fontSize: '14px', letterSpacing: '-0.2px', lineHeight: 1 }}>SERVIS</div>
                     <div style={{ color: '#60a5fa', fontWeight: 700, fontSize: '10px', letterSpacing: '2.5px', marginTop: '2px' }}>MASTER PRO</div>
                   </div>
-                </div>
+                )}
+              </div>
+              
+              {!isMobile ? (
+                <button onClick={toggleSidebar} style={{
+                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+                  color: '#64748b', borderRadius: '8px', width: '32px', height: '32px',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <Icon d={collapsed ? icons.expand : icons.collapse} size={14} />
+                </button>
+              ) : (
+                <button onClick={() => setCollapsed(true)} style={{
+                  background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff',
+                  width: '32px', height: '32px', borderRadius: '8px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>✕</button>
               )}
-              <button onClick={toggleSidebar} style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.08)', color: '#64748b',
-                borderRadius: '8px', width: '32px', height: '32px',
-                cursor: 'pointer', flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.15s',
-              }}>
-                <Icon d={collapsed ? icons.expand : icons.collapse} size={14} />
-              </button>
             </div>
 
             {/* Nav */}
-            <nav style={{ flex: 1, padding: '10px 10px', overflowY: 'auto', overflowX: 'hidden' }}>
+            <nav style={{ flex: 1, padding: '12px 10px', overflowY: 'auto', overflowX: 'hidden' }}>
               {menuGroups.map(group => (
                 <div key={group.title} style={{ marginBottom: '16px' }}>
-                  {!collapsed && (
+                  {(!collapsed || isMobile) && (
                     <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '1.2px', textTransform: 'uppercase', padding: '8px 12px', marginBottom: '4px' }}>
                       {group.title}
                     </div>
                   )}
                   {group.items.map(item => {
                     const active = isActive(item.path)
-                    
-                    // Modül kilitli mi kontrolü
                     let hasAccess = true
                     if (item.modul && tenantCache?.izinler) {
                        const izin = tenantCache.izinler.find((i:any) => i.modul_kodu === item.modul)
@@ -233,33 +266,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     }
 
                     return (
-                      <Link key={item.path} href={hasAccess ? item.path : '#'} title={collapsed ? item.name : undefined} style={{
-                        display: 'flex', alignItems: 'center', gap: '10px',
-                        padding: `10px ${collapsed ? '0' : '12px'}`,
-                        justifyContent: collapsed ? 'center' : 'flex-start',
-                        borderRadius: '10px', marginBottom: '1px',
-                        textDecoration: 'none', transition: 'all 0.15s',
-                        background: active ? 'linear-gradient(90deg,rgba(59,130,246,0.2)0%,rgba(59,130,246,0.05)100%)' : 'transparent',
-                        borderLeft: active ? '3px solid #3b82f6' : '3px solid transparent',
-                        color: hasAccess ? (active ? '#60a5fa' : '#94a3b8') : 'rgba(255,255,255,0.1)',
-                        cursor: hasAccess ? 'pointer' : 'not-allowed',
-                        opacity: hasAccess ? 1 : 0.6
-                      }}>
-                        <span style={{ flexShrink: 0, display: 'flex', color: hasAccess ? (active ? '#60a5fa' : 'rgba(255,255,255,0.25)') : 'rgba(255,255,255,0.1)' }}>
+                      <Link 
+                        key={item.path} 
+                        href={hasAccess ? item.path : '#'} 
+                        onClick={() => isMobile && setCollapsed(true)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '12px',
+                          padding: `12px ${collapsed && !isMobile ? '0' : '12px'}`,
+                          justifyContent: collapsed && !isMobile ? 'center' : 'flex-start',
+                          borderRadius: '12px', marginBottom: '2px',
+                          textDecoration: 'none', transition: 'all 0.15s',
+                          background: active ? 'rgba(59,130,246,0.15)' : 'transparent',
+                          color: hasAccess ? (active ? '#60a5fa' : '#94a3b8') : 'rgba(255,255,255,0.05)',
+                          cursor: hasAccess ? 'pointer' : 'not-allowed',
+                        }}
+                      >
+                        <span style={{ flexShrink: 0, display: 'flex', color: 'inherit' }}>
                           <Icon d={item.icon} size={18} />
                         </span>
-                        {!collapsed && (
-                          <span style={{ fontWeight: active ? 600 : 500, fontSize: '13px', whiteSpace: 'nowrap', color: hasAccess ? (active ? '#fff' : 'rgba(255,255,255,0.5)') : 'rgba(255,255,255,0.15)' }}>
+                        {(!collapsed || isMobile) && (
+                          <span style={{ fontWeight: active ? 700 : 500, fontSize: '13px', whiteSpace: 'nowrap' }}>
                             {item.name}
                           </span>
-                        )}
-                        {!hasAccess && !collapsed && (
-                          <span style={{ marginLeft: 'auto', flexShrink: 0, color: '#ef4444' }}>
-                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                          </span>
-                        )}
-                        {active && !collapsed && hasAccess && (
-                          <span style={{ marginLeft: 'auto', width: '5px', height: '5px', borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />
                         )}
                       </Link>
                     )
@@ -267,108 +295,55 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </div>
               ))}
             </nav>
-
-            {/* Bottom */}
-            <div style={{ padding: '14px 12px', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
-              {!collapsed ? (
-                <div style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: '10px', padding: '12px 14px' }}>
-                  <div style={{ color: '#475569', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.2px' }}>Sistem Durumu</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
-                    <span style={{ color: '#94a3b8', fontSize: '12px', fontWeight: 600 }}>Aktif</span>
-                    <span style={{ marginLeft: 'auto', color: '#475569', fontSize: '11px' }}>v1.0</span>
-                  </div>
-                  <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: '4px', height: '3px', marginTop: '10px' }}>
-                    <div style={{ background: 'linear-gradient(90deg,#3b82f6,#60a5fa)', width: '70%', height: '100%', borderRadius: '4px' }} />
-                  </div>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
-                </div>
-              )}
-            </div>
           </aside>
 
           {/* ─── Main ─── */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
             {/* Top Bar */}
             <header style={{
-              height: '68px', background: '#ffffff',
-              borderBottom: '1px solid #e8ecf0',
-              display: 'flex', alignItems: 'center', padding: '0 28px', gap: '20px',
-              flexShrink: 0, boxShadow: '0 1px 3px rgba(0,0,0,0.02)', position: 'sticky', top: 0, zIndex: 50
+              height: '68px', background: '#ffffff', borderBottom: '1px solid #e8ecf0',
+              display: 'flex', alignItems: 'center', padding: isMobile ? '0 16px' : '0 28px', gap: '16px',
+              flexShrink: 0, position: 'sticky', top: 0, zIndex: 50
             }}>
-              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '16px', letterSpacing: '-0.3px', minWidth: '130px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {isMobile && (
+                <button onClick={() => setCollapsed(false)} style={{
+                  background: '#f1f5f9', border: 'none', color: '#0f172a',
+                  width: '40px', height: '40px', borderRadius: '10px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
+                }}>
+                  <Icon d={icons.list} size={20} />
+                </button>
+              )}
+
+              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: isMobile ? '14px' : '16px', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {menuGroups.flatMap(g => g.items).find(m => isActive(m.path))?.name || 'Panel'}
-                {tenantCache?.rol === 'admin' && (
-                  <Link href="/admin" style={{ fontSize: '11px', background: '#e11d48', color: '#fff', padding: '4px 10px', borderRadius: '8px', textDecoration: 'none', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                    SİSTEM YÖNETİMİ
-                  </Link>
-                )}
               </div>
 
               <div style={{ flex: 1 }}></div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginLeft: 'auto' }}>
-                <button title="Bildirimler" style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '6px', transition: 'color 0.2s' }} onMouseEnter={e=>e.currentTarget.style.color='#0f172a'} onMouseLeave={e=>e.currentTarget.style.color='#64748b'}>
-                  <Icon d={icons.bell} size={20} />
-                  <span style={{ position: 'absolute', top: '4px', right: '4px', width: '8px', height: '8px', background: '#ef4444', border: '2px solid #fff', borderRadius: '50%' }}></span>
-                </button>
-                
-                <div style={{ height: '32px', width: '1px', background: '#e2e8f0' }}></div>
-
+              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '20px' }}>
                 <div style={{ position: 'relative' }}>
                   <div 
                     onClick={toggleProfile}
-                    style={{ display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer', padding: '4px 8px', borderRadius: '12px', transition: 'all 0.2s' }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
                   >
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Yönetici</div>
-                      <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-                    </div>
-                    <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'linear-gradient(135deg,#3b82f6,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '14px', boxShadow: '0 2px 8px rgba(59,130,246,0.3)' }}>
+                    {!isMobile && (
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>{userEmail.split('@')[0]}</div>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>Yönetici</div>
+                      </div>
+                    )}
+                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg,#3b82f6,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800 }}>
                       {userInitial}
                     </div>
                   </div>
 
-                  {/* Profile Dropdown */}
                   {profileOpen && (
                     <>
                       <div onClick={closeProfile} style={{ position: 'fixed', inset: 0, zIndex: 100 }}></div>
-                      <div style={{ 
-                        position: 'absolute', top: 'calc(100% + 12px)', right: 0, width: '220px', 
-                        background: '#fff', borderRadius: '16px', boxShadow: '0 10px 40px rgba(0,0,0,0.12)', 
-                        border: '1px solid #f1f5f9', overflow: 'hidden', zIndex: 101, animation: 'slideInDown 0.2s ease-out' 
-                      }}>
-                        <div style={{ padding: '16px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
-                          <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Hoş Geldiniz</div>
-                          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{userEmail}</div>
-                        </div>
+                      <div style={{ position: 'absolute', top: 'calc(100% + 10px)', right: 0, width: '200px', background: '#fff', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', border: '1px solid #f1f5f9', zIndex: 101 }}>
                         <div style={{ padding: '8px' }}>
-                          {[
-                            { label: 'Kullanıcı Ayarları', tab: '0', icon: 'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2 M12 11a4 4 0 100-8 4 4 0 000 8z' },
-                            { label: 'Firma Bilgileri',    tab: '1', icon: 'M3 21h18 M3 7v14 M21 7v14 M9 21V11h6v10 M2 7l10-4 10 4' },
-                            { label: 'Hesap Bilgileri',    tab: '2', icon: 'M12 1v22 M17 5l-5-5-5 5 M7 19l5 5 5-5' },
-                          ].map(opt => (
-                            <Link 
-                              key={opt.label} 
-                              href={`/ayarlar?tab=${opt.tab}`}
-                              onClick={closeProfile}
-                              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', border: 'none', background: 'none', borderRadius: '8px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s', textDecoration: 'none', color: '#475569' }} 
-                              onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#3b82f6'; }} 
-                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#475569'; }}
-                            >
-                              <Icon d={opt.icon} size={16} />
-                              <span style={{ fontSize: '13px', fontWeight: 600, color: 'inherit' }}>{opt.label}</span>
-                            </Link>
-                          ))}
-                        </div>
-                        <div style={{ padding: '8px', borderTop: '1px solid #f1f5f9' }}>
-                          <button onClick={() => { closeProfile(); handleSignOut(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', border: 'none', background: 'none', borderRadius: '8px', cursor: 'pointer', textAlign: 'left', color: '#ef4444', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = '#fef2f2'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                          <button onClick={handleSignOut} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', border: 'none', background: 'none', borderRadius: '8px', cursor: 'pointer', color: '#ef4444' }}>
                             <Icon d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4 M16 17l5-5-5-5 M21 12H9" size={16} />
                             <span style={{ fontSize: '13px', fontWeight: 700 }}>Çıkış Yap</span>
                           </button>
@@ -381,7 +356,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </header>
 
             {/* Page */}
-            <main style={{ flex: 1, overflowY: 'auto', padding: '28px', background: '#f0f2f5' }}>
+            <main style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '16px' : '32px', background: '#f0f2f5' }}>
               {children}
             </main>
           </div>

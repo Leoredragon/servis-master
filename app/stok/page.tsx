@@ -116,84 +116,154 @@ export default function StokYonetimi() {
   }
 
   return (
-    <div className="animate-fadeIn" style={{ width: '100%', padding: '0 32px 32px' }}>
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
+  const handleSetView = (v: 'table'|'grid') => {
+    setViewMode(v)
+    localStorage.setItem('stok_view', v)
+  }
+
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    const { data } = await supabase.from('stok').select('*').order('ad')
+    setItems(data || [])
+    const grps = Array.from(new Set((data || []).map(x => x.grup).filter(Boolean)))
+    setGruplar(grps as string[])
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedSearch(search), 300)
+    return () => clearTimeout(handler)
+  }, [search])
+
+  const handleDelete = async () => {
+    if (!confirmDelete.id) return
+    await supabase.from('stok_hareket').delete().eq('stok_id', confirmDelete.id)
+    await supabase.from('stok').delete().eq('id', confirmDelete.id)
+    setConfirmDelete({ open: false, id: null })
+    fetchData()
+  }
+
+  // Stat hesaplama
+  const stats = useMemo(() => {
+     let tValue = 0, critical = 0, zero = 0
+     items.forEach(i => {
+        tValue += (i.miktar || 0) * (i.a_fiyat || 0)
+        if (i.miktar <= 0) zero++
+        else if (i.miktar <= (i.kritik_seviye || 10)) critical++
+     })
+     return { total: items.length, tValue, critical, zero }
+  }, [items])
+
+  // Filtreme
+  const filteredItems = useMemo(() => {
+    return items.filter(u => {
+      const q = debouncedSearch.toLowerCase()
+      const matchSearch = !q || (u.ad || '').toLowerCase().includes(q) || (u.kod || '').toLowerCase().includes(q) || (u.barkod || '').toLowerCase().includes(q)
+      const matchGroup = selectedGrup === 'Tümü' || u.grup === selectedGrup
+      
+      let matchDurum = true
+      if (durumFiltre === 'Stoksuz') matchDurum = u.miktar <= 0
+      else if (durumFiltre === 'Kritik') matchDurum = u.miktar > 0 && u.miktar <= (u.kritik_seviye || 10)
+      else if (durumFiltre === 'Normal') matchDurum = u.miktar > (u.kritik_seviye || 10)
+
+      return matchSearch && matchGroup && matchDurum
+    })
+  }, [items, debouncedSearch, selectedGrup, durumFiltre])
+
+  const paginated = filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
+  const getStyleForLevel = (m: number, c: number) => {
+    if (m <= 0) return { bg: '#fee2e2', text: '#ef4444', label: 'Stoksuz' }
+    if (m <= c) return { bg: '#fef3c7', text: '#d97706', label: 'Kritik' }
+    return { bg: '#dcfce7', text: '#16a34a', label: 'Normal' }
+  }
+
+  return (
+    <div className="animate-fadeIn" style={{ width: '100%', padding: isMobile ? '0' : '0 32px 32px' }}>
        
-       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '32px' }}>
+       <div style={{ display: 'flex', alignItems: isMobile ? 'stretch' : 'flex-start', justifyContent: 'space-between', marginBottom: isMobile ? '20px' : '32px', flexDirection: isMobile ? 'column' : 'row', gap: '16px' }}>
           <div>
-            <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.5px' }}>Stok & Depo Yönetimi</h1>
-            <p style={{ color: '#64748b', fontSize: '15px', margin: '6px 0 0', fontWeight: 500 }}>Filtreleri kullanarak veya arama yaparak stokları yönetin.</p>
+            <h1 style={{ fontSize: isMobile ? '24px' : '28px', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.5px' }}>Stok & Depo</h1>
+            <p style={{ color: '#64748b', fontSize: '14px', margin: '4px 0 0', fontWeight: 500 }}>Filtreleri kullanarak stokları yönetin.</p>
           </div>
-          <Link href="/stok/yeni" className="btn-primary" style={{ padding: '12px 24px', borderRadius: '12px', fontSize: '15px', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-            {Icons.plus} Yeni Ürün Ekle
+          <Link href="/stok/yeni" className="btn-primary" style={{ height: '48px', justifyContent: 'center', borderRadius: '12px', fontSize: '15px', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+            {Icons.plus} Yeni Ürün
           </Link>
        </div>
 
        {/* KPi Cards */}
-       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
-          <div className="card" style={{ padding: '20px', borderLeft: '4px solid #3b82f6' }}>
-             <div style={{ fontSize: '12px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Toplam Ürün Sayısı</div>
-             <div style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', marginTop: '6px' }}>{stats.total}</div>
+       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: isMobile ? '10px' : '16px', marginBottom: '24px' }}>
+          <div className="card" style={{ padding: isMobile ? '12px' : '20px', borderLeft: '4px solid #3b82f6' }}>
+             <div style={{ fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Toplam Ürün</div>
+             <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>{stats.total}</div>
           </div>
-          <div className="card" style={{ padding: '20px', borderLeft: '4px solid #10b981' }}>
-             <div style={{ fontSize: '12px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Toplam Stok Değeri</div>
-             <div style={{ fontSize: '28px', fontWeight: 900, color: '#10b981', marginTop: '6px' }}>{stats.tValue.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺</div>
+          <div className="card" style={{ padding: isMobile ? '12px' : '20px', borderLeft: '4px solid #10b981' }}>
+             <div style={{ fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Stok Değeri</div>
+             <div style={{ fontSize: isMobile ? '16px' : '28px', fontWeight: 900, color: '#10b981', marginTop: '4px' }}>{stats.tValue.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺</div>
           </div>
-          <div className="card" style={{ padding: '20px', borderLeft: '4px solid #f59f00' }}>
-             <div style={{ fontSize: '12px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Kritik Olanlar</div>
-             <div style={{ fontSize: '28px', fontWeight: 900, color: '#d97706', marginTop: '6px' }}>{stats.critical}</div>
+          <div className="card" style={{ padding: isMobile ? '12px' : '20px', borderLeft: '4px solid #f59f00' }}>
+             <div style={{ fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Kritik</div>
+             <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 900, color: '#d97706', marginTop: '4px' }}>{stats.critical}</div>
           </div>
-          <div className="card" style={{ padding: '20px', borderLeft: '4px solid #ef4444' }}>
-             <div style={{ fontSize: '12px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Sıfırlanan (Stoksuz)</div>
-             <div style={{ fontSize: '28px', fontWeight: 900, color: '#ef4444', marginTop: '6px' }}>{stats.zero}</div>
+          <div className="card" style={{ padding: isMobile ? '12px' : '20px', borderLeft: '4px solid #ef4444' }}>
+             <div style={{ fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Sıfır</div>
+             <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 900, color: '#ef4444', marginTop: '4px' }}>{stats.zero}</div>
           </div>
        </div>
 
        {/* Toolbar */}
-       <div className="card" style={{ padding: '16px 24px', display: 'flex', gap: '20px', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', flex: '1 1 300px' }}>
-            <span style={{ position: 'absolute', left: '16px', top: '14px', color: '#94a3b8' }}>{Icons.search}</span>
+       <div className="card" style={{ padding: isMobile ? '16px' : '16px 24px', display: 'flex', gap: '16px', alignItems: isMobile ? 'stretch' : 'center', marginBottom: '24px', flexDirection: isMobile ? 'column' : 'row' }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>{Icons.search}</span>
             <input 
-              type="text" placeholder="Kod, ad veya barkod ile bulun..." 
-              style={{ width: '100%', padding: '12px 16px 12px 42px', border: '1.5px solid #e2e8f0', borderRadius: '12px', outline: 'none', background: '#f8fafc' }}
+              type="text" placeholder="Ürün ara..." 
+              style={{ width: '100%', padding: '12px 16px 12px 42px', border: '1.5px solid #e2e8f0', borderRadius: '12px', outline: 'none', fontSize: '14px' }}
               value={search} onChange={e => setSearch(e.target.value)}
             />
           </div>
           
-          <select style={{ padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', outline: 'none', background: '#f8fafc', fontWeight: 600 }} value={selectedGrup} onChange={e => {setSelectedGrup(e.target.value); setCurrentPage(1)}}>
-             <option value="Tümü">Tüm Gruplar</option>
-             {gruplar.map(g => <option key={g} value={g}>{g}</option>)}
-          </select>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <select style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '13px', fontWeight: 600 }} value={selectedGrup} onChange={e => {setSelectedGrup(e.target.value); setCurrentPage(1)}}>
+               <option value="Tümü">Tüm Gruplar</option>
+               {gruplar.map(g => <option key={g} value={g}>{g}</option>)}
+            </select>
 
-          <select style={{ padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', outline: 'none', background: '#f8fafc', fontWeight: 600 }} value={durumFiltre} onChange={e => {setDurumFiltre(e.target.value); setCurrentPage(1)}}>
-             {['Tümü', 'Normal', 'Kritik', 'Stoksuz'].map(d => <option key={d} value={d}>{d}</option>)}
-          </select>
+            <select style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '13px', fontWeight: 600 }} value={durumFiltre} onChange={e => {setDurumFiltre(e.target.value); setCurrentPage(1)}}>
+               {['Tümü', 'Normal', 'Kritik', 'Stoksuz'].map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
 
           <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '12px' }}>
-            <button onClick={() => handleSetView('table')} style={{ padding: '8px 12px', borderRadius: '8px', border: 'none', background: viewMode === 'table' ? '#fff' : 'transparent', color: viewMode === 'table' ? '#3b82f6' : '#64748b', cursor: 'pointer', transition: '0.2s', boxShadow: viewMode === 'table' ? '0 2px 5px rgba(0,0,0,0.05)': 'none' }}>
-               {Icons.list}
-            </button>
-            <button onClick={() => handleSetView('grid')} style={{ padding: '8px 12px', borderRadius: '8px', border: 'none', background: viewMode === 'grid' ? '#fff' : 'transparent', color: viewMode === 'grid' ? '#3b82f6' : '#64748b', cursor: 'pointer', transition: '0.2s', boxShadow: viewMode === 'grid' ? '0 2px 5px rgba(0,0,0,0.05)': 'none' }}>
-               {Icons.grid}
-            </button>
+            <button onClick={() => handleSetView('table')} style={{ flex: 1, padding: '8px 16px', borderRadius: '8px', border: 'none', background: viewMode === 'table' ? '#fff' : 'transparent', color: viewMode === 'table' ? '#3b82f6' : '#64748b' }}>{Icons.list}</button>
+            <button onClick={() => handleSetView('grid')} style={{ flex: 1, padding: '8px 16px', borderRadius: '8px', border: 'none', background: viewMode === 'grid' ? '#fff' : 'transparent', color: viewMode === 'grid' ? '#3b82f6' : '#64748b' }}>{Icons.grid}</button>
           </div>
        </div>
 
        {loading ? (
-          <div style={{ padding: '40px' }}><div className="skeleton" style={{ height: '400px', borderRadius: '24px' }}></div></div>
+          <div style={{ padding: '40px' }}><div className="skeleton" style={{ height: '300px', borderRadius: '24px' }}></div></div>
        ) : (
           <>
              {viewMode === 'table' ? (
-                <div className="card" style={{ overflow: 'hidden' }}>
-                  <div style={{ overflowX: 'auto' }}>
+                <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                       <thead>
                         <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                          <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Resim</th>
-                          <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Kod / Ad</th>
-                          <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Grup</th>
-                          <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Stok</th>
-                          <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', textAlign: 'right' }}>Fiyat (A/S)</th>
-                          <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', textAlign: 'center' }}>İşlemler</th>
+                          {!isMobile && <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Resim</th>}
+                          <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Ürün Bilgisi</th>
+                          {!isMobile && <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Grup</th>}
+                          <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Stok</th>
+                          <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', textAlign: 'right' }}>Fiyat</th>
+                          <th style={{ padding: '16px 20px' }}></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -201,67 +271,48 @@ export default function StokYonetimi() {
                            const lvl = getStyleForLevel(u.miktar, u.kritik_seviye || 10)
                            return (
                              <tr key={u.id} className="hover-row" style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }} onClick={() => setSelectedStokId(u.id)}>
-                                <td style={{ padding: '12px 24px', width: '60px' }}>
-                                   <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
-                                      {u.resimyolu ? <img src={u.resimyolu} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} /> : Icons.box}
-                                   </div>
-                                </td>
-                                <td style={{ padding: '12px 24px' }}>
+                                {!isMobile && (
+                                  <td style={{ padding: '12px 20px', width: '60px' }}>
+                                     <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        {u.resimyolu ? <img src={u.resimyolu} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} /> : Icons.box}
+                                     </div>
+                                  </td>
+                                )}
+                                <td style={{ padding: '12px 20px' }}>
                                    <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '14px' }}>{u.ad}</div>
-                                   <div style={{ fontSize: '12px', color: '#64748b', fontFamily: 'monospace', fontWeight: 600 }}>{u.kod || u.barkod || 'Kodsuz/Barkodsuz'}</div>
+                                   <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>{u.kod || u.barkod || 'Kodsuz'}</div>
                                 </td>
-                                <td style={{ padding: '12px 24px' }}>
-                                   <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', background: '#f8fafc', padding: '4px 8px', border: '1px solid #e2e8f0', borderRadius: '6px' }}>{u.grup}</span>
-                                </td>
-                                <td style={{ padding: '12px 24px' }}>
-                                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: lvl.bg, color: lvl.text, padding: '4px 10px', borderRadius: '8px', fontWeight: 800, fontSize: '13px' }}>
+                                {!isMobile && <td style={{ padding: '12px 20px' }}><span style={{ fontSize: '11px', background: '#f8fafc', padding: '4px 8px', borderRadius: '6px' }}>{u.grup}</span></td>}
+                                <td style={{ padding: '12px 20px' }}>
+                                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: lvl.bg, color: lvl.text, padding: '4px 10px', borderRadius: '8px', fontWeight: 800, fontSize: '12px' }}>
                                       {u.miktar} <span style={{ fontSize: '10px', opacity: 0.8 }}>{u.birim}</span>
                                    </div>
                                 </td>
-                                <td style={{ padding: '12px 24px', textAlign: 'right' }}>
-                                   <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>A: {(u.a_fiyat || 0).toLocaleString('tr-TR')} ₺</div>
-                                   <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>S: {(u.s_fiyat || 0).toLocaleString('tr-TR')} ₺</div>
+                                <td style={{ padding: '12px 20px', textAlign: 'right' }}>
+                                   <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{(u.s_fiyat || 0).toLocaleString('tr-TR')} ₺</div>
                                 </td>
-                                <td style={{ padding: '12px 24px' }} onClick={e => e.stopPropagation()}>
+                                <td style={{ padding: '12px 20px' }} onClick={e => e.stopPropagation()}>
                                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                                      <button onClick={() => setHareketModal({ open: true, stok: u })} style={{ padding: '8px', borderRadius: '8px', background: '#eff6ff', color: '#3b82f6', border: 'none', cursor: 'pointer' }} title="Stok Hareketi / Düzenle">{Icons.edit}</button>
-                                      <button onClick={() => setConfirmDelete({ open: true, id: u.id })} style={{ padding: '8px', borderRadius: '8px', background: '#fef2f2', color: '#ef4444', border: 'none', cursor: 'pointer' }} title="Sil">{Icons.trash}</button>
+                                      <button onClick={() => setHareketModal({ open: true, stok: u })} style={{ padding: '8px', borderRadius: '8px', background: '#eff6ff', color: '#3b82f6', border: 'none' }}>{Icons.edit}</button>
                                    </div>
                                 </td>
                              </tr>
                            )
                         })}
-                        {paginated.length === 0 && <tr><td colSpan={6} style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>Seçili kriterlere uygun kayıt bulunamadı.</td></tr>}
                       </tbody>
                     </table>
-                  </div>
                 </div>
              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: isMobile ? '12px' : '20px' }}>
                    {paginated.map(u => {
                       const lvl = getStyleForLevel(u.miktar, u.kritik_seviye || 10)
                       return (
-                         <div key={u.id} className="card" style={{ padding: '24px', position: 'relative', overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.2s' }} onClick={() => setSelectedStokId(u.id)}>
+                         <div key={u.id} className="card" style={{ padding: isMobile ? '16px' : '24px', position: 'relative', overflow: 'hidden', cursor: 'pointer' }} onClick={() => setSelectedStokId(u.id)}>
                             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: lvl.text }}></div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                               <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px' }}>{u.grup}</span>
-                               <span style={{ fontSize: '11px', fontWeight: 800, color: lvl.text, background: lvl.bg, padding: '4px 8px', borderRadius: '6px' }}>{lvl.label}</span>
-                            </div>
-                            <div style={{ fontSize: '16px', fontWeight: 900, color: '#0f172a', marginBottom: '4px' }}>{u.ad}</div>
-                            <div style={{ fontSize: '12px', color: '#64748b', fontFamily: 'monospace', fontWeight: 600, marginBottom: '20px' }}>{u.kod || u.barkod || 'Yok'}</div>
-                            
-                            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-                               <div>
-                                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8' }}>MEVCUT</div>
-                                  <div style={{ fontSize: '24px', fontWeight: 900, color: lvl.text }}>{u.miktar} <span style={{ fontSize: '12px', opacity: 0.8 }}>{u.birim}</span></div>
-                               </div>
-                               <div style={{ textAlign: 'right' }}>
-                                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>{(u.s_fiyat || 0).toLocaleString('tr-TR')} ₺</div>
-                               </div>
-                            </div>
-                            <div style={{ borderTop: '1px solid #f1f5f9', margin: '16px -24px -24px', padding: '16px 24px', display: 'flex', gap: '8px', background: '#f8fafc' }} onClick={e => e.stopPropagation()}>
-                               <button onClick={() => setHareketModal({ open: true, stok: u })} style={{ flex: 1, padding: '10px', borderRadius: '8px', background: '#fff', border: '1px solid #e2e8f0', color: '#0f172a', fontSize: '12px', fontWeight: 800, cursor: 'pointer' }}>Hareket Girişi</button>
-                            </div>
+                            <div style={{ fontSize: isMobile ? '11px' : '12px', fontWeight: 800, color: '#64748b', background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', width: 'fit-content', marginBottom: '8px' }}>{u.grup}</div>
+                            <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 900, color: '#0f172a', marginBottom: '4px' }}>{u.ad}</div>
+                            <div style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: 900, color: lvl.text }}>{u.miktar} <span style={{ fontSize: '12px', opacity: 0.8 }}>{u.birim}</span></div>
+                            <div style={{ marginTop: '12px', textAlign: 'right', fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>{(u.s_fiyat || 0).toLocaleString('tr-TR')} ₺</div>
                          </div>
                       )
                    })}

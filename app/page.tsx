@@ -76,27 +76,32 @@ export default function Home() {
     setStatusDistrib(distrib)
     setCriticalStocks(critItems.slice(0, 5))
     setBugunkuRandevular(bgRandevuData?.data || [])
-    setLoading(false)
+    setLoadin  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1024)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
   }, [])
 
   useEffect(() => { loadData() }, [loadData])
 
   return (
-    <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+    <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '20px' : '32px' }}>
       {/* ─── Header ─── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 style={{ fontSize: '32px', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-1px' }}>
+          <h1 style={{ fontSize: isMobile ? '24px' : '32px', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-1px' }}>
             Panel Özeti
           </h1>
-          <p style={{ color: '#64748b', fontSize: '15px', marginTop: '4px', fontWeight: 500 }}>
+          <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px', fontWeight: 500 }}>
             {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
       </div>
 
       {/* ─── KPI Cards ─── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: isMobile ? '12px' : '24px' }}>
         <StatCard 
           icon={Icons.users} 
           label="Toplam Müşteri" 
@@ -104,6 +109,7 @@ export default function Home() {
           color="#3b82f6" 
           loading={loading}
           href="/musteriler"
+          isMobile={isMobile}
         />
         <StatCard 
           icon={Icons.tool} 
@@ -112,6 +118,7 @@ export default function Home() {
           color="#f59e0b" 
           loading={loading}
           href="/servis-kayitlari"
+          isMobile={isMobile}
         />
         <StatCard 
           icon={Icons.money} 
@@ -120,6 +127,7 @@ export default function Home() {
           color="#10b981" 
           loading={loading}
           href="/kasa"
+          isMobile={isMobile}
         />
         <StatCard 
           icon={Icons.alert} 
@@ -129,19 +137,20 @@ export default function Home() {
           loading={loading}
           warning={stats.criticalStockCount > 0}
           href="/stok"
+          isMobile={isMobile}
         />
       </div>
 
       {/* ─── Main Content Grid ─── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '32px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: isMobile ? '24px' : '32px' }}>
         
         {/* Sol: Son Servisler */}
         <div className="card">
           <div className="card-header">
             <h2 style={{ fontSize: '16px', fontWeight: 800, margin: 0 }}>Son Kayıtlar</h2>
-            <Link href="/servis-kayitlari" className="btn-secondary" style={{ fontSize: '12px', padding: '6px 12px' }}>Tümünü Gör</Link>
+            <Link href="/servis-kayitlari" className="btn-secondary" style={{ fontSize: '11px', padding: '6px 12px' }}>Tümünü Gör</Link>
           </div>
-          <div style={{ overflowX: 'auto' }}>
+          <div className="table-responsive">
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
@@ -149,7 +158,7 @@ export default function Home() {
                   <th>Müşteri</th>
                   <th>Araç</th>
                   <th>Durum</th>
-                  <th>Tarih</th>
+                  {!isMobile && <th>Tarih</th>}
                 </tr>
               </thead>
               <tbody>
@@ -166,18 +175,17 @@ export default function Home() {
                       key={s.id} 
                       onClick={() => router.push(`/servis-kayitlari/${s.id}`)} 
                       style={{ cursor: 'pointer' }}
-                      className="hover:bg-gray-50 transition-colors"
                     >
-                      <td style={{ fontWeight: 700, color: '#3b82f6' }}>#{s.servis_no}</td>
+                      <td style={{ fontWeight: 700, color: '#3b82f6' }}>#{s.servis_no} {isMobile && <div style={{ fontSize: '9px', color: '#94a3b8', fontWeight: 500 }}>{new Date(s.giris_tarihi).toLocaleDateString('tr-TR')}</div>}</td>
                       <td style={{ fontWeight: 600 }}>{s.cari_kart?.yetkili}</td>
                       <td>
                         <div style={{ fontWeight: 700, fontSize: '12px' }}>{s.arac?.plaka}</div>
-                        <div style={{ fontSize: '11px', color: '#64748b' }}>{s.arac?.marka} {s.arac?.model}</div>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>{s.arac?.marka}</div>
                       </td>
                       <td>
-                        <span className="badge" style={{ background: d[1], color: d[0] }}>{s.durum}</span>
+                        <span className="badge" style={{ background: d[1], color: d[0], fontSize: isMobile ? '10px' : '12px' }}>{s.durum}</span>
                       </td>
-                      <td style={{ fontSize: '12px', color: '#64748b' }}>{new Date(s.giris_tarihi).toLocaleDateString('tr-TR')}</td>
+                      {!isMobile && <td style={{ fontSize: '12px', color: '#64748b' }}>{new Date(s.giris_tarihi).toLocaleDateString('tr-TR')}</td>}
                     </tr>
                   )
                 })}
@@ -193,7 +201,7 @@ export default function Home() {
           <div className="card">
             <div className="card-header">
               <h3 style={{ fontSize: '14px', fontWeight: 800, margin: 0 }}>Bugünkü Randevular</h3>
-              <Link href="/randevu" style={{ fontSize: '11px', color: '#3b82f6', fontWeight: 700, textDecoration: 'none' }}>Tümünü Gör</Link>
+              <Link href="/randevu" style={{ fontSize: '11px', color: '#3b82f6', fontWeight: 700, textDecoration: 'none' }}>Tümü</Link>
             </div>
             <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px 20px' }}>
               {loading ? (
@@ -202,7 +210,7 @@ export default function Home() {
                 <div style={{ fontSize: '12px', color: '#64748b', textAlign: 'center', fontWeight: 600 }}>Bugün için planlı randevu yok.</div>
               ) : bugunkuRandevular.map((r, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '8px', borderBottom: '1px solid #f1f5f9' }}>
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>{r.baslik}</div>
                     <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>{r.cari_kart?.yetkili || 'Bilinmiyor'}</div>
                   </div>
@@ -212,117 +220,122 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Servis Dağılımı */}
-          <div className="card">
-            <div className="card-header">
-              <h3 style={{ fontSize: '14px', fontWeight: 800, margin: 0 }}>Servis Dağılımı</h3>
-            </div>
-            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {loading ? (
-                 [1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: '32px', width: '100%' }} />)
-              ) : Object.keys(statusDistrib).length === 0 ? (
-                <div style={{ fontSize: '13px', color: '#94a3b8', textAlign: 'center' }}>Veri yok</div>
-              ) : Object.entries(statusDistrib).map(([status, count]) => {
-                const d = DURUM_RENKLER[status] || ['#64748b', '#f1f5f9']
-                return (
-                  <div key={status} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: d[0] }} />
-                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>{status}</span>
-                    </div>
-                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{count}</span>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Kritik Stok Widget */}
-          <div className="card" style={{ borderLeft: stats.criticalStockCount > 0 ? '4px solid #ef4444' : 'none' }}>
-            <div className="card-header">
-              <h3 style={{ fontSize: '14px', fontWeight: 800, margin: 0 }}>Kritik Stoklar</h3>
-              <Link href="/stok" style={{ fontSize: '11px', color: '#3b82f6', fontWeight: 700, textDecoration: 'none' }}>Tümü</Link>
-            </div>
-            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px 20px' }}>
-              {loading ? (
-                 [1, 2].map(i => <div key={i} className="skeleton" style={{ height: '40px', width: '100%' }} />)
-              ) : criticalStocks.length === 0 ? (
-                <div style={{ fontSize: '12px', color: '#10b981', textAlign: 'center', fontWeight: 600 }}>Tüm stoklar yeterli seviyede.</div>
-              ) : criticalStocks.map(item => (
-                <div key={item.ad} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '8px', borderBottom: '1px solid #f1f5f9' }}>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 700 }}>{item.ad}</div>
-                    <div style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600 }}>Mevcut: {item.miktar} / Kritik: {item.kritik_seviye}</div>
-                  </div>
+          {!isMobile && (
+            <>
+              {/* Servis Dağılımı */}
+              <div className="card">
+                <div className="card-header">
+                  <h3 style={{ fontSize: '14px', fontWeight: 800, margin: 0 }}>Servis Dağılımı</h3>
                 </div>
-              ))}
-            </div>
-          </div>
+                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {loading ? (
+                    [1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: '32px', width: '100%' }} />)
+                  ) : Object.keys(statusDistrib).length === 0 ? (
+                    <div style={{ fontSize: '13px', color: '#94a3b8', textAlign: 'center' }}>Veri yok</div>
+                  ) : Object.entries(statusDistrib).map(([status, count]) => {
+                    const d = DURUM_RENKLER[status] || ['#64748b', '#f1f5f9']
+                    return (
+                      <div key={status} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: d[0] }} />
+                          <span style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>{status}</span>
+                        </div>
+                        <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{count}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Kritik Stok Widget */}
+              <div className="card" style={{ borderLeft: stats.criticalStockCount > 0 ? '4px solid #ef4444' : 'none' }}>
+                <div className="card-header">
+                  <h3 style={{ fontSize: '14px', fontWeight: 800, margin: 0 }}>Kritik Stoklar</h3>
+                  <Link href="/stok" style={{ fontSize: '11px', color: '#3b82f6', fontWeight: 700, textDecoration: 'none' }}>Tümü</Link>
+                </div>
+                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px 20px' }}>
+                  {loading ? (
+                    [1, 2].map(i => <div key={i} className="skeleton" style={{ height: '40px', width: '100%' }} />)
+                  ) : criticalStocks.length === 0 ? (
+                    <div style={{ fontSize: '12px', color: '#10b981', textAlign: 'center', fontWeight: 600 }}>Tüm stoklar yeterli seviyede.</div>
+                  ) : criticalStocks.map(item => (
+                    <div key={item.ad} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '8px', borderBottom: '1px solid #f1f5f9' }}>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: 700 }}>{item.ad}</div>
+                        <div style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600 }}>Mevcut: {item.miktar} / Kritik: {item.kritik_seviye}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
       {/* ─── Hızlı Erişim ─── */}
       <div>
-        <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>
+        <h3 style={{ fontSize: '13px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>
           Hızlı Erişim
         </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-          <QuickButton label="Yeni Servis Kaydı" href="/servis-kayitlari/yeni" icon={Icons.tool} primary />
-          <QuickButton label="Yeni Müşteri" href="/musteriler/yeni" icon={Icons.users} />
-          <QuickButton label="Yeni Ürün Ekle" href="/stok/yeni" icon={Icons.plus} />
-          <QuickButton label="Stok Girişi" href="/stok" icon={Icons.box} />
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(200px, 1fr))', gap: isMobile ? '10px' : '16px' }}>
+          <QuickButton label="Yeni Servis" href="/servis-kayitlari/yeni" icon={Icons.tool} primary isMobile={isMobile} />
+          <QuickButton label="Yeni Müşteri" href="/musteriler/yeni" icon={Icons.users} isMobile={isMobile} />
+          <QuickButton label="Ürün Ekle" href="/stok/yeni" icon={Icons.plus} isMobile={isMobile} />
+          <QuickButton label="Stoklar" href="/stok" icon={Icons.box} isMobile={isMobile} />
         </div>
       </div>
     </div>
   )
 }
 
-function StatCard({ icon, label, value, color, loading, warning = false, href }: any) {
+function StatCard({ icon, label, value, color, loading, warning = false, href, isMobile }: any) {
   const content = (
-    <>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '8px' : '12px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ color: color, background: `${color}15`, padding: '10px', borderRadius: '12px' }}>
+        <div style={{ color: color, background: `${color}15`, padding: isMobile ? '8px' : '10px', borderRadius: '10px' }}>
           {icon}
         </div>
-        {warning && <div style={{ background: '#fef2f2', color: '#ef4444', fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '4px' }}>DİKKAT</div>}
+        {warning && <div style={{ background: '#fef2f2', color: '#ef4444', fontSize: '9px', fontWeight: 800, padding: '2px 6px', borderRadius: '4px' }}>!</div>}
       </div>
       <div>
-        <div style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>{label}</div>
-        <div style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', margin: '2px 0' }}>
-          {loading ? <div className="skeleton" style={{ height: '34px', width: '60px' }} /> : value}
+        <div style={{ fontSize: isMobile ? '11px' : '13px', fontWeight: 700, color: '#64748b' }}>{label}</div>
+        <div style={{ fontSize: isMobile ? '18px' : '26px', fontWeight: 900, color: '#0f172a', margin: '2px 0' }}>
+          {loading ? <div className="skeleton" style={{ height: isMobile ? '24px' : '32px', width: '60px' }} /> : value}
         </div>
       </div>
-    </>
+    </div>
   )
 
   if (href) {
     return (
-      <Link href={href} className="stat-card" style={{ display: 'flex', flexDirection: 'column', gap: '8px', textDecoration: 'none', cursor: 'pointer' }}>
+      <Link href={href} className="stat-card" style={{ textDecoration: 'none', cursor: 'pointer', padding: isMobile ? '12px' : '1.25rem' }}>
         {content}
       </Link>
     )
   }
 
   return (
-    <div className="stat-card" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+    <div className="stat-card" style={{ padding: isMobile ? '12px' : '1.25rem' }}>
       {content}
     </div>
   )
 }
 
-function QuickButton({ label, href, icon, primary = false }: any) {
+function QuickButton({ label, href, icon, primary = false, isMobile }: any) {
   return (
     <Link 
       href={href} 
       className={primary ? "btn-primary" : "btn-secondary"} 
       style={{ 
-        padding: '16px', 
-        borderRadius: '16px', 
+        padding: isMobile ? '10px' : '16px', 
+        borderRadius: '14px', 
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'center', 
-        gap: '12px',
-        height: '60px'
+        gap: isMobile ? '8px' : '12px',
+        height: isMobile ? '52px' : '64px',
+        fontSize: isMobile ? '13px' : '14px'
       }}
     >
       {icon}

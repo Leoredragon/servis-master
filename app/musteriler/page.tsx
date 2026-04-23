@@ -137,109 +137,256 @@ export default function Musteriler() {
   }
 
   return (
-    <div className="animate-fadeIn" style={{ width: '100%', padding: '0 32px' }}>
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
+  const fetchVeriler = useCallback(async () => {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('cari_kart')
+      .select('*, arac(id), servis_karti(durum, giris_tarihi)')
+      .order('id', { ascending: false })
+    
+    if (error) {
+      console.error(error)
+      setLoading(false)
+      return
+    }
+
+    const mapped = (data || []).map(m => {
+      const servisler = m.servis_karti || []
+      const aktifS = servisler.filter((s:any) => s.durum === 'İşlemde').length
+      
+      let sonIslem = null
+      if (servisler.length > 0) {
+        sonIslem = servisler.sort((a:any, b:any) => new Date(b.giris_tarihi).getTime() - new Date(a.giris_tarihi).getTime())[0].giris_tarihi
+      }
+
+      return {
+        ...m,
+        aracSayisi: m.arac ? m.arac.length : 0,
+        servisSayisi: servisler.length,
+        aktifServisCount: aktifS,
+        sonIslemTarihi: sonIslem
+      }
+    })
+
+    setMusteriler(mapped)
+
+    let tArac = 0
+    let tAktif = 0
+    const uniqueGroups = new Set<string>()
+
+    mapped.forEach(m => {
+      tArac += m.aracSayisi
+      tAktif += m.aktifServisCount
+      if (m.grup) uniqueGroups.add(m.grup)
+    })
+
+    setSummary({
+      toplamMusteri: mapped.length,
+      toplamArac: tArac,
+      buAyYeni: 0,
+      aktifServis: tAktif
+    })
+    
+    setGroups(Array.from(uniqueGroups).sort())
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { fetchVeriler() }, [fetchVeriler])
+
+  useEffect(() => {
+    const handler = setTimeout(() => { setDebouncedSearch(searchQuery) }, 300)
+    return () => clearTimeout(handler)
+  }, [searchQuery])
+
+  // Filtering Logic
+  const filteredMusteriler = useMemo(() => {
+    let res = musteriler
+    if (selectedGroup !== 'Tümü') res = res.filter(x => x.grup === selectedGroup)
+    if (debouncedSearch) {
+      const qs = debouncedSearch.toLowerCase()
+      res = res.filter(x => 
+        (x.yetkili || '').toLowerCase().includes(qs) || 
+        (x.tel || '').toLowerCase().includes(qs) ||
+        (x.cep || '').toLowerCase().includes(qs) ||
+        (x.mail || '').toLowerCase().includes(qs) ||
+        (x.vergi_no || '').toLowerCase().includes(qs)
+      )
+    }
+    return res
+  }, [musteriler, selectedGroup, debouncedSearch])
+
+  const paginatedMusteriler = filteredMusteriler.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
+  const handleDelete = async () => {
+    if (!confirmDelete.id) return
+    const { error } = await supabase.from('cari_kart').delete().eq('id', confirmDelete.id)
+    if (error) alert(error.message)
+    else {
+      setConfirmDelete({ open: false, id: null })
+      fetchVeriler()
+    }
+  }
+
+  return (
+    <div className="animate-fadeIn" style={{ width: '100%', padding: isMobile ? '0' : '0 32px' }}>
       
       {/* ─── HEADER YAPI ─── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'flex-start', marginBottom: isMobile ? '20px' : '32px', flexDirection: isMobile ? 'column' : 'row', gap: '16px' }}>
         <div>
-           <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.3px' }}>Müşteri Yönetimi</h1>
-           <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>Tüm müşteri, filo ve bireysel portföyünüzü yönetin.</p>
+           <h1 style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.3px' }}>Müşteri Yönetimi</h1>
+           <p style={{ color: '#64748b', fontSize: '13px', marginTop: '4px' }}>Tüm müşteri, filo ve bireysel portföyünüzü yönetin.</p>
         </div>
-        <button onClick={() => router.push('/musteriler/yeni')} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '14px 20px', borderRadius: '12px' }}>
+        <button onClick={() => router.push('/musteriler/yeni')} className="btn-primary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '14px 20px', borderRadius: '12px' }}>
            {Icons.plus} Yeni Müşteri
         </button>
       </div>
 
       {/* ─── ÖZET KARTLAR ─── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '32px' }}>
-        <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-           <div style={{ fontSize: '13px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Toplam Müşteri</div>
-           <div style={{ fontSize: '28px', fontWeight: 800, color: '#0f172a' }}>{summary.toplamMusteri}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: isMobile ? '12px' : '20px', marginBottom: '32px' }}>
+        <div className="card" style={{ padding: isMobile ? '16px' : '24px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+           <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Müşteri Sayısı</div>
+           <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 800, color: '#0f172a' }}>{summary.toplamMusteri}</div>
         </div>
-        <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-           <div style={{ fontSize: '13px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Toplam Araç</div>
-           <div style={{ fontSize: '28px', fontWeight: 800, color: '#3b82f6' }}>{summary.toplamArac}</div>
+        <div className="card" style={{ padding: isMobile ? '16px' : '24px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+           <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Araç Sayısı</div>
+           <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 800, color: '#3b82f6' }}>{summary.toplamArac}</div>
         </div>
-        <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-           <div style={{ fontSize: '13px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Aktif Servis (İşlemde)</div>
-           <div style={{ fontSize: '28px', fontWeight: 800, color: '#f59e0b' }}>{summary.aktifServis}</div>
-        </div>
+        {(!isMobile || summary.aktifServis > 0) && (
+          <div className="card" style={{ padding: isMobile ? '16px' : '24px', display: 'flex', flexDirection: 'column', gap: '4px', gridColumn: isMobile ? 'span 2' : 'span 1' }}>
+             <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Aktif Servis</div>
+             <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 800, color: '#f59e0b' }}>{summary.aktifServis}</div>
+          </div>
+        )}
       </div>
 
-      {/* ─── TABLO BÖLÜMÜ ─── */}
-      <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', padding: '24px' }}>
+      {/* ─── TABLO / KART BÖLÜMÜ ─── */}
+      <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', padding: isMobile ? '16px' : '24px' }}>
          {/* FİLTRELER */}
-         <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: '250px' }}>
+         <div style={{ display: 'flex', gap: '12px', marginBottom: isMobile ? '16px' : '24px', flexDirection: isMobile ? 'column' : 'row' }}>
+            <div style={{ position: 'relative', flex: 1 }}>
                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>{Icons.search}</span>
-               <input placeholder="İsim, Tel, E-posta veya Vergi No ara..." style={{ width: '100%', padding: '12px 14px 12px 40px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+               <input placeholder="İsim, Tel, E-posta ara..." style={{ width: '100%', padding: '12px 14px 12px 40px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
             </div>
-            <select style={{ width: '200px', padding: '12px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} value={selectedGroup} onChange={e => setSelectedGroup(e.target.value)}>
+            <select style={{ width: isMobile ? '100%' : '200px', padding: '12px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} value={selectedGroup} onChange={e => setSelectedGroup(e.target.value)}>
                <option value="Tümü">Tüm Gruplar</option>
                {groups.map(g => <option key={g} value={g}>{g}</option>)}
             </select>
          </div>
 
-         {/* TABLO */}
-         <div style={{ margin: '0 -24px -24px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-               <thead>
-                  <tr style={{ background: '#f8fafc', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
-                     <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', width: '50px' }}>#</th>
-                     <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Müşteri Adı / Ünvan</th>
-                     <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>İletişim Bilgileri</th>
-                     <th style={{ textAlign: 'center', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Araçlar</th>
-                     <th style={{ textAlign: 'center', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Toplam Servis</th>
-                     <th style={{ textAlign: 'center', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Son İşlem</th>
-                     <th style={{ textAlign: 'right', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>İşlemler</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  {loading ? (
-                     [1,2,3,4].map(i => <tr key={i}><td colSpan={7} style={{ padding: '24px' }}><div className="skeleton" style={{ height: '30px', width: '100%' }} /></td></tr>)
-                  ) : paginatedMusteriler.length === 0 ? (
-                     <tr><td colSpan={7} style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>Müşteri kaydı bulunamadı.</td></tr>
-                  ) : paginatedMusteriler.map(m => (
-                     <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }} className="hover-row" onClick={() => { setSelectedCariId(m.id); setCardOpen(true); }}>
-                        <td style={{ padding: '16px 24px', fontWeight: 600, color: '#94a3b8', fontSize: '13px' }}>{m.id}</td>
-                        <td style={{ padding: '16px 24px' }}>
-                           <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '15px' }}>{m.yetkili}</div>
-                           {m.grup && <span style={{ display: 'inline-block', padding: '2px 8px', background: '#f1f5f9', color: '#64748b', fontSize: '11px', fontWeight: 700, borderRadius: '4px', marginTop: '4px' }}>{m.grup}</span>}
-                        </td>
-                        <td style={{ padding: '16px 24px' }}>
-                           <div style={{ fontSize: '14px', color: '#334155', fontWeight: 600 }}>{m.cep || m.tel || '---'}</div>
-                           {m.mail && <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{m.mail}</div>}
-                        </td>
-                        <td style={{ padding: '16px 24px', textAlign: 'center', fontWeight: 700, color: m.aracSayisi > 0 ? '#3b82f6' : '#94a3b8', fontSize: '14px' }}>
-                           {m.aracSayisi}
-                        </td>
-                        <td style={{ padding: '16px 24px', textAlign: 'center', fontWeight: 700, color: '#475569', fontSize: '14px' }}>
-                           {m.servisSayisi}
-                        </td>
-                        <td style={{ padding: '16px 24px', textAlign: 'center', fontSize: '13px', color: '#64748b' }}>
-                           {m.sonIslemTarihi ? new Date(m.sonIslemTarihi).toLocaleDateString('tr-TR') : '—'}
-                        </td>
-                        <td style={{ padding: '16px 24px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                              <Link href={`/musteriler/${m.id}?arac_ekle=true`} title="Araç Ekle" style={{ padding: '8px', background: '#eff6ff', border: '1px solid #dbeafe', borderRadius: '8px', color: '#3b82f6', display: 'flex', alignItems: 'center', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = '#1d4ed8'} onMouseLeave={e => e.currentTarget.style.color = '#3b82f6'}>
-                                 {Icons.car}
-                              </Link>
-                              <button onClick={() => { setSelectedCariId(m.id); setCardOpen(true); }} style={{ padding: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#3b82f6', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                                 {Icons.user}
-                              </button>
-                              <Link href={`/musteriler/yeni?id=${m.id}`} style={{ padding: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#475569', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                                 {Icons.edit}
-                              </Link>
-                              <button onClick={() => setConfirmDelete({ open: true, id: m.id })} style={{ padding: '8px', background: '#fef2f2', border: 'none', borderRadius: '8px', color: '#ef4444', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                                 {Icons.trash}
-                              </button>
-                           </div>
-                        </td>
+         {/* MOBİL KART GÖRÜNÜMÜ */}
+         {isMobile ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+               {loading ? (
+                  [1,2,3].map(i => <div key={i} className="skeleton" style={{ height: '120px', borderRadius: '12px' }} />)
+               ) : paginatedMusteriler.length === 0 ? (
+                  <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>Müşteri bulunamadı.</div>
+               ) : paginatedMusteriler.map(m => (
+                  <div key={m.id} onClick={() => { setSelectedCariId(m.id); setCardOpen(true); }} style={{ padding: '16px', border: '1px solid #f1f5f9', borderRadius: '12px', background: '#fff', position: 'relative' }}>
+                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div style={{ flex: 1 }}>
+                           <div style={{ fontWeight: 800, fontSize: '15px', color: '#0f172a' }}>{m.yetkili}</div>
+                           <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{m.cep || m.tel || 'No telefon'}</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                           <span style={{ fontSize: '10px', fontWeight: 800, background: '#f1f5f9', color: '#64748b', padding: '4px 8px', borderRadius: '6px' }}>{m.grup || 'Grup Yok'}</span>
+                        </div>
+                     </div>
+                     
+                     <div style={{ display: 'flex', gap: '16px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f8fafc' }}>
+                        <div style={{ flex: 1 }}>
+                           <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Araçlar</div>
+                           <div style={{ fontSize: '14px', fontWeight: 800, color: m.aracSayisi > 0 ? '#3b82f6' : '#94a3b8' }}>{m.aracSayisi} Araç</div>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                           <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>İşlem</div>
+                           <div style={{ fontSize: '14px', fontWeight: 800, color: '#475569' }}>{m.servisSayisi} Toplam</div>
+                        </div>
+                     </div>
+
+                     <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }} onClick={e => e.stopPropagation()}>
+                        <Link href={`/musteriler/${m.id}?arac_ekle=true`} style={{ flex: 1, padding: '10px', background: '#eff6ff', borderRadius: '8px', color: '#3b82f6', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, textDecoration: 'none' }}>
+                           {Icons.car} +
+                        </Link>
+                        <Link href={`/musteriler/yeni?id=${m.id}`} style={{ flex: 1, padding: '10px', background: '#f8fafc', borderRadius: '8px', color: '#64748b', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, textDecoration: 'none' }}>
+                           {Icons.edit}
+                        </Link>
+                        <button onClick={() => setConfirmDelete({ open: true, id: m.id })} style={{ padding: '10px', background: '#fef2f2', borderRadius: '8px', color: '#ef4444', border: 'none', width: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                           {Icons.trash}
+                        </button>
+                     </div>
+                  </div>
+               ))}
+            </div>
+         ) : (
+            /* MASAÜSTÜ TABLO GÖRÜNÜMÜ */
+            <div style={{ margin: '0 -24px -24px' }}>
+               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                     <tr style={{ background: '#f8fafc', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
+                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', width: '50px' }}>#</th>
+                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Müşteri Adı / Ünvan</th>
+                        <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>İletişim Bilgileri</th>
+                        <th style={{ textAlign: 'center', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Araçlar</th>
+                        <th style={{ textAlign: 'center', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Toplam Servis</th>
+                        <th style={{ textAlign: 'center', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Son İşlem</th>
+                        <th style={{ textAlign: 'right', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>İşlemler</th>
                      </tr>
-                  ))}
-               </tbody>
-            </table>
-         </div>
+                  </thead>
+                  <tbody>
+                     {loading ? (
+                        [1,2,3,4].map(i => <tr key={i}><td colSpan={7} style={{ padding: '24px' }}><div className="skeleton" style={{ height: '30px', width: '100%' }} /></td></tr>)
+                     ) : paginatedMusteriler.length === 0 ? (
+                        <tr><td colSpan={7} style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>Müşteri kaydı bulunamadı.</td></tr>
+                     ) : paginatedMusteriler.map(m => (
+                        <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }} className="hover-row" onClick={() => { setSelectedCariId(m.id); setCardOpen(true); }}>
+                           <td style={{ padding: '16px 24px', fontWeight: 600, color: '#94a3b8', fontSize: '13px' }}>{m.id}</td>
+                           <td style={{ padding: '16px 24px' }}>
+                              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '15px' }}>{m.yetkili}</div>
+                              {m.grup && <span style={{ display: 'inline-block', padding: '2px 8px', background: '#f1f5f9', color: '#64748b', fontSize: '11px', fontWeight: 700, borderRadius: '4px', marginTop: '4px' }}>{m.grup}</span>}
+                           </td>
+                           <td style={{ padding: '16px 24px' }}>
+                              <div style={{ fontSize: '14px', color: '#334155', fontWeight: 600 }}>{m.cep || m.tel || '---'}</div>
+                              {m.mail && <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{m.mail}</div>}
+                           </td>
+                           <td style={{ padding: '16px 24px', textAlign: 'center', fontWeight: 700, color: m.aracSayisi > 0 ? '#3b82f6' : '#94a3b8', fontSize: '14px' }}>
+                              {m.aracSayisi}
+                           </td>
+                           <td style={{ padding: '16px 24px', textAlign: 'center', fontWeight: 700, color: '#475569', fontSize: '14px' }}>
+                              {m.servisSayisi}
+                           </td>
+                           <td style={{ padding: '16px 24px', textAlign: 'center', fontSize: '13px', color: '#64748b' }}>
+                              {m.sonIslemTarihi ? new Date(m.sonIslemTarihi).toLocaleDateString('tr-TR') : '—'}
+                           </td>
+                           <td style={{ padding: '16px 24px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                 <Link href={`/musteriler/${m.id}?arac_ekle=true`} title="Araç Ekle" style={{ padding: '8px', background: '#eff6ff', border: '1px solid #dbeafe', borderRadius: '8px', color: '#3b82f6', display: 'flex', alignItems: 'center', cursor: 'pointer', transition: 'all 0.2s' }}>
+                                    {Icons.car}
+                                 </Link>
+                                 <button onClick={() => { setSelectedCariId(m.id); setCardOpen(true); }} style={{ padding: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#3b82f6', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                                    {Icons.user}
+                                 </button>
+                                 <Link href={`/musteriler/yeni?id=${m.id}`} style={{ padding: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#475569', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                                    {Icons.edit}
+                                 </Link>
+                                 <button onClick={() => setConfirmDelete({ open: true, id: m.id })} style={{ padding: '8px', background: '#fef2f2', border: 'none', borderRadius: '8px', color: '#ef4444', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                                    {Icons.trash}
+                                 </button>
+                              </div>
+                           </td>
+                        </tr>
+                     ))}
+                  </tbody>
+               </table>
+            </div>
+         )}
       </div>
       
       <div style={{ marginTop: '24px' }}>

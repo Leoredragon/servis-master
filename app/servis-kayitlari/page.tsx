@@ -165,12 +165,20 @@ export default function ServisKayitlariListesi() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
   const fetchData = useCallback(async () => {
     setLoading(true)
     const { data: s_res } = await supabase.from('servis_karti')
       .select('id, servis_no, cari_id, arac_id, gelis_kmsi, sikayet, teknisyen, durum, odeme_durumu, giris_tarihi, toplam_tutar, arac(id, plaka, marka, model, yil), cari_kart(id, yetkili)')
       .order('giris_tarihi', { ascending: false })
-      .limit(300) // Optimal limit
+      .limit(300)
       
     const list = (s_res as any) || []
     setServisler(list)
@@ -222,25 +230,19 @@ export default function ServisKayitlariListesi() {
     const sIdx = servisler.findIndex(s => s.id === activeId)
     if (sIdx === -1 || servisler[sIdx].durum === newDurum) return
 
-    // Optimistic Update
     const updated = [...servisler]
     updated[sIdx] = { ...updated[sIdx], durum: newDurum }
     setServisler(updated)
 
-    // DB Update
     const { error } = await supabase.from('servis_karti').update({ durum: newDurum }).eq('id', activeId)
     if (error) {
-      fetchData() // Revert on error
+      fetchData()
     } else {
       if (newDurum === 'Teslime Hazır' || newDurum === 'Tamamlandı') {
         const trg = updated[sIdx]
         setSmsModalServis(trg)
-        
-        // cari_kart inner join doesn't pull 'cep', let's fetch it explicitly now or ask user to provide it.
-        // We will fetch the phone number from cari_kart immediately
         const { data: cData } = await supabase.from('cari_kart').select('cep').eq('id', trg.cari_id).single()
         setSmsPhone(cData?.cep || '')
-        
         setSmsMessage(`Sayın ${trg.cari_kart?.yetkili}, ${trg.arac?.plaka} plakalı aracınızın servis işlemleri tamamlanmıştır. Borcunuz: ${trg.toplam_tutar || 0} TL. İyi günler dileriz.`)
       }
     }
@@ -269,56 +271,48 @@ export default function ServisKayitlariListesi() {
   }
 
   return (
-    <div className="animate-fadeIn" style={{ width: '100%', padding: '0 32px 32px' }}>
+    <div className="animate-fadeIn" style={{ width: '100%', padding: isMobile ? '0 0 24px' : '0 32px 32px' }}>
       
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '32px' }}>
+      <div style={{ display: 'flex', alignItems: isMobile ? 'stretch' : 'flex-start', justifyContent: 'space-between', marginBottom: isMobile ? '20px' : '32px', flexDirection: isMobile ? 'column' : 'row', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.5px' }}>Servis Yönetimi</h1>
-          <p style={{ color: '#64748b', fontSize: '15px', margin: '6px 0 0', fontWeight: 500 }}>Aktif servis operasyonlarınızı iş akışından takip edin.</p>
+          <h1 style={{ fontSize: isMobile ? '24px' : '28px', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.5px' }}>Servis Yönetimi</h1>
+          <p style={{ color: '#64748b', fontSize: '14px', margin: '4px 0 0', fontWeight: 500 }}>Aktif servis operasyonlarını iş akışından takip edin.</p>
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '10px', flexDirection: isMobile ? 'column' : 'row' }}>
           <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '12px' }}>
-            <button onClick={() => handleViewToggle('kanban')} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: viewMode === 'kanban' ? '#fff' : 'transparent', color: viewMode === 'kanban' ? '#0f172a' : '#64748b', fontWeight: 700, fontSize: '14px', cursor: 'pointer', boxShadow: viewMode === 'kanban' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', transition: '0.2s' }}>
-               İş Akışı
-            </button>
-            <button onClick={() => handleViewToggle('list')} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: viewMode === 'list' ? '#fff' : 'transparent', color: viewMode === 'list' ? '#0f172a' : '#64748b', fontWeight: 700, fontSize: '14px', cursor: 'pointer', boxShadow: viewMode === 'list' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', transition: '0.2s' }}>
-               ☰ Liste
-            </button>
+            <button onClick={() => handleViewToggle('kanban')} style={{ flex: isMobile ? 1 : 'none', padding: '10px 16px', borderRadius: '8px', border: 'none', background: viewMode === 'kanban' ? '#fff' : 'transparent', color: viewMode === 'kanban' ? '#0f172a' : '#64748b', fontWeight: 700, fontSize: '13px', cursor: 'pointer', transition: '0.2s' }}>İş Akışı</button>
+            <button onClick={() => handleViewToggle('list')} style={{ flex: isMobile ? 1 : 'none', padding: '10px 16px', borderRadius: '8px', border: 'none', background: viewMode === 'list' ? '#fff' : 'transparent', color: viewMode === 'list' ? '#0f172a' : '#64748b', fontWeight: 700, fontSize: '13px', cursor: 'pointer', transition: '0.2s' }}>Liste</button>
           </div>
-          <Link href="/servis-kayitlari/yeni" className="btn-primary" style={{ padding: '12px 24px', borderRadius: '12px', fontSize: '15px', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-             + Yeni İş Emri Aç
+          <Link href="/servis-kayitlari/yeni" className="btn-primary" style={{ height: '48px', justifyContent: 'center', padding: '0 20px', borderRadius: '12px', fontSize: '14px', textDecoration: 'none' }}>
+             + Yeni İş Emri
           </Link>
         </div>
       </div>
 
       {/* ─── ÖZET KARTLAR ─── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '32px' }}>
-         <div className="card" style={{ padding: '20px', borderLeft: '4px solid #64748b' }}>
-            <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Tümü</div>
-            <div style={{ fontSize: '26px', fontWeight: 900, color: '#0f172a', marginTop: '6px' }}>{summary.toplam}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(5, 1fr)', gap: isMobile ? '10px' : '16px', marginBottom: '32px' }}>
+         <div className="card" style={{ padding: isMobile ? '12px' : '20px', borderLeft: '4px solid #64748b' }}>
+            <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Tümü</div>
+            <div style={{ fontSize: isMobile ? '20px' : '26px', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>{summary.toplam}</div>
          </div>
-         <div className="card" style={{ padding: '20px', borderLeft: '4px solid #3b82f6' }}>
-            <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>İşlemdekiler</div>
-            <div style={{ fontSize: '26px', fontWeight: 900, color: '#3b82f6', marginTop: '6px' }}>{summary.aktif}</div>
+         <div className="card" style={{ padding: isMobile ? '12px' : '20px', borderLeft: '4px solid #3b82f6' }}>
+            <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>İşlemde</div>
+            <div style={{ fontSize: isMobile ? '20px' : '26px', fontWeight: 900, color: '#3b82f6', marginTop: '4px' }}>{summary.aktif}</div>
          </div>
-         <div className="card" style={{ padding: '20px', borderLeft: '4px solid #8b5cf6' }}>
-            <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Bugün Giren</div>
-            <div style={{ fontSize: '26px', fontWeight: 900, color: '#8b5cf6', marginTop: '6px' }}>{summary.bugun}</div>
+         <div className="card" style={{ padding: isMobile ? '12px' : '20px', borderLeft: '4px solid #8b5cf6' }}>
+            <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Bugün</div>
+            <div style={{ fontSize: isMobile ? '20px' : '26px', fontWeight: 900, color: '#8b5cf6', marginTop: '4px' }}>{summary.bugun}</div>
          </div>
-         <div className="card" style={{ padding: '20px', borderLeft: '4px solid #10b981' }}>
-            <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Teslime Hazır</div>
-            <div style={{ fontSize: '26px', fontWeight: 900, color: '#10b981', marginTop: '6px' }}>{summary.hazir}</div>
-         </div>
-         <div className="card" style={{ padding: '20px', borderLeft: '4px solid #ef4444' }}>
-            <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Ödeme Bekleyen</div>
-            <div style={{ fontSize: '26px', fontWeight: 900, color: '#ef4444', marginTop: '6px' }}>{summary.odemeBekleyen}</div>
+         <div className="card" style={{ padding: isMobile ? '12px' : '20px', borderLeft: '4px solid #10b981' }}>
+            <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Hazır</div>
+            <div style={{ fontSize: isMobile ? '20px' : '26px', fontWeight: 900, color: '#10b981', marginTop: '4px' }}>{summary.hazir}</div>
          </div>
       </div>
 
       {viewMode === 'list' && (
-         <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '16px', scrollbarWidth: 'none' }}>
+         <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '16px', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
            {['Tümü', ...IS_AKISI].map(f => (
-             <button key={f} onClick={() => setAktifTab(f)} style={{ whiteSpace: 'nowrap', padding: '10px 20px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', background: aktifTab === f ? '#0f172a' : '#fff', color: aktifTab === f ? '#fff' : '#64748b', boxShadow: aktifTab === f ? '0 4px 12px rgba(15,23,42,0.15)' : '0 1px 3px rgba(0,0,0,0.02)', border: aktifTab === f ? 'none' : '1px solid #e2e8f0', transition: 'all 0.2s' }}>
+             <button key={f} onClick={() => setAktifTab(f)} style={{ whiteSpace: 'nowrap', padding: '10px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', background: aktifTab === f ? '#0f172a' : '#fff', color: aktifTab === f ? '#fff' : '#64748b', border: '1px solid #e2e8f0' }}>
                {f}
              </button>
            ))}
@@ -326,11 +320,11 @@ export default function ServisKayitlariListesi() {
       )}
 
       {loading ? (
-        <div style={{ padding: '40px', textAlign: 'center' }}><div className="skeleton" style={{ height: '400px', borderRadius: '20px' }}></div></div>
+        <div style={{ padding: '40px', textAlign: 'center' }}><div className="skeleton" style={{ height: '300px', borderRadius: '20px' }}></div></div>
       ) : viewMode === 'kanban' ? (
-        <div style={{ overflowX: 'auto', paddingBottom: '24px' }}>
+        <div style={{ overflowX: 'auto', paddingBottom: '24px', WebkitOverflowScrolling: 'touch' }}>
            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-             <div style={{ display: 'flex', gap: '20px', minWidth: 'max-content' }}>
+             <div style={{ display: 'flex', gap: isMobile ? '12px' : '20px', minWidth: isMobile ? '100%' : 'max-content', flexDirection: isMobile ? 'column' : 'row' }}>
                {IS_AKISI.map(durum => (
                  <KanbanColumn 
                    key={durum} 
@@ -344,53 +338,55 @@ export default function ServisKayitlariListesi() {
         </div>
       ) : (
         <div className="card" style={{ overflow: 'hidden' }}>
-          <div style={{ padding: '16px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', gap: '16px', alignItems: 'center', background: '#fafbfc' }}>
-            <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
-              <input type="text" placeholder="İş Emri No, Müşteri, Plaka ara..." value={arama} onChange={e => setArama(e.target.value)} style={{ width: '100%', padding: '12px 16px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} />
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', background: '#fafbfc' }}>
+            <div style={{ position: 'relative', width: '100%' }}>
+              <input type="text" placeholder="No, Müşteri veya Plaka ara..." value={arama} onChange={e => setArama(e.target.value)} style={{ width: '100%', padding: '12px 16px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} />
             </div>
           </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  {['İş Emri No', 'Müşteri / Plaka', 'Giriş Tarihi', 'Teknisyen', 'Tutar', 'Ödeme', 'Süreç', ''].map(h => (
-                    <th key={h} style={{ padding: '16px 24px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
-                  ))}
+                   <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>İş Emri No</th>
+                   <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Müşteri / Plaka</th>
+                   {!isMobile && (
+                     <>
+                        <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Giriş Tarihi</th>
+                        <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Teknisyen</th>
+                        <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Tutar</th>
+                     </>
+                   )}
+                   <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Süreç</th>
+                   <th style={{ padding: '16px 20px' }}></th>
                 </tr>
               </thead>
               <tbody>
-                {paginated.map((s, idx) => {
+                {paginated.map((s) => {
                   const bdg = durumBadge(s.durum)
-                  const odemeRenk = s.odeme_durumu === 'Ödendi' ? '#166534' : (s.odeme_durumu === 'Kısmi Ödendi' ? '#854d0e' : '#991b1b')
-                  const odemeBg = s.odeme_durumu === 'Ödendi' ? '#dcfce7' : (s.odeme_durumu === 'Kısmi Ödendi' ? '#fef9c3' : '#fee2e2')
-
                   return (
                     <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }} className="hover-row">
-                      <td style={{ padding: '16px 24px' }}>
-                        <span style={{ fontWeight: 800, color: '#3b82f6', fontFamily: 'monospace', background: '#eff6ff', padding: '4px 8px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
-                          {s.servis_no}
+                      <td style={{ padding: '16px 20px' }}>
+                        <span style={{ fontWeight: 800, color: '#3b82f6', fontFamily: 'monospace', background: '#eff6ff', padding: '4px 8px', borderRadius: '6px', fontSize: '12px' }}>
+                           #{s.servis_no}
                         </span>
+                        {isMobile && <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>{new Date(s.giris_tarihi).toLocaleDateString('tr-TR')}</div>}
                       </td>
-                      <td style={{ padding: '16px 24px' }}>
+                      <td style={{ padding: '16px 20px' }}>
                         <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '14px' }}>{s.cari_kart?.yetkili || '—'}</div>
                         <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 700, marginTop: '2px' }}>{s.arac?.plaka || '—'}</div>
                       </td>
-                      <td style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: '#475569' }}>
-                        {new Date(s.giris_tarihi).toLocaleDateString('tr-TR')}
+                      {!isMobile && (
+                        <>
+                          <td style={{ padding: '16px 20px', fontSize: '13px', fontWeight: 600, color: '#475569' }}>{new Date(s.giris_tarihi).toLocaleDateString('tr-TR')}</td>
+                          <td style={{ padding: '16px 20px', fontSize: '13px', fontWeight: 700, color: '#334155' }}>{s.teknisyen || '—'}</td>
+                          <td style={{ padding: '16px 20px', fontWeight: 900, color: '#0f172a', fontSize: '14px' }}>{(s.toplam_tutar || 0).toLocaleString('tr-TR')} ₺</td>
+                        </>
+                      )}
+                      <td style={{ padding: '16px 20px' }}>
+                        <span style={{ padding: '4px 10px', borderRadius: '99px', fontSize: '11px', fontWeight: 800, color: bdg.color, background: bdg.background, whiteSpace: 'nowrap' }}>{s.durum}</span>
+                        {isMobile && s.toplam_tutar > 0 && <div style={{ fontSize: '11px', fontWeight: 900, marginTop: '4px' }}>{s.toplam_tutar.toLocaleString('tr-TR')} ₺</div>}
                       </td>
-                      <td style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 700, color: '#334155' }}>
-                        {s.teknisyen || '—'}
-                      </td>
-                      <td style={{ padding: '16px 24px', fontWeight: 900, color: '#0f172a', fontSize: '14px' }}>
-                        {(s.toplam_tutar || 0).toLocaleString('tr-TR')} ₺
-                      </td>
-                      <td style={{ padding: '16px 24px' }}>
-                         <span style={{ padding: '4px 10px', borderRadius: '99px', fontSize: '11px', fontWeight: 800, color: odemeRenk, background: odemeBg }}>{s.odeme_durumu || 'Ödenmedi'}</span>
-                      </td>
-                      <td style={{ padding: '16px 24px' }}>
-                        <span style={{ padding: '4px 10px', borderRadius: '99px', fontSize: '11px', fontWeight: 800, color: bdg.color, background: bdg.background }}>{s.durum}</span>
-                      </td>
-                      <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                      <td style={{ padding: '16px 20px', textAlign: 'right' }}>
                         <Link href={`/servis-kayitlari/${s.id}`} style={{ padding: '8px 12px', background: '#f8fafc', color: '#3b82f6', borderRadius: '8px', fontSize: '13px', fontWeight: 800, textDecoration: 'none', border: '1px solid #e2e8f0' }}>Aç</Link>
                       </td>
                     </tr>
@@ -399,8 +395,12 @@ export default function ServisKayitlariListesi() {
               </tbody>
             </table>
           </div>
-          <div style={{ padding: '16px 24px' }}>
+          <div style={{ padding: '16px' }}>
             <Pagination totalItems={filtered.length} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
+          </div>
+        </div>
+      )}
+e} currentPage={currentPage} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
           </div>
         </div>
       )}
