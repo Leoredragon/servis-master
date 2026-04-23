@@ -102,9 +102,7 @@ export default function YeniServis() {
              
              <div>
                 <label style={labelStyle}>Müşteri Seçin *</label>
-                <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '2px' }}>
-                  <CariSec value={form.cari_id} onChange={(id) => setForm({...form, cari_id: id})} />
-                </div>
+                <CariSec value={form.cari_id} onChange={(id) => setForm({...form, cari_id: id})} />
              </div>
 
              {form.cari_id && (

@@ -171,19 +171,19 @@ export default function YeniFaturaPage() {
             </div>
           </div>
 
-          <div className="card">
+          <div className="card" style={{ overflow: 'visible' }}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800 }}>Fatura Kalemleri</h3>
                <button onClick={addKalem} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '13px' }}>{Icons.plus} Satır Ekle</button>
             </div>
-            <div className="card-body" style={{ padding: 0 }}>
-               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="card-body" style={{ padding: 0, overflow: 'visible' }}>
+               <table style={{ width: '100%', borderCollapse: 'collapse', overflow: 'visible' }}>
                   <thead>
                      <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                         <th style={{ textAlign: 'left', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase' }}>Açıklama</th>
                         <th style={{ textAlign: 'center', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', width: '80px' }}>Miktar</th>
                         <th style={{ textAlign: 'center', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', width: '110px' }}>Birim Fiyat</th>
-                        <th style={{ textAlign: 'center', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', width: '90px' }}>KDV</th>
+                        <th style={{ textAlign: 'center', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', width: '120px' }}>KDV</th>
                         <th style={{ textAlign: 'right', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', width: '110px' }}>Toplam</th>
                         <th style={{ width: '50px' }}></th>
                      </tr>
@@ -208,17 +208,17 @@ export default function YeniFaturaPage() {
                               <input type="number" step="0.01" style={{ ...inputStyle, padding: '8px', textAlign: 'right' }} value={k.birim_fiyat} onChange={e => updateKalem(k.id, { birim_fiyat: parseFloat(e.target.value) || 0 })} />
                            </td>
                            <td style={{ padding: '12px 20px' }}>
-                              <select style={{ ...inputStyle, padding: '6px' }} value={k.kdv_oran} onChange={e => updateKalem(k.id, { kdv_oran: parseInt(e.target.value) })}>
-                                 <option value={0}>%0</option>
-                                 <option value={1}>%1</option>
-                                 <option value={10}>%10</option>
-                                 <option value={20}>%20</option>
-                              </select>
-                              <div style={{ marginTop: '4px', textAlign: 'center' }}>
-                                <label style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
-                                  <input type="checkbox" checked={k.kdv_dahil} onChange={e => updateKalem(k.id, { kdv_dahil: e.target.checked })} /> Dahil
-                                </label>
-                              </div>
+                               <select style={{ ...inputStyle, padding: '8px 12px', width: '100%', minWidth: '80px' }} value={k.kdv_oran} onChange={e => updateKalem(k.id, { kdv_oran: parseInt(e.target.value) })}>
+                                  <option value={0}>%0</option>
+                                  <option value={1}>%1</option>
+                                  <option value={10}>%10</option>
+                                  <option value={20}>%20</option>
+                               </select>
+                               <div style={{ marginTop: '8px', textAlign: 'center' }}>
+                                 <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                   <input type="checkbox" style={{ width: '14px', height: '14px' }} checked={k.kdv_dahil} onChange={e => updateKalem(k.id, { kdv_dahil: e.target.checked })} /> Dahil
+                                 </label>
+                               </div>
                            </td>
                            <td style={{ padding: '12px 20px', textAlign: 'right', fontWeight: 700, fontSize: '14px' }}>
                               {(k.kdv_dahil ? (k.miktar * k.birim_fiyat) : (k.miktar * k.birim_fiyat * (1 + k.kdv_oran/100))).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
