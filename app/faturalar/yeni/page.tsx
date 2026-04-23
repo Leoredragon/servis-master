@@ -196,7 +196,7 @@ export default function YeniFaturaPage() {
                          <th style={{ textAlign: 'center', padding: '12px 10px', fontSize: '11px', color: '#94a3b8', width: '80px' }}>Miktar</th>
                          <th style={{ textAlign: 'center', padding: '12px 10px', fontSize: '11px', color: '#94a3b8', width: '80px' }}>Birim</th>
                          <th style={{ textAlign: 'center', padding: '12px 10px', fontSize: '11px', color: '#94a3b8', width: '120px' }}>Birim Fiyat</th>
-                         <th style={{ textAlign: 'center', padding: '12px 10px', fontSize: '11px', color: '#94a3b8', width: '150px' }}>KDV % / Dahil</th>
+                         <th style={{ textAlign: 'center', padding: '12px 10px', fontSize: '11px', color: '#94a3b8', width: '180px' }}>KDV % / Dahil</th>
                          <th style={{ textAlign: 'right', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', width: '120px' }}>Toplam</th>
                          <th style={{ width: '40px' }}></th>
                       </tr>
@@ -211,7 +211,7 @@ export default function YeniFaturaPage() {
                                <SmartProductSearch 
                                  value={k.aciklama} 
                                  onChange={v => updateKalem(k.id, { aciklama: v })}
-                                 onSelect={p => updateKalem(k.id, { stok_id: p.id, aciklama: p.ad, birim: p.birim, birim_fiyat: p.s_fiyat, kdv_oran: parseInt(p.kdv_oran) || 20 })}
+                                 onSelect={p => updateKalem(k.id, { stok_id: p.id, aciklama: p.ad, birim: p.birim, birim_fiyat: p.s_fiyat, kdv_oran: p.kdv_oran || 20 })}
                                />
                             </td>
                             <td style={{ padding: '12px 10px' }}>
@@ -224,15 +224,15 @@ export default function YeniFaturaPage() {
                                <input type="number" step="0.01" style={{ ...inputStyle, padding: '8px', textAlign: 'right' }} value={k.birim_fiyat} onChange={e => updateKalem(k.id, { birim_fiyat: parseFloat(e.target.value) || 0 })} />
                             </td>
                             <td style={{ padding: '12px 10px' }}>
-                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                 <select style={{ ...inputStyle, padding: '8px', flex: 1 }} value={k.kdv_oran} onChange={e => updateKalem(k.id, { kdv_oran: parseInt(e.target.value) })}>
+                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                 <select style={{ ...inputStyle, width: 'auto', flex: 1, padding: '8px' }} value={k.kdv_oran} onChange={e => updateKalem(k.id, { kdv_oran: parseInt(e.target.value) })}>
                                     <option value={0}>%0</option>
                                     <option value={1}>%1</option>
                                     <option value={10}>%10</option>
                                     <option value={20}>%20</option>
                                  </select>
                                  <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
-                                   <input type="checkbox" style={{ width: '14px', height: '14px' }} checked={k.kdv_dahil} onChange={e => updateKalem(k.id, { kdv_dahil: e.target.checked })} /> Dahil
+                                   <input type="checkbox" style={{ width: '15px', height: '15px', cursor: 'pointer' }} checked={k.kdv_dahil} onChange={e => updateKalem(k.id, { kdv_dahil: e.target.checked })} /> Dahil
                                  </label>
                                </div>
                             </td>
