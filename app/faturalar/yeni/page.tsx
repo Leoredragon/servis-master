@@ -122,7 +122,7 @@ export default function YeniFaturaPage() {
          }
       }
 
-      router.push('/faturalar')
+      router.push(`/faturalar/${fData.id}`)
     } catch (err: any) {
       alert(err.message)
     } finally {

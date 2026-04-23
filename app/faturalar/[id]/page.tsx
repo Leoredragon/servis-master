@@ -1,286 +1,206 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import { supabase } from '@/app/lib/supabase'
 import { useRouter } from 'next/navigation'
-import CariSec from '@/app/components/CariSec'
-import SmartProductSearch, { StokItem } from '@/app/components/SmartProductSearch'
+import Link from 'next/link'
 
 const Icons = {
   back: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
-  save: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>,
-  plus: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-  trash: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2 2v2"/></svg>,
+  print: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>,
+  user: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  calendar: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+  hash: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>,
 }
 
-interface Kalem {
-  id: string
-  stok_id: number | null
-  aciklama: string
-  miktar: number
-  birim: string
-  birim_fiyat: number
-  kdv_oran: number
-  kdv_dahil: boolean
-  toplam_tutar: number
-}
-
-export default function YeniFaturaPage() {
+export default function FaturaDetayPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params)
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [evrakNo, setEvrakNo] = useState('')
-  const [cariId, setCariId] = useState('')
-  const [tarih, setTarih] = useState(new Date().toISOString().split('T')[0])
-  const [tur, setTur] = useState('Satış')
-  const [notlar, setNotlar] = useState('')
-  const [kalemler, setKalemler] = useState<Kalem[]>([])
-  const [smsGonder, setSmsGonder] = useState(true)
-
-  const [totals, setTotals] = useState({ araToplam: 0, kdvToplam: 0, genelToplam: 0 })
+  const [loading, setLoading] = useState(true)
+  const [fatura, setFatura] = useState<any>(null)
+  const [kalemler, setKalemler] = useState<any[]>([])
 
   useEffect(() => {
-    setEvrakNo(`FAT-${Date.now()}`)
-  }, [])
+    async function loadData() {
+      setLoading(true)
+      try {
+        const { data: fData, error: fErr } = await supabase
+          .from('fatura')
+          .select('*, cari_kart(*)')
+          .eq('id', resolvedParams.id)
+          .single()
 
-  // Calculate totals
-  useEffect(() => {
-    let ara = 0, kdv = 0, genel = 0
-    kalemler.forEach(k => {
-      const lineAmount = k.miktar * k.birim_fiyat
-      if (k.kdv_dahil) {
-        genel += lineAmount
-        const base = lineAmount / (1 + k.kdv_oran / 100)
-        ara += base
-        kdv += (lineAmount - base)
-      } else {
-        ara += lineAmount
-        const tax = lineAmount * (k.kdv_oran / 100)
-        kdv += tax
-        genel += (lineAmount + tax)
+        if (fErr) throw fErr
+        setFatura(fData)
+
+        const { data: kData, error: kErr } = await supabase
+          .from('fat_isl')
+          .select('*')
+          .eq('fatura_id', resolvedParams.id)
+          .order('id', { ascending: true })
+
+        if (kErr) throw kErr
+        setKalemler(kData || [])
+
+      } catch (err: any) {
+        console.error('Veri yükleme hatası:', err.message)
+      } finally {
+        setLoading(false)
       }
-    })
-    setTotals({ araToplam: ara, kdvToplam: kdv, genelToplam: genel })
-  }, [kalemler])
-
-  const addKalem = () => {
-    setKalemler([...kalemler, { id: Math.random().toString(36).substr(2, 9), stok_id: null, aciklama: '', miktar: 1, birim: 'Adet', birim_fiyat: 0, kdv_oran: 20, kdv_dahil: true, toplam_tutar: 0 }])
-  }
-
-  const updateKalem = (id: string, updates: Partial<Kalem>) => {
-    setKalemler(kalemler.map(k => k.id === id ? { ...k, ...updates } : k))
-  }
-
-  const saveFatura = async () => {
-    if (!cariId) { alert('Lütfen müşteri seçin'); return }
-    if (kalemler.length === 0) { alert('Lütfen en az bir kalem ekleyin'); return }
-
-    setLoading(true)
-    try {
-      const currentUser = (await supabase.auth.getUser()).data.user?.email || 'admin'
-      // 1. Header Insertion
-      const { data: fData, error: fErr } = await supabase.from('fatura').insert([{
-        evrak_no: evrakNo,
-        cari_id: parseInt(cariId),
-        fat_tarih: new Date(tarih).toISOString(),
-        fatura_turu: tur,
-        toplam: totals.araToplam,
-        kdv: totals.kdvToplam,
-        gtoplam: totals.genelToplam,
-        aciklama: notlar,
-        odeme_durumu: 'Bekliyor',
-        kullaniciadi: currentUser,
-        subeadi: 'Merkez'
-      }]).select().single()
-
-      if (fErr) throw fErr
-
-      // 2. Items Insertion
-      const kalemPayload = kalemler.map(k => ({
-        fatura_id: fData.id,
-        stok_id: k.stok_id,
-        aciklama: k.aciklama,
-        miktar: k.miktar,
-        birim: k.birim,
-        birim_fiyat: k.birim_fiyat,
-        kdv_oran: k.kdv_oran,
-        kdv_dahil: k.kdv_dahil,
-        toplam_tutar: k.kdv_dahil ? (k.miktar * k.birim_fiyat) : (k.miktar * k.birim_fiyat * (1 + k.kdv_oran/100)),
-        kullaniciadi: currentUser,
-        subeadi: 'Merkez'
-      }))
-
-      const { error: kErr } = await supabase.from('fat_isl').insert(kalemPayload)
-      if (kErr) throw kErr
-
-      if (smsGonder && cariId) {
-         const { data: cData } = await supabase.from('cari_kart').select('cep, yetkili').eq('id', cariId).single()
-         if (cData?.cep) {
-            const smsMessage = `Sayın ${cData.yetkili}, ${totals.genelToplam.toLocaleString('tr-TR')} TL tutarındaki ${evrakNo} numaralı faturanız oluşturulmuştur.`
-            await fetch('/api/sms', {
-               method: 'POST', body: JSON.stringify({ alici: cData.cep, mesaj: smsMessage, modulInfo: 'Fatura' })
-            })
-         }
-      }
-
-      router.push('/faturalar')
-    } catch (err: any) {
-      alert(err.message)
-    } finally {
-      setLoading(false)
     }
+    loadData()
+  }, [resolvedParams.id])
+
+  if (loading) {
+    return (
+      <div style={{ padding: '40px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="skeleton" style={{ height: '40px', width: '200px' }} />
+        <div className="skeleton" style={{ height: '300px', width: '100%' }} />
+      </div>
+    )
   }
 
-  const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' }
-  const inputStyle = { width: '100%', padding: '12px 16px', border: '1.5px solid #e2e8f0', borderRadius: '12px', fontSize: '14px', outline: 'none', background: '#fff' }
+  if (!fatura) {
+    return (
+      <div style={{ padding: '80px', textAlign: 'center' }}>
+        <h2 style={{ color: '#64748b' }}>Fatura bulunamadı.</h2>
+        <Link href="/faturalar" style={{ color: '#3b82f6', fontWeight: 700, textDecoration: 'none', marginTop: '10px', display: 'inline-block' }}>Faturalara Dön</Link>
+      </div>
+    )
+  }
 
   return (
     <div className="animate-fadeIn" style={{ padding: '0 32px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
-        <button onClick={() => router.back()} style={{ width: '40px', height: '40px', borderRadius: '12px', border: '1.5px solid #e2e8f0', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>{Icons.back}</button>
-        <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px' }}>Yeni Fatura Oluştur</h1>
-          <p style={{ color: '#64748b', fontSize: '14px' }}>Satış veya alış faturası hazırlayarak cari bakiyeyi güncelleyin.</p>
+      {/* Üst Bar / Geri Dönüş */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button 
+            onClick={() => router.push('/faturalar')} 
+            style={{ width: '40px', height: '40px', borderRadius: '12px', border: '1.5px solid #e2e8f0', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}
+          >
+            {Icons.back}
+          </button>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.5px' }}>Fatura Detayı</h1>
+              <span style={{ 
+                padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase',
+                background: fatura.fatura_turu === 'Satış' ? '#f0fdf4' : '#fef2f2',
+                color: fatura.fatura_turu === 'Satış' ? '#15803d' : '#ef4444'
+              }}>
+                {fatura.fatura_turu}
+              </span>
+            </div>
+            <p style={{ color: '#64748b', fontSize: '14px', marginTop: '2px' }}>{fatura.evrak_no} numaralı faturanın detayları.</p>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button 
+            onClick={() => window.print()} 
+            className="btn-secondary" 
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px' }}
+          >
+            {Icons.print} Yazdır / PDF
+          </button>
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '32px', alignItems: 'start' }}>
+        
+        {/* Sol Kolon: Fatura Başlık ve Kalemler */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-          <div className="card" style={{ overflow: 'visible', position: 'relative', zIndex: 20 }}>
-            <div className="card-header">Fatura Başlık Bilgileri</div>
-            <div className="card-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-               <div style={{ gridColumn: 'span 2' }}>
-                 <label style={labelStyle}>Müşteri / Cari *</label>
-                 <CariSec value={cariId} onChange={setCariId} />
-               </div>
-               <div>
-                 <label style={labelStyle}>Fatura No</label>
-                 <input style={inputStyle} value={evrakNo} onChange={e => setEvrakNo(e.target.value)} />
-               </div>
-               <div>
-                 <label style={labelStyle}>Fatura Türü</label>
-                 <select style={inputStyle} value={tur} onChange={e => setTur(e.target.value)}>
-                    <option value="Satış">Satış Faturası</option>
-                    <option value="Alış">Alış Faturası</option>
-                    <option value="İade">İade Faturası</option>
-                 </select>
-               </div>
-               <div>
-                 <label style={labelStyle}>Fatura Tarihi</label>
-                 <input type="date" style={inputStyle} value={tarih} onChange={e => setTarih(e.target.value)} />
-               </div>
-            </div>
-          </div>
-
+          
+          {/* Fatura Bilgi Özeti */}
           <div className="card">
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="card-header">Fatura Bilgileri</div>
+            <div className="card-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+              <InfoItem icon={Icons.user} label="MÜŞTERİ / CARİ" value={fatura.cari_kart?.yetkili || '—'} subValue={fatura.cari_kart?.tel} />
+              <InfoItem icon={Icons.calendar} label="FATURA TARİHİ" value={new Date(fatura.fat_tarih).toLocaleDateString('tr-TR')} />
+              <InfoItem icon={Icons.hash} label="EVRAK NO" value={fatura.evrak_no} />
+              <InfoItem 
+                icon={Icons.hash} 
+                label="ÖDEME DURUMU" 
+                value={fatura.odeme_durumu || 'Bekliyor'} 
+                color={fatura.odeme_durumu === 'Ödendi' ? '#10b981' : '#64748b'} 
+              />
+            </div>
+          </div>
+
+          {/* Kalemler Tablosu */}
+          <div className="card" style={{ padding: 0 }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0' }}>
                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800 }}>Fatura Kalemleri</h3>
-               <button onClick={addKalem} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '13px' }}>{Icons.plus} Satır Ekle</button>
             </div>
-            <div className="card-body" style={{ padding: 0 }}>
-               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                        <th style={{ textAlign: 'left', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase' }}>Açıklama</th>
-                        <th style={{ textAlign: 'center', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', width: '80px' }}>Miktar</th>
-                        <th style={{ textAlign: 'center', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', width: '110px' }}>Birim Fiyat</th>
-                        <th style={{ textAlign: 'center', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', width: '90px' }}>KDV</th>
-                        <th style={{ textAlign: 'right', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', width: '110px' }}>Toplam</th>
-                        <th style={{ width: '50px' }}></th>
-                     </tr>
-                  </thead>
-                  <tbody>
-                     {kalemler.length === 0 && (
-                        <tr><td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>Henüz kalem eklenmedi.</td></tr>
-                     )}
-                     {kalemler.map(k => (
-                        <tr key={k.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                           <td style={{ padding: '12px 20px' }}>
-                              <SmartProductSearch 
-                                value={k.aciklama} 
-                                onChange={v => updateKalem(k.id, { aciklama: v })}
-                                onSelect={p => updateKalem(k.id, { stok_id: p.id, aciklama: p.ad, birim: p.birim, birim_fiyat: p.s_fiyat, kdv_oran: p.kdv_oran })}
-                              />
-                           </td>
-                           <td style={{ padding: '12px 20px' }}>
-                              <input type="number" step="0.01" style={{ ...inputStyle, padding: '8px', textAlign: 'center' }} value={k.miktar} onChange={e => updateKalem(k.id, { miktar: parseFloat(e.target.value) || 0 })} />
-                           </td>
-                           <td style={{ padding: '12px 20px' }}>
-                              <input type="number" step="0.01" style={{ ...inputStyle, padding: '8px', textAlign: 'right' }} value={k.birim_fiyat} onChange={e => updateKalem(k.id, { birim_fiyat: parseFloat(e.target.value) || 0 })} />
-                           </td>
-                           <td style={{ padding: '12px 20px' }}>
-                              <select style={{ ...inputStyle, padding: '6px' }} value={k.kdv_oran} onChange={e => updateKalem(k.id, { kdv_oran: parseInt(e.target.value) })}>
-                                 <option value={0}>%0</option>
-                                 <option value={1}>%1</option>
-                                 <option value={10}>%10</option>
-                                 <option value={20}>%20</option>
-                              </select>
-                              <div style={{ marginTop: '4px', textAlign: 'center' }}>
-                                <label style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
-                                  <input type="checkbox" checked={k.kdv_dahil} onChange={e => updateKalem(k.id, { kdv_dahil: e.target.checked })} /> Dahil
-                                </label>
-                              </div>
-                           </td>
-                           <td style={{ padding: '12px 20px', textAlign: 'right', fontWeight: 700, fontSize: '14px' }}>
-                              {(k.kdv_dahil ? (k.miktar * k.birim_fiyat) : (k.miktar * k.birim_fiyat * (1 + k.kdv_oran/100))).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                           </td>
-                           <td style={{ padding: '12px 20px' }}>
-                              <button onClick={() => setKalemler(kalemler.filter(x => x.id !== k.id))} style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer' }}>{Icons.trash}</button>
-                           </td>
-                        </tr>
-                     ))}
-                  </tbody>
-               </table>
-            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                  <th style={{ textAlign: 'left', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase' }}>Açıklama</th>
+                  <th style={{ textAlign: 'center', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', width: '80px' }}>Miktar</th>
+                  <th style={{ textAlign: 'right', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', width: '110px' }}>Birim Fiyat</th>
+                  <th style={{ textAlign: 'center', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', width: '90px' }}>KDV</th>
+                  <th style={{ textAlign: 'right', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', width: '120px' }}>Toplam</th>
+                </tr>
+              </thead>
+              <tbody>
+                {kalemler.map((k, index) => (
+                  <tr key={k.id || index} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#1e293b' }}>{k.aciklama}</td>
+                    <td style={{ padding: '16px 20px', textAlign: 'center', fontSize: '14px' }}>{k.miktar} {k.birim}</td>
+                    <td style={{ padding: '16px 20px', textAlign: 'right', fontSize: '14px' }}>{k.birim_fiyat?.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
+                    <td style={{ padding: '16px 20px', textAlign: 'center', fontSize: '13px', color: '#64748b' }}>%{k.kdv_oran}</td>
+                    <td style={{ padding: '16px 20px', textAlign: 'right', fontSize: '14px', fontWeight: 700 }}>{k.toplam_tutar?.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', position: 'sticky', top: '20px' }}>
-           <div className="card">
-              <div className="card-header">Fatura Özeti</div>
-              <div className="card-body">
-                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                       <span style={{ color: '#64748b', fontWeight: 600 }}>Ara Toplam</span>
-                       <span style={{ fontWeight: 700 }}>{totals.araToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                       <span style={{ color: '#64748b', fontWeight: 600 }}>KDV Toplam</span>
-                       <span style={{ fontWeight: 700 }}>{totals.kdvToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
-                    </div>
-                    <div style={{ height: '1px', background: '#e2e8f0', margin: '8px 0' }}></div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px' }}>
-                       <span style={{ color: '#0f172a', fontWeight: 800 }}>GENEL TOPLAM</span>
-                       <span style={{ color: '#3b82f6', fontWeight: 900 }}>{totals.genelToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
-                    </div>
-                 </div>
-
-                 <div style={{ marginTop: '32px' }}>
-                    <label style={labelStyle}>Fatura Notu / Açıklama</label>
-                    <textarea 
-                      style={{ ...inputStyle, height: '80px', resize: 'none' }} 
-                      value={notlar}
-                      onChange={e => setNotlar(e.target.value)}
-                    />
-                 </div>
-
-                 <div style={{ marginTop: '16px', background: '#e0e7ff', padding: '16px', borderRadius: '12px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: 700, color: '#4338ca' }}>
-                      <input type="checkbox" checked={smsGonder} onChange={e=>setSmsGonder(e.target.checked)} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
-                      Kayıt sonrası müşteriye SMS ile faturayı bildir
-                    </label>
-                 </div>
-
-                 <button 
-                   disabled={loading} 
-                   onClick={saveFatura}
-                   className="btn-primary" 
-                   style={{ width: '100%', height: '52px', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginTop: '32px' }}
-                 >
-                   {Icons.save} {loading ? 'Kaydediliyor...' : 'Faturayı Kes / Kaydet'}
-                 </button>
+        {/* Sağ Kolon: Toplamlar ve Notlar */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          <div className="card shadow-sm" style={{ borderTop: `4px solid ${fatura.fatura_turu === 'Satış' ? '#10b981' : '#ef4444'}` }}>
+            <div className="card-header">Fatura Özeti</div>
+            <div className="card-body">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#64748b', fontWeight: 600 }}>Ara Toplam</span>
+                  <span style={{ fontWeight: 700 }}>{fatura.toplam?.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#64748b', fontWeight: 600 }}>KDV Toplam</span>
+                  <span style={{ fontWeight: 700 }}>{fatura.kdv?.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
+                </div>
+                <div style={{ height: '1.5px', background: '#e2e8f0', margin: '8px 0' }}></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#0f172a', fontWeight: 800, fontSize: '16px' }}>GENEL TOPLAM</span>
+                  <span style={{ color: '#3b82f6', fontWeight: 900, fontSize: '22px' }}>{fatura.gtoplam?.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
+                </div>
               </div>
-           </div>
+
+              {fatura.aciklama && (
+                <div style={{ marginTop: '32px', background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px' }}>Notlar / Açıklama</div>
+                  <div style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{fatura.aciklama}</div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function InfoItem({ icon, label, value, subValue, color }: any) {
+  return (
+    <div style={{ display: 'flex', gap: '12px' }}>
+      <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', flexShrink: 0 }}>
+        {icon}
+      </div>
+      <div>
+        <div style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
+        <div style={{ fontSize: '14px', fontWeight: 700, color: color || '#1e293b', marginTop: '2px' }}>{value}</div>
+        {subValue && <div style={{ fontSize: '12px', color: '#64748b', marginTop: '1px' }}>{subValue}</div>}
       </div>
     </div>
   )

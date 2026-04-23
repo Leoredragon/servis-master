@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import Pagination from '../components/Pagination'
 
 const Icons = {
@@ -15,6 +16,7 @@ const Icons = {
 }
 
 export default function FaturalarPage() {
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [faturalar, setFaturalar] = useState<any[]>([])
   const [search, setSearch] = useState('')
@@ -149,9 +151,9 @@ export default function FaturalarPage() {
             ) : paginated.map(item => (
               <tr 
                 key={item.id} 
-                className="hover-row" 
                 style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}
-                onClick={() => window.location.href = `/faturalar/${item.id}`}
+                className="hover:bg-gray-50 transition-colors"
+                onClick={() => router.push(`/faturalar/${item.id}`)}
               >
                 <td style={{ padding: '16px 24px' }}>
                   <div style={{ fontWeight: 700, color: '#0f172a' }}>{item.evrak_no}</div>
