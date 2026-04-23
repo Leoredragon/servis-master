@@ -25,6 +25,12 @@ function MusteriFormContent() {
     vergi_dairesi: '',
     aciklama: ''
   })
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null)
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3000)
+  }
   const [availableGroups, setAvailableGroups] = useState<string[]>(['Bireysel', 'Kurumsal', 'Bayi', 'VIP'])
 
   useEffect(() => {
@@ -63,7 +69,7 @@ function MusteriFormContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.yetkili.trim()) { alert('Müşteri Kimliği / Ünvan alanı zorunludur.'); return }
+    if (!form.yetkili.trim()) { showToast('Müşteri Kimliği / Ünvan alanı zorunludur.', 'error'); return }
     
     setSaving(true)
     const payload = {
@@ -91,7 +97,7 @@ function MusteriFormContent() {
         router.push(`/musteriler`)
       }
     } catch (err: any) {
-      alert('Hata: ' + err.message)
+      showToast('Hata: ' + err.message, 'error')
       setSaving(false)
     }
   }
@@ -119,13 +125,19 @@ function MusteriFormContent() {
                 <label style={labelStyle}>Müşteri Adı / Firma Ünvanı *</label>
                 <input required style={inputStyle} placeholder="Örn: Ahmet Yılmaz veya ABC Ltd." value={form.yetkili} onChange={e => setForm({...form, yetkili: e.target.value})} autoFocus />
              </div>
-             <div>
-                <label style={labelStyle}>Müşteri Grubu</label>
-                <input list="grupList" style={inputStyle} value={form.grup} onChange={e => setForm({...form, grup: e.target.value})} placeholder="Seç veya Yeni Yaz" />
-                <datalist id="grupList">
-                   {availableGroups.map(g => <option key={g} value={g} />)}
-                </datalist>
-             </div>
+              <div>
+                 <label style={labelStyle}>Müşteri Grubu</label>
+                 <select 
+                    style={inputStyle} 
+                    value={form.grup} 
+                    onChange={e => setForm({...form, grup: e.target.value})}
+                 >
+                    <option value="Bireysel">Bireysel</option>
+                    <option value="Kurumsal">Kurumsal</option>
+                    <option value="Bayi">Bayi</option>
+                    <option value="VIP">VIP</option>
+                 </select>
+              </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
@@ -175,6 +187,16 @@ function MusteriFormContent() {
 
         </form>
       </div>
+
+      {toast && (
+        <div className="toast-container">
+          <div className={`toast toast-${toast.type}`}>
+            {toast.type === 'success' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>}
+            {toast.type === 'error' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>}
+            {toast.message}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

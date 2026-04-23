@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { supabase } from '../../lib/supabase'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
+import Modal from '../../components/Modal'
 
 const inputStyle = { width: '100%', padding: '14px 16px', border: '1px solid #e2e8f0', borderRadius: '12px', fontSize: '15px', outline: 'none', background: '#fff', color: '#0f172a', transition: 'all 0.2s' }
 const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' }
@@ -10,10 +11,37 @@ const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, color:
 export default function MusteriForm() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const editId = params?.id as string
 
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(editId ? true : false)
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null)
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3000)
+  }
+
+  // Araç Modal States
+  const [aracModalAcik, setAracModalAcik] = useState(false)
+  const [aracSaving, setAracSaving] = useState(false)
+  const [aracForm, setAracForm] = useState({
+    plaka: '',
+    marka: '',
+    model: '',
+    yil: '',
+    renk: '',
+    km: '',
+    motor_no: '',
+    sasi_no: ''
+  })
+
+  useEffect(() => {
+    if (searchParams.get('arac_ekle') === 'true') {
+      setAracModalAcik(true)
+    }
+  }, [searchParams])
   const [form, setForm] = useState({
     yetkili: '',
     grup: 'Bireysel',
@@ -91,8 +119,44 @@ export default function MusteriForm() {
         router.push(`/musteriler`)
       }
     } catch (err: any) {
-      alert('Hata: ' + err.message)
+      showToast('Hata: ' + err.message, 'error')
       setSaving(false)
+    }
+  }
+
+  const handleAracSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!aracForm.plaka.trim()) { showToast('Plaka alanı zorunludur.', 'error'); return }
+    
+    setAracSaving(true)
+    try {
+      const email = (await supabase.auth.getUser()).data.user?.email || 'admin'
+      const { error } = await supabase.from('arac').insert([{
+        cari_id: parseInt(editId),
+        plaka: aracForm.plaka.toUpperCase().replace(/\s/g, ''),
+        marka: aracForm.marka,
+        model: aracForm.model,
+        yil: parseInt(aracForm.yil) || null,
+        renk: aracForm.renk,
+        guncel_km: parseInt(aracForm.km) || 0,
+        motor_no: aracForm.motor_no,
+        sasi_no: aracForm.sasi_no,
+        kullaniciadi: email,
+        subeadi: 'Merkez'
+      }])
+      
+      if (error) throw error
+      
+      showToast('Araç başarıyla eklendi.', 'success')
+      setAracModalAcik(false)
+      setAracForm({ plaka: '', marka: '', model: '', yil: '', renk: '', km: '', motor_no: '', sasi_no: '' })
+      
+      // Sayfayı yenilemeden modalı kapatıyoruz, 
+      // Eğer bir araç listesi olsaydı onu da yenilerdik.
+    } catch (err: any) {
+      showToast('Hata: ' + err.message, 'error')
+    } finally {
+      setAracSaving(false)
     }
   }
 
@@ -176,6 +240,79 @@ export default function MusteriForm() {
 
         </form>
       </div>
+
+      <Modal isOpen={aracModalAcik} onClose={() => setAracModalAcik(false)} title="Yeni Araç Ekle" size="md">
+         <form onSubmit={handleAracSubmit} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+               <div style={{ gridColumn: 'span 2' }}>
+                  <label style={labelStyle}>Plaka *</label>
+                  <input 
+                    required 
+                    style={{ ...inputStyle, textTransform: 'uppercase', fontWeight: 800, fontSize: '18px', textAlign: 'center' }} 
+                    placeholder="34 ABC 123" 
+                    value={aracForm.plaka} 
+                    onChange={e => setAracForm({...aracForm, plaka: e.target.value.toUpperCase()})} 
+                  />
+               </div>
+               <div>
+                  <label style={labelStyle}>Marka</label>
+                  <input style={inputStyle} placeholder="Örn: BMW" value={aracForm.marka} onChange={e => setAracForm({...aracForm, marka: e.target.value})} />
+               </div>
+               <div>
+                  <label style={labelStyle}>Model</label>
+                  <input style={inputStyle} placeholder="Örn: 320i" value={aracForm.model} onChange={e => setAracForm({...aracForm, model: e.target.value})} />
+               </div>
+               <div>
+                  <label style={labelStyle}>Yıl</label>
+                  <input type="number" style={inputStyle} placeholder="2023" value={aracForm.yil} onChange={e => setAracForm({...aracForm, yil: e.target.value})} />
+               </div>
+               <div>
+                  <label style={labelStyle}>Renk</label>
+                  <input style={inputStyle} placeholder="Siyah" value={aracForm.renk} onChange={e => setAracForm({...aracForm, renk: e.target.value})} />
+               </div>
+               <div>
+                  <label style={labelStyle}>Kilometre (KM)</label>
+                  <input type="number" style={inputStyle} placeholder="45000" value={aracForm.km} onChange={e => setAracForm({...aracForm, km: e.target.value})} />
+               </div>
+               <div style={{ gridColumn: 'span 2' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                     <div>
+                        <label style={labelStyle}>Motor No</label>
+                        <input style={inputStyle} value={aracForm.motor_no} onChange={e => setAracForm({...aracForm, motor_no: e.target.value})} />
+                     </div>
+                     <div>
+                        <label style={labelStyle}>Şasi No</label>
+                        <input style={inputStyle} value={aracForm.sasi_no} onChange={e => setAracForm({...aracForm, sasi_no: e.target.value})} />
+                     </div>
+                  </div>
+               </div>
+            </div>
+            <div style={{ marginTop: '12px', display: 'flex', gap: '12px' }}>
+               <button type="submit" disabled={aracSaving} className="btn-primary" style={{ flex: 1, padding: '14px', borderRadius: '12px', fontSize: '15px' }}>
+                  {aracSaving ? 'Kaydediliyor...' : 'Aracı Kaydet'}
+               </button>
+               <button type="button" onClick={() => setAracModalAcik(false)} style={{ padding: '14px 20px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer' }}>İptal</button>
+            </div>
+         </form>
+      </Modal>
+
+      {toast && (
+        <div className="toast-container">
+          <div className={`toast toast-${toast.type}`}>
+            {toast.type === 'success' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>}
+            {toast.type === 'error' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>}
+            {toast.message}
+          </div>
+        </div>
+      )}
     </div>
+  )
+}
+
+export default function MusteriEditPage() {
+  return (
+    <Suspense fallback={<div>Yükleniyor...</div>}>
+      <MusteriForm />
+    </Suspense>
   )
 }

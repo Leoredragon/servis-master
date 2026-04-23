@@ -37,6 +37,12 @@ export default function YeniFaturaPage() {
   const [smsGonder, setSmsGonder] = useState(true)
 
   const [totals, setTotals] = useState({ araToplam: 0, kdvToplam: 0, genelToplam: 0 })
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null)
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3000)
+  }
 
   useEffect(() => {
     setEvrakNo(`FAT-${Date.now()}`)
@@ -124,10 +130,16 @@ export default function YeniFaturaPage() {
 
       router.push(`/faturalar/${fData.id}`)
     } catch (err: any) {
-      alert(err.message)
+      showToast(err.message, 'error')
     } finally {
       setLoading(false)
     }
+  }
+
+  const saveFaturaWithCheck = () => {
+    if (!cariId) { showToast('Lütfen müşteri seçin', 'error'); return }
+    if (kalemler.length === 0) { showToast('Lütfen en az bir kalem ekleyin', 'error'); return }
+    saveFatura()
   }
 
   const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' }
@@ -272,7 +284,7 @@ export default function YeniFaturaPage() {
 
                  <button 
                    disabled={loading} 
-                   onClick={saveFatura}
+                   onClick={saveFaturaWithCheck}
                    className="btn-primary" 
                    style={{ width: '100%', height: '52px', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginTop: '32px' }}
                  >
@@ -282,6 +294,16 @@ export default function YeniFaturaPage() {
            </div>
         </div>
       </div>
+
+      {toast && (
+        <div className="toast-container">
+          <div className={`toast toast-${toast.type}`}>
+            {toast.type === 'success' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>}
+            {toast.type === 'error' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>}
+            {toast.message}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

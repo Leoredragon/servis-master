@@ -22,6 +22,12 @@ export default function YeniServis() {
   
   const [araclar, setAraclar] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null)
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3000)
+  }
 
   // Generate SRV code
   const today = new Date()
@@ -52,7 +58,7 @@ export default function YeniServis() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.cari_id || !form.arac_id) {
-      alert('Lütfen müşteri ve ait olduğu bir aracı seçin.')
+      showToast('Lütfen müşteri ve ait olduğu bir aracı seçin.', 'error')
       return
     }
 
@@ -76,7 +82,7 @@ export default function YeniServis() {
     const { data, error } = await supabase.from('servis_karti').insert([payload]).select().single()
 
     if (error) {
-      alert('Hata oluştu: ' + error.message)
+      showToast('Hata oluştu: ' + error.message, 'error')
       setLoading(false)
     } else {
       router.push(`/servis-kayitlari/${data.id}`)
@@ -155,6 +161,16 @@ export default function YeniServis() {
 
         </form>
       </div>
+
+      {toast && (
+        <div className="toast-container">
+          <div className={`toast toast-${toast.type}`}>
+            {toast.type === 'success' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>}
+            {toast.type === 'error' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>}
+            {toast.message}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
