@@ -136,7 +136,6 @@ export default function Musteriler() {
     }
   }
 
-  return (
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
@@ -144,96 +143,6 @@ export default function Musteriler() {
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [])
-
-  const fetchVeriler = useCallback(async () => {
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('cari_kart')
-      .select('*, arac(id), servis_karti(durum, giris_tarihi)')
-      .order('id', { ascending: false })
-    
-    if (error) {
-      console.error(error)
-      setLoading(false)
-      return
-    }
-
-    const mapped = (data || []).map(m => {
-      const servisler = m.servis_karti || []
-      const aktifS = servisler.filter((s:any) => s.durum === 'İşlemde').length
-      
-      let sonIslem = null
-      if (servisler.length > 0) {
-        sonIslem = servisler.sort((a:any, b:any) => new Date(b.giris_tarihi).getTime() - new Date(a.giris_tarihi).getTime())[0].giris_tarihi
-      }
-
-      return {
-        ...m,
-        aracSayisi: m.arac ? m.arac.length : 0,
-        servisSayisi: servisler.length,
-        aktifServisCount: aktifS,
-        sonIslemTarihi: sonIslem
-      }
-    })
-
-    setMusteriler(mapped)
-
-    let tArac = 0
-    let tAktif = 0
-    const uniqueGroups = new Set<string>()
-
-    mapped.forEach(m => {
-      tArac += m.aracSayisi
-      tAktif += m.aktifServisCount
-      if (m.grup) uniqueGroups.add(m.grup)
-    })
-
-    setSummary({
-      toplamMusteri: mapped.length,
-      toplamArac: tArac,
-      buAyYeni: 0,
-      aktifServis: tAktif
-    })
-    
-    setGroups(Array.from(uniqueGroups).sort())
-    setLoading(false)
-  }, [])
-
-  useEffect(() => { fetchVeriler() }, [fetchVeriler])
-
-  useEffect(() => {
-    const handler = setTimeout(() => { setDebouncedSearch(searchQuery) }, 300)
-    return () => clearTimeout(handler)
-  }, [searchQuery])
-
-  // Filtering Logic
-  const filteredMusteriler = useMemo(() => {
-    let res = musteriler
-    if (selectedGroup !== 'Tümü') res = res.filter(x => x.grup === selectedGroup)
-    if (debouncedSearch) {
-      const qs = debouncedSearch.toLowerCase()
-      res = res.filter(x => 
-        (x.yetkili || '').toLowerCase().includes(qs) || 
-        (x.tel || '').toLowerCase().includes(qs) ||
-        (x.cep || '').toLowerCase().includes(qs) ||
-        (x.mail || '').toLowerCase().includes(qs) ||
-        (x.vergi_no || '').toLowerCase().includes(qs)
-      )
-    }
-    return res
-  }, [musteriler, selectedGroup, debouncedSearch])
-
-  const paginatedMusteriler = filteredMusteriler.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-
-  const handleDelete = async () => {
-    if (!confirmDelete.id) return
-    const { error } = await supabase.from('cari_kart').delete().eq('id', confirmDelete.id)
-    if (error) alert(error.message)
-    else {
-      setConfirmDelete({ open: false, id: null })
-      fetchVeriler()
-    }
-  }
 
   return (
     <div className="animate-fadeIn" style={{ width: '100%', padding: isMobile ? '0' : '0 32px' }}>

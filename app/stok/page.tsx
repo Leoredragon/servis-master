@@ -115,7 +115,6 @@ export default function StokYonetimi() {
     return { bg: '#dcfce7', text: '#16a34a', label: 'Normal' }
   }
 
-  return (
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
@@ -123,70 +122,6 @@ export default function StokYonetimi() {
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [])
-
-  const handleSetView = (v: 'table'|'grid') => {
-    setViewMode(v)
-    localStorage.setItem('stok_view', v)
-  }
-
-  const fetchData = useCallback(async () => {
-    setLoading(true)
-    const { data } = await supabase.from('stok').select('*').order('ad')
-    setItems(data || [])
-    const grps = Array.from(new Set((data || []).map(x => x.grup).filter(Boolean)))
-    setGruplar(grps as string[])
-    setLoading(false)
-  }, [])
-
-  useEffect(() => { fetchData() }, [fetchData])
-
-  useEffect(() => {
-    const handler = setTimeout(() => setDebouncedSearch(search), 300)
-    return () => clearTimeout(handler)
-  }, [search])
-
-  const handleDelete = async () => {
-    if (!confirmDelete.id) return
-    await supabase.from('stok_hareket').delete().eq('stok_id', confirmDelete.id)
-    await supabase.from('stok').delete().eq('id', confirmDelete.id)
-    setConfirmDelete({ open: false, id: null })
-    fetchData()
-  }
-
-  // Stat hesaplama
-  const stats = useMemo(() => {
-     let tValue = 0, critical = 0, zero = 0
-     items.forEach(i => {
-        tValue += (i.miktar || 0) * (i.a_fiyat || 0)
-        if (i.miktar <= 0) zero++
-        else if (i.miktar <= (i.kritik_seviye || 10)) critical++
-     })
-     return { total: items.length, tValue, critical, zero }
-  }, [items])
-
-  // Filtreme
-  const filteredItems = useMemo(() => {
-    return items.filter(u => {
-      const q = debouncedSearch.toLowerCase()
-      const matchSearch = !q || (u.ad || '').toLowerCase().includes(q) || (u.kod || '').toLowerCase().includes(q) || (u.barkod || '').toLowerCase().includes(q)
-      const matchGroup = selectedGrup === 'Tümü' || u.grup === selectedGrup
-      
-      let matchDurum = true
-      if (durumFiltre === 'Stoksuz') matchDurum = u.miktar <= 0
-      else if (durumFiltre === 'Kritik') matchDurum = u.miktar > 0 && u.miktar <= (u.kritik_seviye || 10)
-      else if (durumFiltre === 'Normal') matchDurum = u.miktar > (u.kritik_seviye || 10)
-
-      return matchSearch && matchGroup && matchDurum
-    })
-  }, [items, debouncedSearch, selectedGrup, durumFiltre])
-
-  const paginated = filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-
-  const getStyleForLevel = (m: number, c: number) => {
-    if (m <= 0) return { bg: '#fee2e2', text: '#ef4444', label: 'Stoksuz' }
-    if (m <= c) return { bg: '#fef3c7', text: '#d97706', label: 'Kritik' }
-    return { bg: '#dcfce7', text: '#16a34a', label: 'Normal' }
-  }
 
   return (
     <div className="animate-fadeIn" style={{ width: '100%', padding: isMobile ? '0' : '0 32px 32px' }}>

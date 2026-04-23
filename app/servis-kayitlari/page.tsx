@@ -399,11 +399,7 @@ export default function ServisKayitlariListesi() {
             <Pagination totalItems={filtered.length} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
           </div>
         </div>
-      )}
-e} currentPage={currentPage} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
-          </div>
-        </div>
-      )}
+
 
       {/* SMS Modalı */}
       {smsModalServis && (
