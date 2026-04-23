@@ -188,61 +188,65 @@ export default function YeniFaturaPage() {
                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800 }}>Fatura Kalemleri</h3>
                <button onClick={addKalem} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '13px' }}>{Icons.plus} Satır Ekle</button>
             </div>
-            <div className="card-body" style={{ padding: 0, overflow: 'visible' }}>
-               <table style={{ width: '100%', borderCollapse: 'collapse', overflow: 'visible' }}>
-                  <thead>
-                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                        <th style={{ textAlign: 'left', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase' }}>Açıklama</th>
-                        <th style={{ textAlign: 'center', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', width: '80px' }}>Miktar</th>
-                        <th style={{ textAlign: 'center', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', width: '110px' }}>Birim Fiyat</th>
-                        <th style={{ textAlign: 'center', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', width: '120px' }}>KDV</th>
-                        <th style={{ textAlign: 'right', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', width: '110px' }}>Toplam</th>
-                        <th style={{ width: '50px' }}></th>
-                     </tr>
-                  </thead>
-                  <tbody>
-                     {kalemler.length === 0 && (
-                        <tr><td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>Henüz kalem eklenmedi.</td></tr>
-                     )}
-                     {kalemler.map(k => (
-                        <tr key={k.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                           <td style={{ padding: '12px 20px' }}>
-                              <SmartProductSearch 
-                                value={k.aciklama} 
-                                onChange={v => updateKalem(k.id, { aciklama: v })}
-                                onSelect={p => updateKalem(k.id, { stok_id: p.id, aciklama: p.ad, birim: p.birim, birim_fiyat: p.s_fiyat, kdv_oran: p.kdv_oran })}
-                              />
-                           </td>
-                           <td style={{ padding: '12px 20px' }}>
-                              <input type="number" step="0.01" style={{ ...inputStyle, padding: '8px', textAlign: 'center' }} value={k.miktar} onChange={e => updateKalem(k.id, { miktar: parseFloat(e.target.value) || 0 })} />
-                           </td>
-                           <td style={{ padding: '12px 20px' }}>
-                              <input type="number" step="0.01" style={{ ...inputStyle, padding: '8px', textAlign: 'right' }} value={k.birim_fiyat} onChange={e => updateKalem(k.id, { birim_fiyat: parseFloat(e.target.value) || 0 })} />
-                           </td>
-                           <td style={{ padding: '12px 20px' }}>
-                               <select style={{ ...inputStyle, padding: '8px 12px', width: '100%', minWidth: '80px' }} value={k.kdv_oran} onChange={e => updateKalem(k.id, { kdv_oran: parseInt(e.target.value) })}>
-                                  <option value={0}>%0</option>
-                                  <option value={1}>%1</option>
-                                  <option value={10}>%10</option>
-                                  <option value={20}>%20</option>
-                               </select>
-                               <div style={{ marginTop: '8px', textAlign: 'center' }}>
-                                 <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+             <div className="card-body" style={{ padding: 0, overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: '800px' }}>
+                   <thead>
+                      <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                         <th style={{ textAlign: 'left', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', width: 'auto', minWidth: '200px' }}>Ürün / Açıklama</th>
+                         <th style={{ textAlign: 'center', padding: '12px 10px', fontSize: '11px', color: '#94a3b8', width: '80px' }}>Miktar</th>
+                         <th style={{ textAlign: 'center', padding: '12px 10px', fontSize: '11px', color: '#94a3b8', width: '80px' }}>Birim</th>
+                         <th style={{ textAlign: 'center', padding: '12px 10px', fontSize: '11px', color: '#94a3b8', width: '120px' }}>Birim Fiyat</th>
+                         <th style={{ textAlign: 'center', padding: '12px 10px', fontSize: '11px', color: '#94a3b8', width: '150px' }}>KDV % / Dahil</th>
+                         <th style={{ textAlign: 'right', padding: '12px 20px', fontSize: '11px', color: '#94a3b8', width: '120px' }}>Toplam</th>
+                         <th style={{ width: '40px' }}></th>
+                      </tr>
+                   </thead>
+                   <tbody>
+                      {kalemler.length === 0 && (
+                         <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>Henüz kalem eklenmedi.</td></tr>
+                      )}
+                      {kalemler.map(k => (
+                         <tr key={k.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '12px 20px' }}>
+                               <SmartProductSearch 
+                                 value={k.aciklama} 
+                                 onChange={v => updateKalem(k.id, { aciklama: v })}
+                                 onSelect={p => updateKalem(k.id, { stok_id: p.id, aciklama: p.ad, birim: p.birim, birim_fiyat: p.s_fiyat, kdv_oran: parseInt(p.kdv_oran) || 20 })}
+                               />
+                            </td>
+                            <td style={{ padding: '12px 10px' }}>
+                               <input type="number" step="0.01" style={{ ...inputStyle, padding: '8px', textAlign: 'center' }} value={k.miktar} onChange={e => updateKalem(k.id, { miktar: parseFloat(e.target.value) || 0 })} />
+                            </td>
+                            <td style={{ padding: '12px 10px' }}>
+                               <input type="text" style={{ ...inputStyle, padding: '8px', textAlign: 'center' }} value={k.birim} onChange={e => updateKalem(k.id, { birim: e.target.value })} />
+                            </td>
+                            <td style={{ padding: '12px 10px' }}>
+                               <input type="number" step="0.01" style={{ ...inputStyle, padding: '8px', textAlign: 'right' }} value={k.birim_fiyat} onChange={e => updateKalem(k.id, { birim_fiyat: parseFloat(e.target.value) || 0 })} />
+                            </td>
+                            <td style={{ padding: '12px 10px' }}>
+                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                 <select style={{ ...inputStyle, padding: '8px', flex: 1 }} value={k.kdv_oran} onChange={e => updateKalem(k.id, { kdv_oran: parseInt(e.target.value) })}>
+                                    <option value={0}>%0</option>
+                                    <option value={1}>%1</option>
+                                    <option value={10}>%10</option>
+                                    <option value={20}>%20</option>
+                                 </select>
+                                 <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
                                    <input type="checkbox" style={{ width: '14px', height: '14px' }} checked={k.kdv_dahil} onChange={e => updateKalem(k.id, { kdv_dahil: e.target.checked })} /> Dahil
                                  </label>
                                </div>
-                           </td>
-                           <td style={{ padding: '12px 20px', textAlign: 'right', fontWeight: 700, fontSize: '14px' }}>
-                              {(k.kdv_dahil ? (k.miktar * k.birim_fiyat) : (k.miktar * k.birim_fiyat * (1 + k.kdv_oran/100))).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                           </td>
-                           <td style={{ padding: '12px 20px' }}>
-                              <button onClick={() => setKalemler(kalemler.filter(x => x.id !== k.id))} style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer' }}>{Icons.trash}</button>
-                           </td>
-                        </tr>
-                     ))}
-                  </tbody>
-               </table>
-            </div>
+                            </td>
+                            <td style={{ padding: '12px 20px', textAlign: 'right', fontWeight: 700, fontSize: '14px' }}>
+                               {(k.kdv_dahil ? (k.miktar * k.birim_fiyat) : (k.miktar * k.birim_fiyat * (1 + k.kdv_oran/100))).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                            </td>
+                            <td style={{ padding: '12px 20px', textAlign: 'center' }}>
+                               <button onClick={() => setKalemler(kalemler.filter(x => x.id !== k.id))} style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}>{Icons.trash}</button>
+                            </td>
+                         </tr>
+                      ))}
+                   </tbody>
+                </table>
+             </div>
           </div>
         </div>
 
