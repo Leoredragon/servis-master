@@ -177,6 +177,63 @@ function ProposalDetail() {
     })
   }
 
+  const saveTeklif = async (yeniDurum?: string) => {
+    if (!cariId) { alert('Lütfen müşteri seçin'); return }
+    if (kalemler.length === 0) { alert('Lütfen en az bir kalem ekleyin'); return }
+
+    setSaving(true)
+    try {
+      const guncelDurum = yeniDurum || durum
+
+      const { error: tErr } = await supabase.from('teklif')
+        .update({
+          cari_id: parseInt(cariId),
+          tarih: new Date(tarih).toISOString(),
+          gecerlilik_tarihi: gecerlilikTarihi ? new Date(gecerlilikTarihi).toISOString() : null,
+          durum: guncelDurum,
+          tip: tip,
+          toplam: totals.araToplam,
+          kdv_toplam: totals.kdvToplam,
+          genel_toplam: totals.genelToplam,
+          notlar: notlar
+        })
+        .eq('id', id)
+
+      if (tErr) throw tErr
+
+      // Update kalemler: delete existing ones and insert new ones
+      const { error: delErr } = await supabase.from('teklif_kalem').delete().eq('teklif_id', id)
+      if (delErr) throw delErr
+
+      const kalemPayload = kalemler.map(k => ({
+        teklif_id: parseInt(id),
+        stok_id: k.stok_id,
+        aciklama: k.aciklama,
+        miktar: k.miktar,
+        birim: k.birim,
+        birim_fiyat: k.birim_fiyat,
+        kdv_oran: k.kdv_oran,
+        kdv_dahil: k.kdv_dahil,
+        toplam_tutar: k.kdv_dahil ? (k.miktar * k.birim_fiyat) : (k.miktar * k.birim_fiyat * (1 + k.kdv_oran/100)),
+        kullaniciadi: 'admin',
+        subeadi: 'Merkez'
+      }))
+
+      if (kalemPayload.length > 0) {
+        const { error: kErr } = await supabase.from('teklif_kalem').insert(kalemPayload)
+        if (kErr) throw kErr
+      }
+
+      setDurum(guncelDurum)
+      setIsEditing(false)
+      alert('Başarıyla güncellendi!')
+    } catch (err: any) {
+      alert(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleTransfer = async () => {
     if (!transferType) return
     setSaving(true)
