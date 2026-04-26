@@ -102,25 +102,33 @@ function MusteriFormContent() {
     }
   }
 
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
   if (loading) {
     return <div style={{ padding: '60px', textAlign: 'center' }}><div className="skeleton" style={{ height: '300px', borderRadius: '16px', maxWidth: '800px', margin: '0 auto' }}></div></div>
   }
 
   return (
-    <div className="animate-fadeIn" style={{ maxWidth: '800px', margin: '0 auto', padding: '0 24px 60px' }}>
-      <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '15px', fontWeight: 700, cursor: 'pointer', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <div className="animate-fadeIn" style={{ maxWidth: '800px', margin: '0 auto', padding: isMobile ? '0 16px 80px' : '0 24px 60px' }}>
+      <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '15px', fontWeight: 700, cursor: 'pointer', marginBottom: isMobile ? '16px' : '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
         ← Geri Dön
       </button>
 
-      <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', margin: 0 }}>{editId ? 'Müşteriyi Düzenle' : 'Yeni Müşteri Oluştur'}</h1>
-        <p style={{ color: '#64748b', fontSize: '15px', marginTop: '8px' }}>Gerekli kimlik ve iletişim detaylarını doldurun.</p>
+      <div style={{ marginBottom: isMobile ? '20px' : '32px' }}>
+        <h1 style={{ fontSize: isMobile ? '24px' : '28px', fontWeight: 900, color: '#0f172a', margin: 0 }}>{editId ? 'Müşteriyi Düzenle' : 'Yeni Müşteri Oluştur'}</h1>
+        <p style={{ color: '#64748b', fontSize: isMobile ? '13px' : '15px', marginTop: '8px' }}>Gerekli kimlik ve iletişim detaylarını doldurun.</p>
       </div>
 
-      <div style={{ background: '#fff', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
-        <form onSubmit={handleSubmit} style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ background: '#fff', borderRadius: isMobile ? '16px' : '24px', border: '1px solid #e2e8f0', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
+        <form onSubmit={handleSubmit} style={{ padding: isMobile ? '20px' : '32px', display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '24px' }}>
           
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: isMobile ? '16px' : '20px' }}>
              <div>
                 <label style={labelStyle}>Müşteri Adı / Firma Ünvanı *</label>
                 <input required style={inputStyle} placeholder="Örn: Ahmet Yılmaz veya ABC Ltd." value={form.yetkili} onChange={e => setForm({...form, yetkili: e.target.value})} autoFocus />
@@ -140,8 +148,8 @@ function MusteriFormContent() {
               </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-             <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '16px' : '20px' }}>
+             <div style={{ background: '#f8fafc', padding: isMobile ? '16px' : '20px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
                 <h3 style={{ fontSize: '13px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '16px' }}>İletişim Bilgileri</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                    <div>
@@ -159,7 +167,7 @@ function MusteriFormContent() {
                 </div>
              </div>
 
-             <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+             <div style={{ background: '#f8fafc', padding: isMobile ? '16px' : '20px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
                 <h3 style={{ fontSize: '13px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '16px' }}>Resmi Bilgiler (Kurumsal)</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                    <div>
@@ -178,8 +186,8 @@ function MusteriFormContent() {
              </div>
           </div>
 
-          <div style={{ marginTop: '16px', borderTop: '1px solid #e2e8f0', paddingTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-             <button type="button" onClick={() => router.back()} disabled={saving} style={{ padding: '16px 24px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 700, cursor: 'pointer' }}>İptal</button>
+          <div style={{ marginTop: '16px', borderTop: '1px solid #e2e8f0', paddingTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '12px', flexDirection: isMobile ? 'column' : 'row' }}>
+             <button type="button" onClick={() => router.back()} disabled={saving} style={{ padding: '16px 24px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 700, cursor: 'pointer', width: isMobile ? '100%' : 'auto' }}>İptal</button>
              <button type="submit" disabled={saving} className="btn-primary" style={{ padding: '16px 32px', borderRadius: '12px', fontSize: '16px' }}>
                 {saving ? 'Kaydediliyor...' : (editId ? 'Değişiklikleri Kaydet' : 'Müşteriyi Kaydet →')}
              </button>

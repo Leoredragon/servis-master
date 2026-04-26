@@ -89,24 +89,32 @@ export default function YeniServis() {
     }
   }
 
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
   return (
-    <div className="animate-fadeIn" style={{ maxWidth: '800px', margin: '0 auto', padding: '0 24px 60px' }}>
-      <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '15px', fontWeight: 700, cursor: 'pointer', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <div className="animate-fadeIn" style={{ maxWidth: '800px', margin: '0 auto', padding: isMobile ? '0 16px 80px' : '0 24px 60px' }}>
+      <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '15px', fontWeight: 700, cursor: 'pointer', marginBottom: isMobile ? '16px' : '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
         ← Geri Dön
       </button>
 
-      <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.5px' }}>Yeni İş Emri Oluştur</h1>
-        <p style={{ color: '#64748b', fontSize: '15px', marginTop: '8px' }}>Müşteri aracını servise kabul edin.</p>
+      <div style={{ marginBottom: isMobile ? '20px' : '32px' }}>
+        <h1 style={{ fontSize: isMobile ? '24px' : '28px', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.5px' }}>Yeni İş Emri Oluştur</h1>
+        <p style={{ color: '#64748b', fontSize: isMobile ? '13px' : '15px', marginTop: '8px' }}>Müşteri aracını servise kabul edin.</p>
       </div>
 
-      <div style={{ background: '#fff', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
-        <form onSubmit={handleSubmit} style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ background: '#fff', borderRadius: isMobile ? '16px' : '24px', border: '1px solid #e2e8f0', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
+        <form onSubmit={handleSubmit} style={{ padding: isMobile ? '20px' : '32px', display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '24px' }}>
           
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '16px' : '24px' }}>
              
              {/* Cari ve Araç Seçimi */}
-             <div style={{ gridColumn: 'span 2', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+             <div style={{ gridColumn: isMobile ? 'span 1' : 'span 2', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '16px' : '20px' }}>
                 <div>
                    <label style={labelStyle}>Müşteri Seçin *</label>
                    <CariSec value={form.cari_id} onChange={(id) => setForm({...form, cari_id: id})} />
@@ -125,7 +133,7 @@ export default function YeniServis() {
                 </div>
              </div>
 
-             <div style={{ gridColumn: 'span 2', height: '1px', background: '#f1f5f9', margin: '8px 0' }}></div>
+             <div style={{ gridColumn: isMobile ? 'span 1' : 'span 2', height: '1px', background: '#f1f5f9', margin: '8px 0' }}></div>
 
              <div>
                 <label style={labelStyle}>Servis No</label>
@@ -150,8 +158,8 @@ export default function YeniServis() {
              <textarea rows={4} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Müşterinin belirttiği arızalar veya talepler..." value={form.sikayet} onChange={e => setForm({...form, sikayet: e.target.value})} />
           </div>
 
-          <div style={{ marginTop: '16px', borderTop: '1px solid #e2e8f0', paddingTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-             <button type="button" onClick={() => router.back()} disabled={loading} style={{ padding: '16px 24px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 700, cursor: 'pointer' }}>İptal</button>
+          <div style={{ marginTop: '16px', borderTop: '1px solid #e2e8f0', paddingTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '12px', flexDirection: isMobile ? 'column' : 'row' }}>
+             <button type="button" onClick={() => router.back()} disabled={loading} style={{ padding: '16px 24px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 700, cursor: 'pointer', width: isMobile ? '100%' : 'auto' }}>İptal</button>
              <button type="submit" disabled={loading} className="btn-primary" style={{ padding: '16px 32px', borderRadius: '12px', fontSize: '16px' }}>
                 {loading ? 'İş Emri Açılıyor...' : 'İş Emrini Başlat →'}
              </button>

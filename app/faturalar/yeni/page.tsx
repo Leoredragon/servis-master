@@ -145,22 +145,30 @@ export default function YeniFaturaPage() {
   const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' }
   const inputStyle = { width: '100%', padding: '12px 16px', border: '1.5px solid #e2e8f0', borderRadius: '12px', fontSize: '14px', outline: 'none', background: '#fff' }
 
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
   return (
-    <div className="animate-fadeIn" style={{ padding: '0 32px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
+    <div className="animate-fadeIn" style={{ padding: isMobile ? '0 16px 80px' : '0 32px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: isMobile ? '24px' : '32px' }}>
         <button onClick={() => router.back()} style={{ width: '40px', height: '40px', borderRadius: '12px', border: '1.5px solid #e2e8f0', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>{Icons.back}</button>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px' }}>Yeni Fatura Oluştur</h1>
-          <p style={{ color: '#64748b', fontSize: '14px' }}>Satış veya alış faturası hazırlayarak cari bakiyeyi güncelleyin.</p>
+          <h1 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px' }}>Yeni Fatura Oluştur</h1>
+          <p style={{ color: '#64748b', fontSize: isMobile ? '12px' : '14px' }}>Satış veya alış faturası hazırlayarak cari bakiyeyi güncelleyin.</p>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '32px', alignItems: 'start' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: isMobile ? '24px' : '32px', alignItems: 'start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '24px' : '32px' }}>
           <div className="card" style={{ overflow: 'visible', position: 'relative', zIndex: 20 }}>
             <div className="card-header">Fatura Başlık Bilgileri</div>
-            <div className="card-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-               <div style={{ gridColumn: 'span 2' }}>
+            <div className="card-body" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '16px' : '24px' }}>
+               <div style={{ gridColumn: isMobile ? 'span 1' : 'span 2' }}>
                  <label style={labelStyle}>Müşteri / Cari *</label>
                  <CariSec value={cariId} onChange={setCariId} />
                </div>

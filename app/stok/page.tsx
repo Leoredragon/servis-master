@@ -189,54 +189,76 @@ export default function StokYonetimi() {
        ) : (
           <>
              {viewMode === 'table' ? (
-                <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                      <thead>
-                        <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                          {!isMobile && <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Resim</th>}
-                          <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Ürün Bilgisi</th>
-                          {!isMobile && <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Grup</th>}
-                          <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Stok</th>
-                          <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', textAlign: 'right' }}>Fiyat</th>
-                          <th style={{ padding: '16px 20px' }}></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {paginated.map(u => {
-                           const lvl = getStyleForLevel(u.miktar, u.kritik_seviye || 10)
-                           return (
-                             <tr key={u.id} className="hover-row" style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }} onClick={() => setSelectedStokId(u.id)}>
-                                {!isMobile && (
-                                  <td style={{ padding: '12px 20px', width: '60px' }}>
-                                     <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        {u.resimyolu ? <img src={u.resimyolu} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} /> : Icons.box}
-                                     </div>
-                                  </td>
-                                )}
-                                <td style={{ padding: '12px 20px' }}>
-                                   <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '14px' }}>{u.ad}</div>
-                                   <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>{u.kod || u.barkod || 'Kodsuz'}</div>
-                                </td>
-                                {!isMobile && <td style={{ padding: '12px 20px' }}><span style={{ fontSize: '11px', background: '#f8fafc', padding: '4px 8px', borderRadius: '6px' }}>{u.grup}</span></td>}
-                                <td style={{ padding: '12px 20px' }}>
-                                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: lvl.bg, color: lvl.text, padding: '4px 10px', borderRadius: '8px', fontWeight: 800, fontSize: '12px' }}>
-                                      {u.miktar} <span style={{ fontSize: '10px', opacity: 0.8 }}>{u.birim}</span>
-                                   </div>
-                                </td>
-                                <td style={{ padding: '12px 20px', textAlign: 'right' }}>
-                                   <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{(u.s_fiyat || 0).toLocaleString('tr-TR')} ₺</div>
-                                </td>
-                                <td style={{ padding: '12px 20px' }} onClick={e => e.stopPropagation()}>
-                                   <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                                      <button onClick={() => setHareketModal({ open: true, stok: u })} style={{ padding: '8px', borderRadius: '8px', background: '#eff6ff', color: '#3b82f6', border: 'none' }}>{Icons.edit}</button>
-                                   </div>
-                                </td>
-                             </tr>
-                           )
-                        })}
-                      </tbody>
-                    </table>
-                </div>
+                isMobile ? (
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {paginated.length === 0 ? (
+                         <div className="card" style={{ padding: '32px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>Stok bulunamadı</div>
+                      ) : paginated.map(u => {
+                         const lvl = getStyleForLevel(u.miktar, u.kritik_seviye || 10)
+                         return (
+                            <div key={u.id} className="card" onClick={() => setSelectedStokId(u.id)} style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', border: '1px solid #f1f5f9', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                               <div style={{ flex: 1, paddingRight: '12px' }}>
+                                  <div style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a', lineHeight: 1.3 }}>{u.ad}</div>
+                                  <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>{u.kod || u.barkod || 'Kodsuz'} • {u.grup || 'Grup Yok'}</div>
+                               </div>
+                               <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: lvl.bg, color: lvl.text, padding: '4px 10px', borderRadius: '8px', fontWeight: 800, fontSize: '12px' }}>
+                                     {u.miktar} <span style={{ fontSize: '10px', opacity: 0.8 }}>{u.birim}</span>
+                                  </div>
+                                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{(u.s_fiyat || 0).toLocaleString('tr-TR')} ₺</div>
+                               </div>
+                            </div>
+                         )
+                      })}
+                   </div>
+                ) : (
+                   <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
+                       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                         <thead>
+                           <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                             <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Resim</th>
+                             <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Ürün Bilgisi</th>
+                             <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Grup</th>
+                             <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Stok</th>
+                             <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', textAlign: 'right' }}>Fiyat</th>
+                             <th style={{ padding: '16px 20px' }}></th>
+                           </tr>
+                         </thead>
+                         <tbody>
+                           {paginated.map(u => {
+                              const lvl = getStyleForLevel(u.miktar, u.kritik_seviye || 10)
+                              return (
+                                <tr key={u.id} className="hover-row" style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }} onClick={() => setSelectedStokId(u.id)}>
+                                   <td style={{ padding: '12px 20px', width: '60px' }}>
+                                      <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                         {u.resimyolu ? <img src={u.resimyolu} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} /> : Icons.box}
+                                      </div>
+                                   </td>
+                                   <td style={{ padding: '12px 20px' }}>
+                                      <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '14px' }}>{u.ad}</div>
+                                      <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>{u.kod || u.barkod || 'Kodsuz'}</div>
+                                   </td>
+                                   <td style={{ padding: '12px 20px' }}><span style={{ fontSize: '11px', background: '#f8fafc', padding: '4px 8px', borderRadius: '6px' }}>{u.grup}</span></td>
+                                   <td style={{ padding: '12px 20px' }}>
+                                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: lvl.bg, color: lvl.text, padding: '4px 10px', borderRadius: '8px', fontWeight: 800, fontSize: '12px' }}>
+                                         {u.miktar} <span style={{ fontSize: '10px', opacity: 0.8 }}>{u.birim}</span>
+                                      </div>
+                                   </td>
+                                   <td style={{ padding: '12px 20px', textAlign: 'right' }}>
+                                      <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{(u.s_fiyat || 0).toLocaleString('tr-TR')} ₺</div>
+                                   </td>
+                                   <td style={{ padding: '12px 20px' }} onClick={e => e.stopPropagation()}>
+                                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                                         <button onClick={() => setHareketModal({ open: true, stok: u })} style={{ padding: '8px', borderRadius: '8px', background: '#eff6ff', color: '#3b82f6', border: 'none' }}>{Icons.edit}</button>
+                                      </div>
+                                   </td>
+                                </tr>
+                              )
+                           })}
+                         </tbody>
+                       </table>
+                   </div>
+                )
              ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: isMobile ? '12px' : '20px' }}>
                    {paginated.map(u => {

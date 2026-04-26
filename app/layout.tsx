@@ -372,11 +372,38 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <main style={{ 
               flex: 1, 
               overflowY: 'auto', 
-              padding: (isMobile && isDashboard) ? '0' : (isMobile ? '16px' : '32px'), 
-              background: '#f0f2f5' 
+              padding: (isMobile && isDashboard) ? '0' : (isMobile ? '16px' : '32px'),
+              paddingBottom: isMobile ? '90px' : '32px',
+              background: '#f4f7f9' 
             }}>
               {children}
             </main>
+
+            {/* Bottom Nav for Mobile */}
+            {isMobile && (
+              <div className="bottom-nav" style={{ boxShadow: '0 -4px 20px rgba(0,0,0,0.05)', height: '76px', borderTop: 'none' }}>
+                <Link href="/" className={`bottom-nav-item ${isActive('/') ? 'active' : ''}`}>
+                  <Icon d={icons.dashboard} size={22} />
+                  <span style={{ marginTop: '2px' }}>Anasayfa</span>
+                </Link>
+                <Link href="/musteriler" className={`bottom-nav-item ${isActive('/musteriler') ? 'active' : ''}`}>
+                  <Icon d={icons.customers} size={22} />
+                  <span style={{ marginTop: '2px' }}>Müşteriler</span>
+                </Link>
+                <Link href="/servis-kayitlari" className={`bottom-nav-item ${isActive('/servis-kayitlari') ? 'active' : ''}`}>
+                  <Icon d={icons.service} size={22} />
+                  <span style={{ marginTop: '2px' }}>Servis</span>
+                </Link>
+                <Link href="/stok" className={`bottom-nav-item ${isActive('/stok') ? 'active' : ''}`}>
+                  <Icon d={icons.stock} size={22} />
+                  <span style={{ marginTop: '2px' }}>Stok</span>
+                </Link>
+                <button onClick={() => setCollapsed(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} className="bottom-nav-item">
+                  <Icon d={icons.list} size={22} />
+                  <span style={{ marginTop: '2px' }}>Menü</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </body>

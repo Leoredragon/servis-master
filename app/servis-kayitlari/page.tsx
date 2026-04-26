@@ -337,65 +337,91 @@ export default function ServisKayitlariListesi() {
            </DndContext>
         </div>
       ) : (
-        <div className="card" style={{ overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', background: '#fafbfc' }}>
+        <div className="card" style={{ overflow: 'hidden', background: isMobile ? 'transparent' : '#fff', border: isMobile ? 'none' : '1px solid #e2e8f0', boxShadow: isMobile ? 'none' : undefined }}>
+          <div style={{ padding: isMobile ? '0 0 16px' : '16px 20px', borderBottom: isMobile ? 'none' : '1px solid #f1f5f9', background: isMobile ? 'transparent' : '#fafbfc' }}>
             <div style={{ position: 'relative', width: '100%' }}>
-              <input type="text" placeholder="No, Müşteri veya Plaka ara..." value={arama} onChange={e => setArama(e.target.value)} style={{ width: '100%', padding: '12px 16px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} />
+              <input type="text" placeholder="No, Müşteri veya Plaka ara..." value={arama} onChange={e => setArama(e.target.value)} style={{ width: '100%', padding: '12px 16px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none', background: '#fff' }} />
             </div>
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                   <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>İş Emri No</th>
-                   <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Müşteri / Plaka</th>
-                   {!isMobile && (
-                     <>
-                        <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Giriş Tarihi</th>
-                        <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Teknisyen</th>
-                        <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Tutar</th>
-                     </>
-                   )}
-                   <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Süreç</th>
-                   <th style={{ padding: '16px 20px' }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginated.map((s) => {
-                  const bdg = durumBadge(s.durum)
-                  return (
-                    <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }} className="hover-row">
-                      <td style={{ padding: '16px 20px' }}>
-                        <span style={{ fontWeight: 800, color: '#3b82f6', fontFamily: 'monospace', background: '#eff6ff', padding: '4px 8px', borderRadius: '6px', fontSize: '12px' }}>
-                           #{s.servis_no}
-                        </span>
-                        {isMobile && <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>{new Date(s.giris_tarihi).toLocaleDateString('tr-TR')}</div>}
-                      </td>
-                      <td style={{ padding: '16px 20px' }}>
-                        <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '14px' }}>{s.cari_kart?.yetkili || '—'}</div>
-                        <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 700, marginTop: '2px' }}>{s.arac?.plaka || '—'}</div>
-                      </td>
-                      {!isMobile && (
-                        <>
-                          <td style={{ padding: '16px 20px', fontSize: '13px', fontWeight: 600, color: '#475569' }}>{new Date(s.giris_tarihi).toLocaleDateString('tr-TR')}</td>
-                          <td style={{ padding: '16px 20px', fontSize: '13px', fontWeight: 700, color: '#334155' }}>{s.teknisyen || '—'}</td>
-                          <td style={{ padding: '16px 20px', fontWeight: 900, color: '#0f172a', fontSize: '14px' }}>{(s.toplam_tutar || 0).toLocaleString('tr-TR')} ₺</td>
-                        </>
-                      )}
-                      <td style={{ padding: '16px 20px' }}>
-                        <span style={{ padding: '4px 10px', borderRadius: '99px', fontSize: '11px', fontWeight: 800, color: bdg.color, background: bdg.background, whiteSpace: 'nowrap' }}>{s.durum}</span>
-                        {isMobile && s.toplam_tutar > 0 && <div style={{ fontSize: '11px', fontWeight: 900, marginTop: '4px' }}>{s.toplam_tutar.toLocaleString('tr-TR')} ₺</div>}
-                      </td>
-                      <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                        <Link href={`/servis-kayitlari/${s.id}`} style={{ padding: '8px 12px', background: '#f8fafc', color: '#3b82f6', borderRadius: '8px', fontSize: '13px', fontWeight: 800, textDecoration: 'none', border: '1px solid #e2e8f0' }}>Aç</Link>
-                      </td>
-                    </tr>
-                  )
+          
+          {isMobile ? (
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {paginated.length === 0 ? (
+                   <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: '14px', background: '#fff', borderRadius: '16px' }}>Kayıt bulunamadı.</div>
+                ) : paginated.map((s) => {
+                   const bdg = durumBadge(s.durum)
+                   return (
+                      <div key={s.id} onClick={() => router.push(`/servis-kayitlari/${s.id}`)} style={{ background: '#fff', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f1f5f9', cursor: 'pointer' }}>
+                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div>
+                               <span style={{ fontWeight: 800, color: '#3b82f6', fontFamily: 'monospace', background: '#eff6ff', padding: '4px 8px', borderRadius: '6px', fontSize: '12px' }}>
+                                  #{s.servis_no}
+                               </span>
+                               <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '6px', fontWeight: 600 }}>{new Date(s.giris_tarihi).toLocaleDateString('tr-TR')}</div>
+                            </div>
+                            <span style={{ padding: '4px 10px', borderRadius: '99px', fontSize: '11px', fontWeight: 800, color: bdg.color, background: bdg.background, whiteSpace: 'nowrap' }}>{s.durum}</span>
+                         </div>
+                         
+                         <div>
+                            <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '15px', letterSpacing: '-0.3px' }}>{s.cari_kart?.yetkili || '—'}</div>
+                            <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 700, marginTop: '2px' }}>{s.arac?.plaka || '—'}</div>
+                         </div>
+                         
+                         {s.toplam_tutar > 0 && (
+                            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                               <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Toplam Tutar</span>
+                               <span style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a' }}>{s.toplam_tutar.toLocaleString('tr-TR')} ₺</span>
+                            </div>
+                         )}
+                      </div>
+                   )
                 })}
-              </tbody>
-            </table>
-          </div>
-          <div style={{ padding: '16px' }}>
+             </div>
+          ) : (
+             <div style={{ overflowX: 'auto' }}>
+               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                 <thead>
+                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                      <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>İş Emri No</th>
+                      <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Müşteri / Plaka</th>
+                      <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Giriş Tarihi</th>
+                      <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Teknisyen</th>
+                      <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Tutar</th>
+                      <th style={{ padding: '16px 20px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Süreç</th>
+                      <th style={{ padding: '16px 20px' }}></th>
+                   </tr>
+                 </thead>
+                 <tbody>
+                   {paginated.map((s) => {
+                     const bdg = durumBadge(s.durum)
+                     return (
+                       <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }} className="hover-row">
+                         <td style={{ padding: '16px 20px' }}>
+                           <span style={{ fontWeight: 800, color: '#3b82f6', fontFamily: 'monospace', background: '#eff6ff', padding: '4px 8px', borderRadius: '6px', fontSize: '12px' }}>
+                              #{s.servis_no}
+                           </span>
+                         </td>
+                         <td style={{ padding: '16px 20px' }}>
+                           <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '14px' }}>{s.cari_kart?.yetkili || '—'}</div>
+                           <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 700, marginTop: '2px' }}>{s.arac?.plaka || '—'}</div>
+                         </td>
+                         <td style={{ padding: '16px 20px', fontSize: '13px', fontWeight: 600, color: '#475569' }}>{new Date(s.giris_tarihi).toLocaleDateString('tr-TR')}</td>
+                         <td style={{ padding: '16px 20px', fontSize: '13px', fontWeight: 700, color: '#334155' }}>{s.teknisyen || '—'}</td>
+                         <td style={{ padding: '16px 20px', fontWeight: 900, color: '#0f172a', fontSize: '14px' }}>{(s.toplam_tutar || 0).toLocaleString('tr-TR')} ₺</td>
+                         <td style={{ padding: '16px 20px' }}>
+                           <span style={{ padding: '4px 10px', borderRadius: '99px', fontSize: '11px', fontWeight: 800, color: bdg.color, background: bdg.background, whiteSpace: 'nowrap' }}>{s.durum}</span>
+                         </td>
+                         <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                           <Link href={`/servis-kayitlari/${s.id}`} style={{ padding: '8px 12px', background: '#f8fafc', color: '#3b82f6', borderRadius: '8px', fontSize: '13px', fontWeight: 800, textDecoration: 'none', border: '1px solid #e2e8f0' }}>Aç</Link>
+                         </td>
+                       </tr>
+                     )
+                   })}
+                 </tbody>
+               </table>
+             </div>
+          )}
+          <div style={{ padding: '16px', background: isMobile ? 'transparent' : '#fff' }}>
             <Pagination totalItems={filtered.length} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
           </div>
         </div>

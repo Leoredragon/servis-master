@@ -132,72 +132,96 @@ export default function FaturalarPage() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="card" style={{ padding: 0, overflowX: 'auto', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-              <th style={{ textAlign: 'left', padding: '16px 20px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Evrak / Tür</th>
-              <th style={{ textAlign: 'left', padding: '16px 20px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Müşteri</th>
-              {!isMobile && (
-                <>
-                   <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Tarih</th>
-                   <th style={{ textAlign: 'center', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Kalem</th>
-                </>
-              )}
-              <th style={{ textAlign: 'right', padding: '16px 20px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Toplam</th>
-              <th style={{ textAlign: 'center', padding: '16px 20px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Durum</th>
-            </tr>
-          </thead>
-          <tbody>
+      {/* Table / List */}
+      {isMobile ? (
+         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {loading ? (
-              [1, 2, 3].map(i => (
-                <tr key={i}><td colSpan={isMobile ? 4 : 8} style={{ padding: '24px' }}><div className="skeleton" style={{ height: '24px', width: '100%' }} /></td></tr>
-              ))
+               [1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: '100px', borderRadius: '16px' }} />)
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={isMobile ? 4 : 8} style={{ padding: '80px', textAlign: 'center', color: '#64748b' }}>Bulunamadı.</td></tr>
+               <div className="card" style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>Bulunamadı.</div>
             ) : paginated.map(item => (
-              <tr 
-                key={item.id} 
-                style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}
-                className="hover-row"
-                onClick={() => router.push(`/faturalar/${item.id}`)}
-              >
-                <td style={{ padding: '16px 20px' }}>
-                  <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '13px' }}>{item.evrak_no}</div>
-                  <div style={{ fontSize: '10px', fontWeight: 800, color: item.fatura_turu === 'Satış' ? '#10b981' : '#ef4444', textTransform: 'uppercase' }}>{item.fatura_turu}</div>
-                </td>
-                <td style={{ padding: '16px 20px' }}>
-                  <div style={{ fontWeight: 600, color: '#334155', fontSize: '13px' }}>{item.cari_kart?.yetkili || '—'}</div>
-                  {isMobile && <div style={{ fontSize: '11px', color: '#94a3b8' }}>{new Date(item.fat_tarih).toLocaleDateString('tr-TR')}</div>}
-                </td>
-                {!isMobile && (
-                  <>
-                    <td style={{ padding: '16px 24px' }}>
-                      <div style={{ fontSize: '13px', color: '#1e293b', fontWeight: 500 }}>{new Date(item.fat_tarih).toLocaleDateString('tr-TR')}</div>
-                    </td>
-                    <td style={{ padding: '16px 24px', textAlign: 'center' }}>
-                       <span style={{ fontSize: '12px', fontWeight: 700, background: '#f8fafc', padding: '4px 8px', borderRadius: '6px' }}>{item.fat_isl?.[0]?.count || 0}</span>
-                    </td>
-                  </>
-                )}
-                <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                  <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '14px' }}>{item.gtoplam?.toLocaleString('tr-TR')} ₺</div>
-                </td>
-                <td style={{ padding: '16px 20px', textAlign: 'center' }}>
-                  <span style={{ 
-                    padding: '4px 10px', borderRadius: '8px', fontSize: '10px', fontWeight: 800,
-                    background: item.odeme_durumu === 'Ödendi' ? '#f0fdf4' : '#f1f5f9',
-                    color: item.odeme_durumu === 'Ödendi' ? '#15803d' : '#64748b'
-                  }}>
-                    {item.odeme_durumu === 'Ödendi' ? 'Ödendi' : 'Bekliyor'}
-                  </span>
-                </td>
-              </tr>
+               <div key={item.id} onClick={() => router.push(`/faturalar/${item.id}`)} className="card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', border: '1px solid #f1f5f9', cursor: 'pointer' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                     <div>
+                        <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '14px', letterSpacing: '-0.3px' }}>{item.evrak_no}</div>
+                        <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px', fontWeight: 600 }}>{new Date(item.fat_tarih).toLocaleDateString('tr-TR')}</div>
+                     </div>
+                     <span style={{ fontSize: '10px', fontWeight: 800, color: item.fatura_turu === 'Satış' ? '#10b981' : '#ef4444', textTransform: 'uppercase', background: item.fatura_turu === 'Satış' ? '#ecfdf5' : '#fef2f2', padding: '4px 8px', borderRadius: '6px' }}>{item.fatura_turu}</span>
+                  </div>
+                  <div>
+                     <div style={{ fontWeight: 700, color: '#334155', fontSize: '14px' }}>{item.cari_kart?.yetkili || '—'}</div>
+                  </div>
+                  <div style={{ borderTop: '1px solid #f8fafc', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                     <span style={{ 
+                        padding: '4px 10px', borderRadius: '8px', fontSize: '10px', fontWeight: 800,
+                        background: item.odeme_durumu === 'Ödendi' ? '#f0fdf4' : '#f1f5f9',
+                        color: item.odeme_durumu === 'Ödendi' ? '#15803d' : '#64748b'
+                     }}>
+                        {item.odeme_durumu === 'Ödendi' ? 'Ödendi' : 'Bekliyor'}
+                     </span>
+                     <div style={{ fontWeight: 900, color: '#0f172a', fontSize: '15px' }}>{item.gtoplam?.toLocaleString('tr-TR')} ₺</div>
+                  </div>
+               </div>
             ))}
-          </tbody>
-        </table>
-      </div>
+         </div>
+      ) : (
+         <div className="card" style={{ padding: 0, overflowX: 'auto', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+             <thead>
+               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                 <th style={{ textAlign: 'left', padding: '16px 20px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Evrak / Tür</th>
+                 <th style={{ textAlign: 'left', padding: '16px 20px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Müşteri</th>
+                 <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Tarih</th>
+                 <th style={{ textAlign: 'center', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Kalem</th>
+                 <th style={{ textAlign: 'right', padding: '16px 20px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Toplam</th>
+                 <th style={{ textAlign: 'center', padding: '16px 20px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Durum</th>
+               </tr>
+             </thead>
+             <tbody>
+               {loading ? (
+                 [1, 2, 3].map(i => (
+                   <tr key={i}><td colSpan={6} style={{ padding: '24px' }}><div className="skeleton" style={{ height: '24px', width: '100%' }} /></td></tr>
+                 ))
+               ) : filtered.length === 0 ? (
+                 <tr><td colSpan={6} style={{ padding: '80px', textAlign: 'center', color: '#64748b' }}>Bulunamadı.</td></tr>
+               ) : paginated.map(item => (
+                 <tr 
+                   key={item.id} 
+                   style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}
+                   className="hover-row"
+                   onClick={() => router.push(`/faturalar/${item.id}`)}
+                 >
+                   <td style={{ padding: '16px 20px' }}>
+                     <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '13px' }}>{item.evrak_no}</div>
+                     <div style={{ fontSize: '10px', fontWeight: 800, color: item.fatura_turu === 'Satış' ? '#10b981' : '#ef4444', textTransform: 'uppercase' }}>{item.fatura_turu}</div>
+                   </td>
+                   <td style={{ padding: '16px 20px' }}>
+                     <div style={{ fontWeight: 600, color: '#334155', fontSize: '13px' }}>{item.cari_kart?.yetkili || '—'}</div>
+                   </td>
+                   <td style={{ padding: '16px 24px' }}>
+                     <div style={{ fontSize: '13px', color: '#1e293b', fontWeight: 500 }}>{new Date(item.fat_tarih).toLocaleDateString('tr-TR')}</div>
+                   </td>
+                   <td style={{ padding: '16px 24px', textAlign: 'center' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 700, background: '#f8fafc', padding: '4px 8px', borderRadius: '6px' }}>{item.fat_isl?.[0]?.count || 0}</span>
+                   </td>
+                   <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                     <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '14px' }}>{item.gtoplam?.toLocaleString('tr-TR')} ₺</div>
+                   </td>
+                   <td style={{ padding: '16px 20px', textAlign: 'center' }}>
+                     <span style={{ 
+                       padding: '4px 10px', borderRadius: '8px', fontSize: '10px', fontWeight: 800,
+                       background: item.odeme_durumu === 'Ödendi' ? '#f0fdf4' : '#f1f5f9',
+                       color: item.odeme_durumu === 'Ödendi' ? '#15803d' : '#64748b'
+                     }}>
+                       {item.odeme_durumu === 'Ödendi' ? 'Ödendi' : 'Bekliyor'}
+                     </span>
+                   </td>
+                 </tr>
+               ))}
+             </tbody>
+           </table>
+         </div>
+      )}
 
       <Pagination 
         totalItems={filtered.length}
@@ -210,15 +234,15 @@ export default function FaturalarPage() {
   )
 }
 
-function StatCard({ icon, label, value, color }: any) {
+function StatCard({ icon, label, value, color, isMobile }: any) {
   return (
     <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '24px', borderLeft: `4px solid ${color}` }}>
-      <div style={{ width: '52px', height: '52px', background: `${color}15`, color: color, borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: isMobile ? '40px' : '52px', height: isMobile ? '40px' : '52px', background: `${color}15`, color: color, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {icon}
       </div>
       <div>
-        <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
-        <div style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>{value}</div>
+        <div style={{ fontSize: isMobile ? '10px' : '12px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
+        <div style={{ fontSize: isMobile ? '16px' : '24px', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>{value}</div>
       </div>
     </div>
   )

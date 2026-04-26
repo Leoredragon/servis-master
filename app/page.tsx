@@ -156,41 +156,46 @@ export default function Home() {
       </div>
 
       {/* ─── MOBILE LAYOUT ─── */}
-      <div className="mobile-only" style={{ background: '#f8fafc', minHeight: '100vh', paddingBottom: '90px', margin: '-32px -32px 0' }}>
+      <div className="mobile-only" style={{ background: '#f4f7f9', minHeight: '100vh', paddingBottom: '90px', margin: '-32px -32px 0' }}>
          {/* Sticky Header */}
-         <div className="mobile-header-sticky" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+         <div className="mobile-header-sticky" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#0f172a', borderBottom: 'none' }}>
             <button 
                onClick={() => window.dispatchEvent(new CustomEvent('toggle-sidebar'))}
-               style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}
+               style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
             >
                {Icons.menu}
             </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-               <div style={{ background: '#fff', color: '#0f172a', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{Icons.tool}</div>
-               <span style={{ fontWeight: 900, letterSpacing: '-0.5px', fontSize: '17px' }}>Servis Master</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+               <div style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)', color: '#fff', width: '32px', height: '32px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(59,130,246,0.4)' }}><Icon d={icons.service} size={16} /></div>
+               <div style={{ display: 'flex', flexDirection: 'column' }}>
+                 <span style={{ fontWeight: 900, letterSpacing: '-0.2px', fontSize: '14px', color: '#fff', lineHeight: 1 }}>SERVIS</span>
+                 <span style={{ fontWeight: 700, letterSpacing: '2px', fontSize: '9px', color: '#60a5fa', marginTop: '2px' }}>MASTER</span>
+               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-               <button style={{ background: 'none', border: 'none', color: 'white' }}>{Icons.bell}</button>
-               <div style={{ width: '32px', height: '32px', borderRadius: '16px', background: '#3b82f6', border: '2px solid rgba(255,255,255,0.2)' }} />
+               <button style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{Icons.bell}</button>
             </div>
          </div>
-         <div style={{ padding: '4px 16px', color: '#94a3b8', fontSize: '10px', fontWeight: 700, background: '#0f172a' }}>
+         <div style={{ padding: '8px 20px', color: '#94a3b8', fontSize: '11px', fontWeight: 700, background: '#0f172a' }}>
             {new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' })}
          </div>
 
-         <div style={{ padding: '16px' }}>
+         <div style={{ padding: '20px' }}>
             {/* Welcome Card */}
             <div style={{ 
-               background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', 
-               borderRadius: '20px', padding: '24px', color: 'white', marginBottom: '24px',
-               boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)'
+               background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', 
+               borderRadius: '24px', padding: '24px', color: 'white', marginBottom: '24px',
+               boxShadow: '0 12px 24px -8px rgba(15,23,42,0.4)', position: 'relative', overflow: 'hidden'
             }}>
-               <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0 }}>Hoş geldin, Mucahit</h2>
-               <p style={{ opacity: 0.8, fontSize: '13px', marginTop: '4px' }}>Bugün {stats.activeServices} aktif servis ve {bugunkuRandevular.length} randevu seni bekliyor.</p>
+               <div style={{ position: 'relative', zIndex: 2 }}>
+                 <h2 style={{ fontSize: '22px', fontWeight: 800, margin: 0, letterSpacing: '-0.5px' }}>Hoş geldin, Yönetici</h2>
+                 <p style={{ color: '#94a3b8', fontSize: '14px', marginTop: '6px', lineHeight: 1.4 }}>Bugün <strong style={{ color: '#fff' }}>{stats.activeServices}</strong> aktif servis ve <strong style={{ color: '#fff' }}>{bugunkuRandevular.length}</strong> randevu seni bekliyor.</p>
+               </div>
+               <div style={{ position: 'absolute', right: '-20px', top: '-20px', width: '120px', height: '120px', background: 'radial-gradient(circle, rgba(59,130,246,0.3) 0%, rgba(59,130,246,0) 70%)', borderRadius: '50%', zIndex: 1 }} />
             </div>
 
             {/* Quick Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '32px' }}>
                <MStatCard label="Müşteri" value={stats.totalCustomers} icon={Icons.users} color="#3b82f6" href="/musteriler" />
                <MStatCard label="Aktif Servis" value={stats.activeServices} icon={Icons.tool} color="#f59e0b" href="/servis-kayitlari" />
                <MStatCard label="Bugün Ciro" value={stats.todayRevenue.toLocaleString('tr-TR') + ' ₺'} icon={Icons.money} color="#10b981" href="/kasa" />
@@ -198,7 +203,7 @@ export default function Home() {
             </div>
 
             {/* Quick Actions Grid */}
-            <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#475569', marginBottom: '12px' }}>Hızlı İşlemler</h3>
+            <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginBottom: '16px', letterSpacing: '-0.3px' }}>Hızlı İşlemler</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '32px' }}>
                <MActionButton label="Yeni Servis" href="/servis-kayitlari/yeni" icon={Icons.tool} color="#3b82f6" />
                <MActionButton label="Yeni Müşteri" href="/musteriler/yeni" icon={Icons.users} color="#10b981" />
@@ -207,22 +212,22 @@ export default function Home() {
             </div>
 
             {/* Recent Services List */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-               <h3 style={{ fontSize: '16px', fontWeight: 800 }}>Son Servisler</h3>
-               <Link href="/servis-kayitlari" style={{ fontSize: '12px', color: '#3b82f6', fontWeight: 700, textDecoration: 'none' }}>Tümü →</Link>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+               <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.3px' }}>Son Servisler</h3>
+               <Link href="/servis-kayitlari" style={{ fontSize: '13px', color: '#3b82f6', fontWeight: 700, textDecoration: 'none' }}>Tümü →</Link>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
                {sonServisler.slice(0, 5).map(s => {
                   const d = DURUM_RENKLER[s.durum] || ['#64748b', '#f1f5f9']
                   return (
-                     <div key={s.id} onClick={() => router.push(`/servis-kayitlari/${s.id}`)} className="card" style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                     <div key={s.id} onClick={() => router.push(`/servis-kayitlari/${s.id}`)} style={{ background: '#fff', borderRadius: '16px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f1f5f9' }}>
                         <div style={{ flex: 1 }}>
-                           <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>{s.arac?.plaka || 'Plakasız'}</div>
-                           <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>{s.cari_kart?.yetkili} <span style={{ opacity: 0.5 }}>#{s.servis_no}</span></div>
+                           <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.3px' }}>{s.arac?.plaka || 'Plakasız'}</div>
+                           <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 600, marginTop: '4px' }}>{s.cari_kart?.yetkili} <span style={{ opacity: 0.4, fontWeight: 500, fontSize: '12px' }}>#{s.servis_no}</span></div>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                           <span style={{ fontSize: '10px', fontWeight: 800, background: d[1], color: d[0], padding: '4px 8px', borderRadius: '6px' }}>{s.durum}</span>
-                           <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '4px', color: '#0f172a' }}>{s.gtoplam?.toLocaleString('tr-TR')} ₺</div>
+                        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+                           <span style={{ fontSize: '11px', fontWeight: 800, background: d[1], color: d[0], padding: '4px 10px', borderRadius: '8px' }}>{s.durum}</span>
+                           <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{s.gtoplam?.toLocaleString('tr-TR')} ₺</div>
                         </div>
                      </div>
                   )
@@ -230,32 +235,23 @@ export default function Home() {
             </div>
 
             {/* Today's Appointments */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-               <h3 style={{ fontSize: '16px', fontWeight: 800 }}>Bugünkü Randevular</h3>
-               <Link href="/randevu" style={{ fontSize: '12px', color: '#3b82f6', fontWeight: 700, textDecoration: 'none' }}>Tümü →</Link>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+               <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.3px' }}>Bugünkü Randevular</h3>
+               <Link href="/randevu" style={{ fontSize: '13px', color: '#3b82f6', fontWeight: 700, textDecoration: 'none' }}>Tümü →</Link>
             </div>
             <div style={{ marginBottom: '40px' }}>
                {bugunkuRandevular.length === 0 ? (
-                  <div className="card" style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>Bugün randevu yok</div>
+                  <div style={{ background: '#fff', borderRadius: '16px', border: '1px dashed #cbd5e1', padding: '32px', textAlign: 'center', color: '#94a3b8', fontSize: '14px', fontWeight: 600 }}>Bugün randevu yok</div>
                ) : bugunkuRandevular.map((r, i) => (
-                  <div key={i} className="card" style={{ padding: '12px 16px', marginBottom: '8px', borderLeft: '4px solid #3b82f6' }}>
-                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '13px', fontWeight: 800, color: '#3b82f6' }}>{r.saat}</span>
-                        <span style={{ fontSize: '13px', fontWeight: 700 }}>{r.cari_kart?.yetkili}</span>
+                  <div key={i} style={{ background: '#fff', borderRadius: '16px', padding: '16px', marginBottom: '12px', borderLeft: '4px solid #3b82f6', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 800, color: '#3b82f6' }}>{r.saat}</span>
+                        <span style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', textAlign: 'right' }}>{r.cari_kart?.yetkili}</span>
                      </div>
-                     <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{r.baslik}</div>
+                     <div style={{ fontSize: '13px', color: '#64748b', marginTop: '6px', fontWeight: 500 }}>{r.baslik}</div>
                   </div>
                ))}
             </div>
-         </div>
-
-         {/* Bottom Nav */}
-         <div className="bottom-nav">
-            <Link href="/" className="bottom-nav-item active">{Icons.home} <span>Ana Sayfa</span></Link>
-            <Link href="/musteriler" className="bottom-nav-item">{Icons.users} <span>Müşteriler</span></Link>
-            <Link href="/servis-kayitlari" className="bottom-nav-item">{Icons.tool} <span>Servis</span></Link>
-            <Link href="/stok" className="bottom-nav-item">{Icons.box} <span>Stok</span></Link>
-            <button style={{ background: 'none', border: 'none' }} className="bottom-nav-item">{Icons.more} <span>Daha Fazla</span></button>
          </div>
       </div>
     </div>
@@ -265,11 +261,11 @@ export default function Home() {
 /* ─── Mobile Specific Components ─── */
 function MStatCard({ label, value, icon, color, href }: any) {
    return (
-      <Link href={href} className="card" style={{ padding: '16px', textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-         <div style={{ color: color }}>{icon}</div>
+      <Link href={href} style={{ background: '#fff', borderRadius: '16px', padding: '16px', textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '12px', border: '1px solid #f1f5f9', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+         <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `${color}15`, color: color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>
          <div>
-            <div style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a' }}>{value}</div>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>{label}</div>
+            <div style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px' }}>{value}</div>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginTop: '2px' }}>{label}</div>
          </div>
       </Link>
    )
@@ -278,14 +274,15 @@ function MStatCard({ label, value, icon, color, href }: any) {
 function MActionButton({ label, href, icon, color }: any) {
    return (
       <Link href={href} style={{ 
-         background: '#fff', borderRadius: '16px', padding: '16px', 
-         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
-         textDecoration: 'none', border: '1px solid #e2e8f0'
+         background: '#fff', borderRadius: '16px', padding: '16px 12px', 
+         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
+         textDecoration: 'none', border: '1px solid #f1f5f9', boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+         transition: 'transform 0.1s'
       }}>
-         <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: `${color}15`, color: color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+         <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: `linear-gradient(135deg, ${color}20 0%, ${color}10 100%)`, color: color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {icon}
          </div>
-         <span style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b' }}>{label}</span>
+         <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', textAlign: 'center' }}>{label}</span>
       </Link>
    )
 }
