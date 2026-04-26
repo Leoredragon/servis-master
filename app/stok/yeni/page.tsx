@@ -59,7 +59,10 @@ export default function YeniStok() {
     } catch (error: any) {
       alert(error.message)
       setSaving(false)
-    const [isMobile, setIsMobile] = useState(false)
+    }
+  }
+
+  const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
     check()
