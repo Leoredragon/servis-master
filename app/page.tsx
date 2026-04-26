@@ -181,21 +181,33 @@ export default function Home() {
          </div>
 
          <div style={{ padding: '20px' }}>
-            {/* Welcome Card */}
+            {/* Premium Welcome Card */}
             <div style={{ 
-               background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', 
-               borderRadius: '24px', padding: '24px', color: 'white', marginBottom: '24px',
-               boxShadow: '0 12px 24px -8px rgba(15,23,42,0.4)', position: 'relative', overflow: 'hidden'
+               background: 'linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%)', 
+               borderRadius: '28px', padding: '28px', color: 'white', marginBottom: '32px',
+               boxShadow: '0 20px 40px -10px rgba(30,58,138,0.5)', position: 'relative', overflow: 'hidden',
+               border: '1px solid rgba(255,255,255,0.1)'
             }}>
                <div style={{ position: 'relative', zIndex: 2 }}>
-                 <h2 style={{ fontSize: '22px', fontWeight: 800, margin: 0, letterSpacing: '-0.5px' }}>Hoş geldin, Yönetici</h2>
-                 <p style={{ color: '#94a3b8', fontSize: '14px', marginTop: '6px', lineHeight: 1.4 }}>Bugün <strong style={{ color: '#fff' }}>{stats.activeServices}</strong> aktif servis ve <strong style={{ color: '#fff' }}>{bugunkuRandevular.length}</strong> randevu seni bekliyor.</p>
+                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#34d399', boxShadow: '0 0 10px #34d399' }} />
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Sistem Aktif</span>
+                 </div>
+                 <h2 style={{ fontSize: '26px', fontWeight: 900, margin: 0, letterSpacing: '-0.5px', background: 'linear-gradient(to right, #fff, #93c5fd)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Hoş geldin, Yönetici</h2>
+                 <p style={{ color: '#cbd5e1', fontSize: '14px', marginTop: '10px', lineHeight: 1.5, fontWeight: 500 }}>
+                   Bugün <strong style={{ color: '#fff', fontSize: '16px', background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '8px' }}>{stats.activeServices}</strong> aktif servis ve <strong style={{ color: '#fff', fontSize: '16px', background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '8px' }}>{bugunkuRandevular.length}</strong> randevu seni bekliyor.
+                 </p>
                </div>
-               <div style={{ position: 'absolute', right: '-20px', top: '-20px', width: '120px', height: '120px', background: 'radial-gradient(circle, rgba(59,130,246,0.3) 0%, rgba(59,130,246,0) 70%)', borderRadius: '50%', zIndex: 1 }} />
+               {/* Decorative elements */}
+               <div style={{ position: 'absolute', right: '-30px', top: '-30px', width: '160px', height: '160px', background: 'radial-gradient(circle, rgba(59,130,246,0.4) 0%, rgba(59,130,246,0) 70%)', borderRadius: '50%', zIndex: 1 }} />
+               <div style={{ position: 'absolute', left: '-20px', bottom: '-20px', width: '120px', height: '120px', background: 'radial-gradient(circle, rgba(139,92,246,0.3) 0%, rgba(139,92,246,0) 70%)', borderRadius: '50%', zIndex: 1 }} />
+               <div style={{ position: 'absolute', right: '10px', bottom: '10px', opacity: 0.05, transform: 'scale(4) rotate(-15deg)', zIndex: 1, color: '#fff' }}>
+                  {Icons.tool}
+               </div>
             </div>
 
             {/* Quick Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '32px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '36px' }}>
                <MStatCard label="Müşteri" value={stats.totalCustomers} icon={Icons.users} color="#3b82f6" href="/musteriler" />
                <MStatCard label="Aktif Servis" value={stats.activeServices} icon={Icons.tool} color="#f59e0b" href="/servis-kayitlari" />
                <MStatCard label="Bugün Ciro" value={stats.todayRevenue.toLocaleString('tr-TR') + ' ₺'} icon={Icons.money} color="#10b981" href="/kasa" />
@@ -203,12 +215,14 @@ export default function Home() {
             </div>
 
             {/* Quick Actions Grid */}
-            <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginBottom: '16px', letterSpacing: '-0.3px' }}>Hızlı İşlemler</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '32px' }}>
-               <MActionButton label="Yeni Servis" href="/servis-kayitlari/yeni" icon={Icons.tool} color="#3b82f6" />
-               <MActionButton label="Yeni Müşteri" href="/musteriler/yeni" icon={Icons.users} color="#10b981" />
-               <MActionButton label="Yeni Randevu" href="/randevu" icon={Icons.calendar} color="#7c3aed" />
-               <MActionButton label="Stok Giriş" href="/stok" icon={Icons.box} color="#f59e0b" />
+            <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', marginBottom: '16px', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+               <span style={{ width: '4px', height: '16px', background: '#3b82f6', borderRadius: '4px' }}></span> Hızlı İşlemler
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '40px' }}>
+               <MActionButton label="Yeni Servis" href="/servis-kayitlari/yeni" icon={Icons.tool} color="#3b82f6" bg="#eff6ff" />
+               <MActionButton label="Yeni Müşteri" href="/musteriler/yeni" icon={Icons.users} color="#10b981" bg="#ecfdf5" />
+               <MActionButton label="Yeni Randevu" href="/randevu" icon={Icons.calendar} color="#8b5cf6" bg="#f5f3ff" />
+               <MActionButton label="Stok Giriş" href="/stok" icon={Icons.box} color="#f59e0b" bg="#fffbeb" />
             </div>
 
             {/* Recent Services List */}
@@ -261,28 +275,33 @@ export default function Home() {
 /* ─── Mobile Specific Components ─── */
 function MStatCard({ label, value, icon, color, href }: any) {
    return (
-      <Link href={href} style={{ background: '#fff', borderRadius: '16px', padding: '16px', textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '12px', border: '1px solid #f1f5f9', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-         <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `${color}15`, color: color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>
+      <Link href={href} style={{ 
+         background: '#fff', borderRadius: '20px', padding: '20px', textDecoration: 'none', 
+         display: 'flex', flexDirection: 'column', gap: '14px', border: '1px solid #f1f5f9', 
+         boxShadow: '0 8px 16px rgba(0,0,0,0.02)', position: 'relative', overflow: 'hidden'
+      }}>
+         <div style={{ position: 'absolute', top: 0, right: 0, width: '60px', height: '60px', background: `radial-gradient(circle at top right, ${color}20 0%, transparent 70%)` }} />
+         <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: `${color}15`, color: color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>
          <div>
-            <div style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px' }}>{value}</div>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginTop: '2px' }}>{label}</div>
+            <div style={{ fontSize: '22px', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px' }}>{value}</div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#64748b', marginTop: '4px' }}>{label}</div>
          </div>
       </Link>
    )
 }
 
-function MActionButton({ label, href, icon, color }: any) {
+function MActionButton({ label, href, icon, color, bg }: any) {
    return (
       <Link href={href} style={{ 
-         background: '#fff', borderRadius: '16px', padding: '16px 12px', 
-         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
-         textDecoration: 'none', border: '1px solid #f1f5f9', boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+         background: bg, borderRadius: '20px', padding: '16px', 
+         display: 'flex', alignItems: 'center', gap: '12px',
+         textDecoration: 'none', border: `1px solid ${color}20`,
          transition: 'transform 0.1s'
       }}>
-         <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: `linear-gradient(135deg, ${color}20 0%, ${color}10 100%)`, color: color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+         <div style={{ color: color, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', width: '36px', height: '36px', borderRadius: '12px', boxShadow: `0 4px 10px ${color}15` }}>
             {icon}
          </div>
-         <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', textAlign: 'center' }}>{label}</span>
+         <span style={{ fontSize: '13px', fontWeight: 800, color: color, letterSpacing: '-0.2px' }}>{label}</span>
       </Link>
    )
 }
