@@ -166,7 +166,7 @@ export default function Home() {
                {Icons.menu}
             </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-               <div style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)', color: '#fff', width: '32px', height: '32px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(59,130,246,0.4)' }}><Icon d={icons.service} size={16} /></div>
+               <div style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)', color: '#fff', width: '32px', height: '32px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(59,130,246,0.4)' }}>{Icons.tool}</div>
                <div style={{ display: 'flex', flexDirection: 'column' }}>
                  <span style={{ fontWeight: 900, letterSpacing: '-0.2px', fontSize: '14px', color: '#fff', lineHeight: 1 }}>SERVIS</span>
                  <span style={{ fontWeight: 700, letterSpacing: '2px', fontSize: '9px', color: '#60a5fa', marginTop: '2px' }}>MASTER</span>

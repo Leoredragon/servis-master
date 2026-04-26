@@ -138,6 +138,7 @@ export default function ServisKayitlariListesi() {
   const [aktifTab, setAktifTab] = useState('Tümü')
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
+  const router = useRouter()
   
   // SMS Modalı state
   const [smsModalServis, setSmsModalServis] = useState<Servis | null>(null)
