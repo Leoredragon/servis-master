@@ -182,7 +182,7 @@ export default function StockTable({ stocks }: StockTableProps) {
                                                 <DropdownMenuContent align="end" className="bg-white border border-zinc-200 shadow-md rounded-md p-1 min-w-32 z-50">
                                                     <DropdownMenuItem onClick={handleEdit} className="text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 cursor-pointer">
                                                         <Edit className="w-3.5 h-3.5 text-zinc-500" />
-                                                        <span>✏️ Düzenle</span>
+                                                        <span>Düzenle</span>
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
                                                         variant="destructive"
@@ -190,7 +190,7 @@ export default function StockTable({ stocks }: StockTableProps) {
                                                         className="text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer"
                                                     >
                                                         <Trash2 className="w-3.5 h-3.5 text-red-500" />
-                                                        <span>🗑️ Sil</span>
+                                                        <span>Sil</span>
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>

@@ -110,6 +110,29 @@ export async function deleteCustomerGroup(id: string) {
     return { success: true }
 }
 
+export async function updateCustomerGroup(id: string, name: string, discountRate: number) {
+    const supabase = await createClient()
+
+    if (!name || !name.trim()) {
+        return { success: false, message: 'Grup adı gereklidir.' }
+    }
+
+    const { data, error } = await supabase
+        .from('customer_groups')
+        .update({ name: name.trim(), discount_rate: discountRate })
+        .eq('id', id)
+        .select()
+        .single()
+
+    if (error) {
+        console.error('Müşteri grubu güncellenirken hata:', error.message)
+        return { success: false, message: 'Grup güncellenemedi: ' + error.message }
+    }
+
+    revalidatePath('/customers')
+    return { success: true, data }
+}
+
 export async function deleteCustomer(id: string) {
     const supabase = await createClient()
     const { error } = await supabase

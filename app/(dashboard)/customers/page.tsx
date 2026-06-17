@@ -1,5 +1,5 @@
 import NewCustomerDialog from "@/components/customers/NewCustomerDialog"
-import ManageGroupsSheet from "@/components/customers/ManageGroupsSheet"
+import ManageGroupsDialog from "@/components/customers/ManageGroupsDialog"
 import CustomersTable from "@/components/customers/CustomersTable"
 import { createClient } from "@/lib/supabase/server"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -47,7 +47,7 @@ export default async function CustomersPage() {
                 </div>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <ManageGroupsSheet />
+                    <ManageGroupsDialog />
                     <NewCustomerDialog />
                 </div>
             </div>

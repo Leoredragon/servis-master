@@ -41,13 +41,13 @@ export default function NewCustomerDialog() {
     const formRef = useRef<HTMLFormElement>(null)
     const firstInputRef = useRef<HTMLInputElement>(null)
 
-    // Generate smart default customer code when open changes
+    // Load groups and reset errors when dialog opens
     useEffect(() => {
         if (open) {
-            setCustomerCode("MSTM-" + Math.floor(1000 + Math.random() * 9000).toString())
             setErrors({})
             setDiscountRate("0")
             setSelectedGroupId("none")
+            setCustomerCode("")
             
             getCustomerGroups().then((data) => {
                 setGroups(data)
@@ -133,7 +133,7 @@ export default function NewCustomerDialog() {
                 setDiscountRate("0")
                 setSelectedGroupId("none")
                 setErrors({})
-                setCustomerCode("MSTM-" + Math.floor(1000 + Math.random() * 9000).toString())
+                setCustomerCode("")
                 setTimeout(() => {
                     firstInputRef.current?.focus()
                 }, 100)
@@ -211,15 +211,14 @@ export default function NewCustomerDialog() {
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="customerCode">Müşteri Kodu <span className="text-red-500">*</span></Label>
+                                    <Label htmlFor="customerCode">Müşteri Kodu</Label>
                                     <Input 
                                         ref={firstInputRef}
                                         id="customerCode" 
                                         name="customerCode" 
                                         value={customerCode}
                                         onChange={(e) => setCustomerCode(e.target.value)}
-                                        placeholder="Örn: MSTM-0001" 
-                                        required 
+                                        placeholder="Örn: MSTM-0001 (İsteğe bağlı)" 
                                         className="border-zinc-200 bg-white"
                                     />
                                 </div>

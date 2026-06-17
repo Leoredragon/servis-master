@@ -28,7 +28,7 @@ import {
 import { MoreHorizontal, Search, Trash2, Edit } from "lucide-react"
 import { deleteCustomer } from "./actions"
 import { toast } from "sonner"
-import Customer360Sheet from "./Customer360Sheet"
+import Customer360Dialog from "./Customer360Dialog"
 
 interface CustomerWithGroup {
     id: string
@@ -214,7 +214,7 @@ export default function CustomersTable({ customers }: CustomersTableProps) {
                                             <DropdownMenuContent align="end" className="bg-white border border-zinc-200 shadow-md rounded-md p-1 min-w-32 z-50">
                                                 <DropdownMenuItem onClick={handleEdit} className="text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 cursor-pointer">
                                                     <Edit className="w-3.5 h-3.5 text-zinc-500" />
-                                                    <span>✏️ Düzenle</span>
+                                                    <span>Düzenle</span>
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
                                                     variant="destructive"
@@ -222,7 +222,7 @@ export default function CustomersTable({ customers }: CustomersTableProps) {
                                                     className="text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer"
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5 text-red-500" />
-                                                    <span>🗑️ Sil</span>
+                                                    <span>Sil</span>
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
@@ -285,11 +285,11 @@ export default function CustomersTable({ customers }: CustomersTableProps) {
                     <p className="text-zinc-400 text-sm">Arama kriterlerinize uygun müşteri bulunamadı.</p>
                 </div>
             )}
-            {/* Customer 360 Sheet */}
-            <Customer360Sheet 
-                customerId={selected360CustomerId} 
-                open={sheetOpen} 
-                onOpenChange={setSheetOpen} 
+            {/* Customer 360 Dialog */}
+            <Customer360Dialog
+                customerId={selected360CustomerId}
+                open={sheetOpen}
+                onOpenChange={setSheetOpen}
             />
         </div>
     )
