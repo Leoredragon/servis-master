@@ -40,3 +40,19 @@ export async function createVehicle(formData: FormData) {
 
     revalidatePath('/vehicles')
 }
+
+export async function deleteVehicle(id: string) {
+    const supabase = await createClient()
+    const { error } = await supabase
+        .from('vehicles')
+        .delete()
+        .eq('id', id)
+
+    if (error) {
+        console.error('Araç silinirken hata:', error.message)
+        return { success: false, message: 'Araç silinemedi: ' + error.message }
+    }
+
+    revalidatePath('/vehicles')
+    return { success: true }
+}

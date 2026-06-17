@@ -109,3 +109,19 @@ export async function deleteCustomerGroup(id: string) {
     revalidatePath('/customers')
     return { success: true }
 }
+
+export async function deleteCustomer(id: string) {
+    const supabase = await createClient()
+    const { error } = await supabase
+        .from('customers')
+        .delete()
+        .eq('id', id)
+
+    if (error) {
+        console.error('Müşteri silinirken hata:', error.message)
+        return { success: false, message: 'Müşteri silinemedi: ' + error.message }
+    }
+
+    revalidatePath('/customers')
+    return { success: true }
+}

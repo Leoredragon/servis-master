@@ -31,3 +31,19 @@ export async function createStock(formData: FormData) {
     revalidatePath('/stock')
     return { success: true, message: 'Stok kartı başarıyla oluşturuldu!' }
 }
+
+export async function deleteStock(id: string) {
+    const supabase = await createClient()
+    const { error } = await supabase
+        .from('stock_cards')
+        .delete()
+        .eq('id', id)
+
+    if (error) {
+        console.error('Stok silinirken hata:', error.message)
+        return { success: false, message: 'Stok silinemedi: ' + error.message }
+    }
+
+    revalidatePath('/stock')
+    return { success: true }
+}

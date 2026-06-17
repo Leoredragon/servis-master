@@ -123,3 +123,19 @@ export async function completeService(serviceId: string) {
     revalidatePath('/stock')
     return { success: true }
 }
+
+export async function deleteServiceRecord(id: string) {
+    const supabase = await createClient()
+    const { error } = await supabase
+        .from('service_records')
+        .delete()
+        .eq('id', id)
+
+    if (error) {
+        console.error('Servis kaydı silinirken hata:', error.message)
+        return { success: false, message: 'Servis kaydı silinemedi: ' + error.message }
+    }
+
+    revalidatePath('/services')
+    return { success: true }
+}
