@@ -39,6 +39,7 @@ export default function NewServiceDialog() {
     const [selectedVehicleId, setSelectedVehicleId] = useState<string>("")
     const [comboboxOpen, setComboboxOpen] = useState(false)
     const [entryMileage, setEntryMileage] = useState("")
+    const [submitAction, setSubmitAction] = useState<"save" | "saveAndAdd">("save")
 
     // Dropzone states
     const [selectedFiles, setSelectedFiles] = useState<File[]>([])
@@ -186,13 +187,25 @@ export default function NewServiceDialog() {
             const res = await createServiceRecord(formData)
             if (res.success) {
                 toast.success("Servis iş emri kaydı başarıyla oluşturuldu!")
-                setOpen(false)
                 
-                // Seçimleri sıfırla
-                setSelectedCustomerId("")
-                setSelectedVehicleId("")
-                setEntryMileage("")
-                setSelectedFiles([])
+                if (submitAction === "save") {
+                    setOpen(false)
+                    // Seçimleri sıfırla
+                    setSelectedCustomerId("")
+                    setSelectedVehicleId("")
+                    setEntryMileage("")
+                    setSelectedFiles([])
+                } else {
+                    formRef.current?.reset()
+                    // Seçimleri sıfırla
+                    setSelectedCustomerId("")
+                    setSelectedVehicleId("")
+                    setEntryMileage("")
+                    setSelectedFiles([])
+                    setTimeout(() => {
+                        customerComboboxTriggerRef.current?.focus()
+                    }, 100)
+                }
             }
         } catch (err: any) {
             toast.error("Servis kaydı oluşturulurken hata oluştu: " + err.message)
@@ -267,7 +280,7 @@ export default function NewServiceDialog() {
 
                 <form ref={formRef} action={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
                     {/* Body: Kaydırılabilir (Scrollable) Alan */}
-                    <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-6 space-y-6">
                         
                         {/* Bölüm 1: Müşteri ve Araç Seçimi */}
                         <div className="space-y-4">
@@ -524,7 +537,17 @@ export default function NewServiceDialog() {
                         </Button>
                         <Button 
                             type="submit" 
+                            variant="secondary"
+                            className="w-full sm:w-auto bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-medium"
+                            onClick={() => setSubmitAction("saveAndAdd")}
+                            disabled={!selectedCustomerId || !selectedVehicleId}
+                        >
+                            Kaydet ve Yeni Ekle
+                        </Button>
+                        <Button 
+                            type="submit" 
                             className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                            onClick={() => setSubmitAction("save")}
                             disabled={!selectedCustomerId || !selectedVehicleId}
                         >
                             Kaydı Oluştur

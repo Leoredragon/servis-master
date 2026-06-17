@@ -43,6 +43,7 @@ export default function NewInvoiceDialog() {
     const [paymentType, setPaymentType] = useState("kredi_karti")
     const [selectedCashRegisterId, setSelectedCashRegisterId] = useState("")
     const [selectedBankAccountId, setSelectedBankAccountId] = useState("")
+    const [submitAction, setSubmitAction] = useState<"save" | "saveAndAdd">("save")
 
     const [comboboxOpen, setComboboxOpen] = useState(false)
 
@@ -136,14 +137,28 @@ export default function NewInvoiceDialog() {
             const res = await createInvoice(formData)
             if (res.success) {
                 toast.success("Fatura başarıyla kaydedildi!")
-                setOpen(false)
                 
-                // Reset states
-                setSelectedCustomerId("")
-                setSelectedServiceId("")
-                setDescription("")
-                setQuantity(1)
-                setUnitPrice(0)
+                if (submitAction === "save") {
+                    setOpen(false)
+                    // Reset states
+                    setSelectedCustomerId("")
+                    setSelectedServiceId("")
+                    setDescription("")
+                    setQuantity(1)
+                    setUnitPrice(0)
+                } else {
+                    // Reset states but keep open
+                    setSelectedCustomerId("")
+                    setSelectedServiceId("")
+                    setDescription("")
+                    setQuantity(1)
+                    setUnitPrice(0)
+                    setInvoiceNo(`FTR-${Date.now().toString().slice(-6)}`)
+                    
+                    // Reload defaults from localStorage
+                    const savedNotes = localStorage.getItem("default_invoice_notes")
+                    if (savedNotes) setDescription(savedNotes)
+                }
             } else {
                 toast.error(res.message || "Fatura oluşturulurken hata.")
             }
@@ -175,7 +190,7 @@ export default function NewInvoiceDialog() {
 
                 <form action={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
                     {/* Body: Kaydırılabilir (Scrollable) Alan */}
-                    <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-6 space-y-6">
                         
                         {/* Bölüm 1: Müşteri & Servis Seçimi */}
                         <div className="space-y-4">
@@ -429,7 +444,17 @@ export default function NewInvoiceDialog() {
                         </Button>
                         <Button 
                             type="submit" 
+                            variant="secondary"
+                            className="w-full sm:w-auto bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-medium"
+                            onClick={() => setSubmitAction("saveAndAdd")}
+                            disabled={!selectedCustomerId || (selectedCustomer?.type === "kurumsal" && (!selectedCustomer?.tax_number || !selectedCustomer?.tax_office))}
+                        >
+                            Kaydet ve Yeni Ekle
+                        </Button>
+                        <Button 
+                            type="submit" 
                             className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                            onClick={() => setSubmitAction("save")}
                             disabled={!selectedCustomerId || (selectedCustomer?.type === "kurumsal" && (!selectedCustomer?.tax_number || !selectedCustomer?.tax_office))}
                         >
                             Faturayı Kaydet ve Kes
