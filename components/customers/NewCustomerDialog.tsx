@@ -128,180 +128,187 @@ export default function NewCustomerDialog() {
             </DialogTrigger>
 
             <DialogContent 
-                className="sm:max-w-xl max-h-[90vh] overflow-y-auto bg-white" 
+                className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0 bg-white overflow-hidden" 
                 onInteractOutside={(e) => e.preventDefault()}
                 onOpenAutoFocus={(e) => {
                     e.preventDefault()
                     firstInputRef.current?.focus()
                 }}
             >
-                <DialogHeader className="mb-2">
-                    <DialogTitle className="text-xl font-bold tracking-tight">Yeni Müşteri Kaydı</DialogTitle>
-                    <DialogDescription>
-                        Sisteme yeni bir bireysel, kurumsal veya personel müşteri tanımlayın.
+                {/* Header: Sabit */}
+                <DialogHeader className="px-6 py-4 border-b border-zinc-100">
+                    <DialogTitle className="text-xl font-bold tracking-tight text-zinc-900">Yeni Müşteri Ekle</DialogTitle>
+                    <DialogDescription className="text-zinc-500">
+                        Müşterinin operasyonel ve finansal detaylarını girin.
                     </DialogDescription>
                 </DialogHeader>
 
-                <form ref={formRef} action={handleSubmit} className="space-y-6">
-                    {/* Bölüm 1: Genel Bilgiler */}
-                    <div>
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3">1. Genel Bilgiler</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Müşteri Tipi</Label>
-                                <Select name="type" value={customerType} onValueChange={setCustomerType}>
-                                    <SelectTrigger className="border-zinc-200">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-white">
-                                        <SelectItem value="bireysel">Bireysel Müşteri</SelectItem>
-                                        <SelectItem value="kurumsal">Kurumsal Müşteri</SelectItem>
-                                        <SelectItem value="personel">Personel</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="customerCode">Müşteri Kodu</Label>
-                                <Input 
-                                    ref={firstInputRef}
-                                    id="customerCode" 
-                                    name="customerCode" 
-                                    value={customerCode}
-                                    onChange={(e) => setCustomerCode(e.target.value)}
-                                    placeholder="Örn: MSTM-0001" 
-                                    required 
-                                    className="border-zinc-200"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {customerType === "kurumsal" && (
-                        <div className="pt-4 border-t border-zinc-100">
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3">Kurumsal Detaylar</h3>
-                            <div className="grid grid-cols-2 gap-4">
+                <form ref={formRef} action={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+                    {/* Body: Kaydırılabilir (Scrollable) Alan */}
+                    <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+                        
+                        {/* Bölüm 1: Kişisel Bilgiler */}
+                        <div className="space-y-4">
+                            <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">1. Genel Bilgiler</h4>
+                            <div className="h-px bg-zinc-100 w-full" />
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="taxOffice">Vergi Dairesi</Label>
-                                    <Input id="taxOffice" name="taxOffice" placeholder="Örn: Boğaziçi VD" required={customerType === "kurumsal"} className="border-zinc-200" />
+                                    <Label>Müşteri Tipi <span className="text-red-500">*</span></Label>
+                                    <Select name="type" value={customerType} onValueChange={setCustomerType}>
+                                        <SelectTrigger className="border-zinc-200">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-white">
+                                            <SelectItem value="bireysel">Bireysel Müşteri</SelectItem>
+                                            <SelectItem value="kurumsal">Kurumsal Müşteri</SelectItem>
+                                            <SelectItem value="personel">Personel</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="taxNumber">Vergi No / TCKN</Label>
+                                    <Label htmlFor="customerCode">Müşteri Kodu <span className="text-red-500">*</span></Label>
                                     <Input 
-                                        id="taxNumber" 
-                                        name="taxNumber" 
-                                        value={taxNumber}
-                                        onChange={handleTaxNumberChange}
-                                        placeholder="10 haneli VKN veya 11 haneli TCKN" 
-                                        required={customerType === "kurumsal"} 
-                                        className={cn("border-zinc-200", errors.taxNumber ? "border-red-500 focus-visible:ring-red-500" : "")}
+                                        ref={firstInputRef}
+                                        id="customerCode" 
+                                        name="customerCode" 
+                                        value={customerCode}
+                                        onChange={(e) => setCustomerCode(e.target.value)}
+                                        placeholder="Örn: MSTM-0001" 
+                                        required 
+                                        className="border-zinc-200"
                                     />
-                                    {errors.taxNumber && <p className="text-xs text-red-500 mt-1">{errors.taxNumber}</p>}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="firstName">Adı / Firma Adı <span className="text-red-500">*</span></Label>
+                                    <Input id="firstName" name="firstName" placeholder={customerType === "kurumsal" ? "Örn: Örnek Ltd. Şti." : "Ahmet"} required className="border-zinc-200" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="lastName">Soyadı {customerType !== "kurumsal" && <span className="text-red-500">*</span>}</Label>
+                                    <Input 
+                                        id="lastName" 
+                                        name="lastName" 
+                                        placeholder={customerType === "kurumsal" ? "Boş bırakılabilir" : "Yılmaz"} 
+                                        required={customerType !== "kurumsal"} 
+                                        className="border-zinc-200"
+                                    />
                                 </div>
                             </div>
                         </div>
-                    )}
 
-                    <div className="pt-4 border-t border-zinc-100">
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3">Kişisel Bilgiler</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="firstName">Adı / Firma Adı</Label>
-                                <Input id="firstName" name="firstName" placeholder={customerType === "kurumsal" ? "Örn: Örnek Ltd. Şti." : "Ahmet"} required className="border-zinc-200" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="lastName">Soyadı</Label>
-                                <Input 
-                                    id="lastName" 
-                                    name="lastName" 
-                                    placeholder={customerType === "kurumsal" ? "Boş bırakılabilir" : "Yılmaz"} 
-                                    required={customerType !== "kurumsal"} 
-                                    className="border-zinc-200"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Bölüm 2: İletişim Bilgileri */}
-                    <div className="pt-4 border-t border-zinc-100">
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3">2. İletişim Bilgileri</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="phone">Telefon Numarası</Label>
-                                <Input 
-                                    id="phone" 
-                                    name="phone" 
-                                    type="tel" 
-                                    value={phone}
-                                    onChange={handlePhoneChange}
-                                    placeholder="0555 555 55 55" 
-                                    required 
-                                    className={cn("border-zinc-200", errors.phone ? "border-red-500 focus-visible:ring-red-500" : "")}
-                                />
-                                {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="email">E-posta Adresi</Label>
-                                <Input id="email" name="email" type="email" placeholder="ahmet@yolcu.com" className="border-zinc-200" />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Bölüm 3: Finansal Tercihler */}
-                    <div className="pt-4 border-t border-zinc-100">
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3">3. Finansal Tercihler</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-1.5">
-                                    <Label htmlFor="discountRate">Tanımlı İskonto Oranı (%)</Label>
-                                    <div className="group relative inline-block">
-                                        <HelpCircle className="w-3.5 h-3.5 text-zinc-400 hover:text-zinc-600 cursor-pointer inline" />
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 hidden group-hover:block bg-zinc-900 text-white text-[11px] font-normal rounded p-2 shadow-lg leading-normal z-50">
-                                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-zinc-900" />
-                                            Bu müşteriye faturalarda uygulanacak varsayılan indirim oranıdır.
-                                        </div>
+                        {/* Kurumsal Bilgiler (Sadece Kurumsal Seçildiğinde) */}
+                        {customerType === "kurumsal" && (
+                            <div className="space-y-4 pt-2">
+                                <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Kurumsal Bilgiler</h4>
+                                <div className="h-px bg-zinc-100 w-full" />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="taxOffice">Vergi Dairesi <span className="text-red-500">*</span></Label>
+                                        <Input id="taxOffice" name="taxOffice" placeholder="Örn: Boğaziçi VD" required={customerType === "kurumsal"} className="border-zinc-200" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="taxNumber">Vergi No / TCKN <span className="text-red-500">*</span></Label>
+                                        <Input 
+                                            id="taxNumber" 
+                                            name="taxNumber" 
+                                            value={taxNumber}
+                                            onChange={handleTaxNumberChange}
+                                            placeholder="10 haneli VKN veya 11 haneli TCKN" 
+                                            required={customerType === "kurumsal"} 
+                                            className={cn("border-zinc-200", errors.taxNumber ? "border-red-500 focus-visible:ring-red-500" : "")}
+                                        />
+                                        {errors.taxNumber && <p className="text-xs text-red-500 mt-1">{errors.taxNumber}</p>}
                                     </div>
                                 </div>
-                                <Input 
-                                    id="discountRate" 
-                                    name="discountRate" 
-                                    type="number" 
-                                    min="0" 
-                                    max="100" 
-                                    step="0.01" 
-                                    defaultValue="0" 
-                                    placeholder="Örn: 10" 
-                                    className="border-zinc-200"
-                                />
+                            </div>
+                        )}
+
+                        {/* Bölüm 2: İletişim & Konum */}
+                        <div className="space-y-4 pt-2">
+                            <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">2. İletişim & Konum</h4>
+                            <div className="h-px bg-zinc-100 w-full" />
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="phone">Telefon Numarası <span className="text-red-500">*</span></Label>
+                                    <Input 
+                                        id="phone" 
+                                        name="phone" 
+                                        type="tel" 
+                                        value={phone}
+                                        onChange={handlePhoneChange}
+                                        placeholder="0555 555 55 55" 
+                                        required 
+                                        className={cn("border-zinc-200", errors.phone ? "border-red-500 focus-visible:ring-red-500" : "")}
+                                    />
+                                    {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="email">E-posta Adresi</Label>
+                                    <Input id="email" name="email" type="email" placeholder="ahmet@yolcu.com" className="border-zinc-200" />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="city">İl</Label>
+                                    <Input id="city" name="city" placeholder="Düzce" className="border-zinc-200" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="district">İlçe</Label>
+                                    <Input id="district" name="district" placeholder="Merkez" className="border-zinc-200" />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="address">Açık Adres</Label>
+                                <Textarea id="address" name="address" placeholder="Müşterinin fatura/ikamet adresi..." className="resize-none h-16 border-zinc-200 w-full" />
+                            </div>
+                        </div>
+
+                        {/* Bölüm 3: Finansal Tercihler & Notlar */}
+                        <div className="space-y-4 pt-2">
+                            <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">3. Finansal Tercihler & Notlar</h4>
+                            <div className="h-px bg-zinc-100 w-full" />
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-1.5">
+                                        <Label htmlFor="discountRate">Tanımlı İskonto Oranı (%)</Label>
+                                        <div className="group relative inline-block">
+                                            <HelpCircle className="w-3.5 h-3.5 text-zinc-400 hover:text-zinc-600 cursor-pointer" />
+                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 hidden group-hover:block bg-zinc-900 text-white text-[11px] font-normal rounded p-2 shadow-lg leading-normal z-50">
+                                                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-zinc-900" />
+                                                Bu müşteriye faturalarda uygulanacak varsayılan indirim oranıdır.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <Input 
+                                        id="discountRate" 
+                                        name="discountRate" 
+                                        type="number" 
+                                        min="0" 
+                                        max="100" 
+                                        step="0.01" 
+                                        defaultValue="0" 
+                                        placeholder="Örn: 10" 
+                                        className="border-zinc-200"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="notes">Özel Notlar</Label>
+                                <Textarea id="notes" name="notes" placeholder="Müşteri hakkında hatırlatıcı notlar..." className="resize-none h-16 border-zinc-200 w-full" />
                             </div>
                         </div>
                     </div>
 
-                    {/* Bölüm 4: Adres ve Notlar */}
-                    <div className="pt-4 border-t border-zinc-100">
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3">4. Adres & Notlar</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="city">İl</Label>
-                                <Input id="city" name="city" placeholder="Düzce" className="border-zinc-200" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="district">İlçe</Label>
-                                <Input id="district" name="district" placeholder="Merkez" className="border-zinc-200" />
-                            </div>
-                        </div>
-
-                        <div className="space-y-2 mt-4">
-                            <Label htmlFor="address">Açık Adres</Label>
-                            <Textarea id="address" name="address" placeholder="Müşterinin fatura/ikamet adresi..." className="resize-none h-16 border-zinc-200" />
-                        </div>
-
-                        <div className="space-y-2 mt-4">
-                            <Label htmlFor="notes">Özel Notlar</Label>
-                            <Textarea id="notes" name="notes" placeholder="Müşteri hakkında hatırlatıcı notlar..." className="resize-none h-16 border-zinc-200" />
-                        </div>
-                    </div>
-
-                    <DialogFooter className="pt-6 mt-6 border-t border-zinc-100 flex flex-col sm:flex-row gap-2">
+                    {/* Footer: Sabit (Sticky) */}
+                    <div className="px-6 py-4 border-t border-zinc-100 bg-zinc-50/50 flex flex-col sm:flex-row justify-end gap-2 mt-auto">
                         <Button 
                             type="button" 
                             variant="outline" 
@@ -325,7 +332,7 @@ export default function NewCustomerDialog() {
                         >
                             Müşteriyi Kaydet
                         </Button>
-                    </DialogFooter>
+                    </div>
                 </form>
             </DialogContent>
         </Dialog>

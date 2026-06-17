@@ -208,23 +208,24 @@ export default function NewServiceDialog() {
             </DialogTrigger>
 
             <DialogContent 
-                className="sm:max-w-xl max-h-[90vh] overflow-y-auto bg-white" 
+                className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0 bg-white overflow-hidden" 
                 onInteractOutside={(e) => e.preventDefault()}
                 onOpenAutoFocus={(e) => {
                     e.preventDefault()
                     customerComboboxTriggerRef.current?.focus()
                 }}
             >
-                <DialogHeader className="mb-2">
-                    <DialogTitle className="text-xl font-bold tracking-tight">Yeni Servis Kaydı</DialogTitle>
-                    <DialogDescription>
+                {/* Header: Sabit */}
+                <DialogHeader className="px-6 py-4 border-b border-zinc-100">
+                    <DialogTitle className="text-xl font-bold tracking-tight text-zinc-900">Yeni Servis Kaydı</DialogTitle>
+                    <DialogDescription className="text-zinc-500">
                         Araç için yeni bir iş emri oluşturun. Gerekli alanları doldurup kaydedin.
                     </DialogDescription>
                 </DialogHeader>
 
                 {/* Hızlı Müşteri Ekleme Paneli */}
                 {showQuickAdd ? (
-                    <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-4 space-y-4">
+                    <div className="mx-6 my-4 bg-zinc-50 border border-zinc-200 rounded-lg p-4 space-y-4">
                         <div className="flex justify-between items-center border-b border-zinc-200 pb-2">
                             <h4 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
                                 <UserPlus className="w-4 h-4 text-blue-600" /> Hızlı Müşteri Ekle
@@ -239,17 +240,17 @@ export default function NewServiceDialog() {
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
-                                <Label className="text-xs">Adı *</Label>
+                                <Label className="text-xs">Adı <span className="text-red-500">*</span></Label>
                                 <Input value={quickFirstName} onChange={e => setQuickFirstName(e.target.value)} placeholder="örn. Ahmet" className="h-9 border-zinc-200" />
                             </div>
                             <div className="space-y-1">
-                                <Label className="text-xs">Soyadı *</Label>
+                                <Label className="text-xs">Soyadı <span className="text-red-500">*</span></Label>
                                 <Input value={quickLastName} onChange={e => setQuickLastName(e.target.value)} placeholder="örn. Yılmaz" className="h-9 border-zinc-200" />
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
-                                <Label className="text-xs">Telefon *</Label>
+                                <Label className="text-xs">Telefon <span className="text-red-500">*</span></Label>
                                 <Input value={quickPhone} onChange={e => setQuickPhone(e.target.value)} placeholder="örn. 0555..." className="h-9 border-zinc-200" />
                             </div>
                             <div className="space-y-1">
@@ -264,182 +265,190 @@ export default function NewServiceDialog() {
                     </div>
                 ) : null}
 
-                <form ref={formRef} action={handleSubmit} className="space-y-6">
-                    {/* Bölüm 1: Müşteri ve Araç Seçimi */}
-                    <div>
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3">1. Müşteri & Araç Seçimi</h3>
+                <form ref={formRef} action={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+                    {/* Body: Kaydırılabilir (Scrollable) Alan */}
+                    <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+                        
+                        {/* Bölüm 1: Müşteri ve Araç Seçimi */}
                         <div className="space-y-4">
-                            {/* Müşteri Arama (Combobox) */}
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                    <Label>Müşteri Seçimi *</Label>
-                                    {!showQuickAdd && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowQuickAdd(true)}
-                                            className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                                        >
-                                            <Plus className="w-3 h-3" /> Hızlı Müşteri Ekle
-                                        </button>
+                            <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">1. Müşteri & Araç Seçimi</h4>
+                            <div className="h-px bg-zinc-100 w-full" />
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Müşteri Arama (Combobox) */}
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                        <Label>Müşteri Seçimi <span className="text-red-500">*</span></Label>
+                                        {!showQuickAdd && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowQuickAdd(true)}
+                                                className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                            >
+                                                <Plus className="w-3 h-3" /> Hızlı Müşteri Ekle
+                                            </button>
+                                        )}
+                                    </div>
+                                    <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                ref={customerComboboxTriggerRef}
+                                                variant="outline"
+                                                role="combobox"
+                                                aria-expanded={comboboxOpen}
+                                                className="w-full justify-between font-normal text-left h-10 border-zinc-200 bg-white"
+                                            >
+                                                {selectedCustomerId
+                                                    ? `${selectedCustomer?.first_name} ${selectedCustomer?.last_name || ""} (${selectedCustomer?.phone})`
+                                                    : "Müşteri arayın veya seçin..."}
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-white border border-zinc-200 shadow-md rounded-md overflow-hidden z-50">
+                                            <Command>
+                                                <CommandInput placeholder="İsim veya telefon yazarak arayın..." />
+                                                <CommandList>
+                                                    <CommandEmpty>Müşteri bulunamadı.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {customers.map((customer) => (
+                                                            <CommandItem
+                                                                key={customer.id}
+                                                                value={`${customer.first_name} ${customer.last_name || ""} ${customer.phone}`}
+                                                                onSelect={() => {
+                                                                    setSelectedCustomerId(customer.id)
+                                                                    setComboboxOpen(false)
+                                                                    setSelectedVehicleId("")
+                                                                }}
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        "mr-2 h-4 w-4",
+                                                                        selectedCustomerId === customer.id ? "opacity-100" : "opacity-0"
+                                                                    )}
+                                                                />
+                                                                {customer.first_name} {customer.last_name || ""} ({customer.phone})
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+
+                                {/* Araç Seçimi */}
+                                <div className="space-y-2">
+                                    <Label>Araç Seçimi <span className="text-red-500">*</span></Label>
+                                    <Select 
+                                        value={selectedVehicleId} 
+                                        onValueChange={setSelectedVehicleId}
+                                        disabled={!selectedCustomerId}
+                                    >
+                                        <SelectTrigger className="border-zinc-200 bg-white">
+                                            <SelectValue placeholder={
+                                                selectedCustomerId 
+                                                    ? filteredVehicles.length > 0 
+                                                        ? "Müşterinin aracını seçin..." 
+                                                        : "Müşteriye ait kayıtlı araç yok!" 
+                                                    : "Önce müşteri seçmelisiniz"
+                                            } />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-white">
+                                            {filteredVehicles.map(v => (
+                                                <SelectItem key={v.id} value={v.id}>
+                                                    {v.brand} {v.model} ({v.plate})
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {selectedCustomerId && filteredVehicles.length === 0 && (
+                                        <p className="text-xs text-amber-600 mt-1">
+                                            Bu müşteriye ait araç bulunmuyor. Öncelikle "Araçlar" sayfasından bu müşteri adına araç kaydetmelisiniz.
+                                        </p>
                                     )}
                                 </div>
-                                <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            ref={customerComboboxTriggerRef}
-                                            variant="outline"
-                                            role="combobox"
-                                            aria-expanded={comboboxOpen}
-                                            className="w-full justify-between font-normal text-left h-10 border-zinc-200 bg-white"
-                                        >
-                                            {selectedCustomerId
-                                                ? `${selectedCustomer?.first_name} ${selectedCustomer?.last_name} (${selectedCustomer?.phone})`
-                                                : "Müşteri arayın veya seçin..."}
-                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-white border border-zinc-200 shadow-md rounded-md overflow-hidden z-50">
-                                        <Command>
-                                            <CommandInput placeholder="İsim veya telefon yazarak arayın..." />
-                                            <CommandList>
-                                                <CommandEmpty>Müşteri bulunamadı.</CommandEmpty>
-                                                <CommandGroup>
-                                                    {customers.map((customer) => (
-                                                        <CommandItem
-                                                            key={customer.id}
-                                                            value={`${customer.first_name} ${customer.last_name} ${customer.phone}`}
-                                                            onSelect={() => {
-                                                                setSelectedCustomerId(customer.id)
-                                                                setComboboxOpen(false)
-                                                                setSelectedVehicleId("")
-                                                            }}
-                                                        >
-                                                            <Check
-                                                                className={cn(
-                                                                    "mr-2 h-4 w-4",
-                                                                    selectedCustomerId === customer.id ? "opacity-100" : "opacity-0"
-                                                                )}
-                                                            />
-                                                            {customer.first_name} {customer.last_name} ({customer.phone})
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-
-                            {/* Araç Seçimi (Müşteriye Göre Filtrelenir) */}
-                            <div className="space-y-2">
-                                <Label>Araç Seçimi *</Label>
-                                <Select 
-                                    value={selectedVehicleId} 
-                                    onValueChange={setSelectedVehicleId}
-                                    disabled={!selectedCustomerId}
-                                >
-                                    <SelectTrigger className="border-zinc-200 bg-white">
-                                        <SelectValue placeholder={
-                                            selectedCustomerId 
-                                                ? filteredVehicles.length > 0 
-                                                    ? "Müşterinin aracını seçin..." 
-                                                    : "Müşteriye ait kayıtlı araç yok!" 
-                                                : "Önce müşteri seçmelisiniz"
-                                        } />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-white">
-                                        {filteredVehicles.map(v => (
-                                            <SelectItem key={v.id} value={v.id}>
-                                                {v.brand} {v.model} ({v.plate})
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                {selectedCustomerId && filteredVehicles.length === 0 && (
-                                    <p className="text-xs text-amber-600 mt-1">
-                                        Bu müşteriye ait araç bulunmuyor. Öncelikle "Araçlar" sayfasından bu müşteri adına araç kaydetmelisiniz.
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Bölüm 2: Kabul Detayları */}
-                    <div className="pt-4 border-t border-zinc-100">
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3">2. Kabul Detayları</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Servis Tipi</Label>
-                                <Select name="serviceType" defaultValue="bakim">
-                                    <SelectTrigger className="border-zinc-200 bg-white">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-white">
-                                        <SelectItem value="bakim">Periyodik Bakım</SelectItem>
-                                        <SelectItem value="tamir">Tamir / Onarım</SelectItem>
-                                        <SelectItem value="muayene">Muayene Hazırlık</SelectItem>
-                                        <SelectItem value="modifikasyon">Modifikasyon</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Öncelik</Label>
-                                <Select name="priority" defaultValue="normal">
-                                    <SelectTrigger className="border-zinc-200 bg-white">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-white">
-                                        <SelectItem value="dusuk">Düşük</SelectItem>
-                                        <SelectItem value="normal">Normal</SelectItem>
-                                        <SelectItem value="yuksek">Yüksek</SelectItem>
-                                        <SelectItem value="acil">Acil!</SelectItem>
-                                    </SelectContent>
-                                </Select>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4 mt-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="entryMileage">Giriş Kilometresi (KM)</Label>
-                                <Input
-                                    id="entryMileage"
-                                    name="entryMileage"
-                                    type="number"
-                                    value={entryMileage}
-                                    onChange={e => setEntryMileage(e.target.value)}
-                                    placeholder="Örn: 42500"
-                                    className="border-zinc-200"
-                                />
+                        {/* Bölüm 2: Kabul Detayları */}
+                        <div className="space-y-4 pt-2">
+                            <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">2. Kabul Detayları</h4>
+                            <div className="h-px bg-zinc-100 w-full" />
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Servis Tipi</Label>
+                                    <Select name="serviceType" defaultValue="bakim">
+                                        <SelectTrigger className="border-zinc-200 bg-white">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-white">
+                                            <SelectItem value="bakim">Periyodik Bakım</SelectItem>
+                                            <SelectItem value="tamir">Tamir / Onarım</SelectItem>
+                                            <SelectItem value="muayene">Muayene Hazırlık</SelectItem>
+                                            <SelectItem value="modifikasyon">Modifikasyon</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Öncelik</Label>
+                                    <Select name="priority" defaultValue="normal">
+                                        <SelectTrigger className="border-zinc-200 bg-white">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-white">
+                                            <SelectItem value="dusuk">Düşük</SelectItem>
+                                            <SelectItem value="normal">Normal</SelectItem>
+                                            <SelectItem value="yuksek">Yüksek</SelectItem>
+                                            <SelectItem value="acil">Acil!</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label>Yakıt Durumu</Label>
-                                <Select name="fuelLevel" defaultValue="yarim">
-                                    <SelectTrigger className="border-zinc-200 bg-white">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-white">
-                                        <SelectItem value="bos">Işık Yanıyor / Boş</SelectItem>
-                                        <SelectItem value="ceyrek">Çeyrek Depo</SelectItem>
-                                        <SelectItem value="yarim">Yarım Depo</SelectItem>
-                                        <SelectItem value="ucceyrek">3/4 Depo</SelectItem>
-                                        <SelectItem value="dolu">Dolu Depo</SelectItem>
-                                    </SelectContent>
-                                </Select>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="entryMileage">Giriş Kilometresi (KM)</Label>
+                                    <Input
+                                        id="entryMileage"
+                                        name="entryMileage"
+                                        type="number"
+                                        value={entryMileage}
+                                        onChange={e => setEntryMileage(e.target.value)}
+                                        placeholder="Örn: 42500"
+                                        className="border-zinc-200"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Yakıt Durumu</Label>
+                                    <Select name="fuelLevel" defaultValue="yarim">
+                                        <SelectTrigger className="border-zinc-200 bg-white">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-white">
+                                            <SelectItem value="bos">Işık Yanıyor / Boş</SelectItem>
+                                            <SelectItem value="ceyrek">Çeyrek Depo</SelectItem>
+                                            <SelectItem value="yarim">Yarım Depo</SelectItem>
+                                            <SelectItem value="ucceyrek">3/4 Depo</SelectItem>
+                                            <SelectItem value="dolu">Dolu Depo</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Bölüm 3: Şikayet & Hasar Notları ve Görseller */}
-                    <div className="pt-4 border-t border-zinc-100">
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3">3. Hasar / Talep Notları & Görseller</h3>
-                        <div className="space-y-4">
+                        {/* Bölüm 3: Şikayet & Hasar Notları ve Görseller */}
+                        <div className="space-y-4 pt-2">
+                            <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">3. Hasar / Talep Notları & Görseller</h4>
+                            <div className="h-px bg-zinc-100 w-full" />
+                            
                             <div className="space-y-2">
                                 <Label htmlFor="complaint">Müşteri Şikayeti / Talep</Label>
                                 <Textarea
                                     id="complaint"
                                     name="complaint"
                                     placeholder="Müşterinin belirttiği sorunları veya istekleri buraya yazın..."
-                                    className="resize-none h-20 border-zinc-200"
+                                    className="resize-none h-20 border-zinc-200 w-full"
                                 />
                             </div>
 
@@ -449,7 +458,7 @@ export default function NewServiceDialog() {
                                     id="damageAssessment"
                                     name="damageAssessment"
                                     placeholder="Dış kasa hasarları, çizikler veya kabul sırasındaki görsel kusurları belirtin..."
-                                    className="resize-none h-20 border-zinc-200"
+                                    className="resize-none h-20 border-zinc-200 w-full"
                                 />
                             </div>
 
@@ -503,7 +512,8 @@ export default function NewServiceDialog() {
                         </div>
                     </div>
 
-                    <DialogFooter className="pt-6 mt-6 border-t border-zinc-100 flex flex-col sm:flex-row gap-2">
+                    {/* Footer: Sabit (Sticky) */}
+                    <div className="px-6 py-4 border-t border-zinc-100 bg-zinc-50/50 flex flex-col sm:flex-row justify-end gap-2 mt-auto">
                         <Button 
                             type="button" 
                             variant="outline" 
@@ -519,7 +529,7 @@ export default function NewServiceDialog() {
                         >
                             Kaydı Oluştur
                         </Button>
-                    </DialogFooter>
+                    </div>
                 </form>
             </DialogContent>
         </Dialog>
