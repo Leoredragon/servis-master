@@ -10,6 +10,8 @@ interface Vehicle {
     model: string
     year: number | null
     mileage: number
+    chassis_number: string | null
+    engine_number: string | null
     notes: string | null
     customers: {
         first_name: string

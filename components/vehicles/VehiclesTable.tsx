@@ -24,9 +24,20 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { MoreHorizontal, Search, Trash2, Edit, Bike } from "lucide-react"
 import { deleteVehicle } from "./actions"
 import { toast } from "sonner"
+import EditVehicleDialog from "./EditVehicleDialog"
 
 interface Vehicle {
     id: string
@@ -35,6 +46,8 @@ interface Vehicle {
     model: string
     year: number | null
     mileage: number
+    chassis_number?: string | null
+    engine_number?: string | null
     notes: string | null
     customers: {
         first_name: string
@@ -50,6 +63,14 @@ export default function VehiclesTable({ vehicles }: VehiclesTableProps) {
     const [searchQuery, setSearchQuery] = useState("")
     const [currentPage, setCurrentPage] = useState(1)
     const [pageSize, setPageSize] = useState(20)
+
+    // Delete confirm state
+    const [deleteTargetVehicle, setDeleteTargetVehicle] = useState<Vehicle | null>(null)
+    const [deleting, setDeleting] = useState(false)
+
+    // Edit dialog state
+    const [editTargetVehicle, setEditTargetVehicle] = useState<Vehicle | null>(null)
+    const [editDialogOpen, setEditDialogOpen] = useState(false)
 
     // Filter vehicles based on search query
     const filteredVehicles = vehicles.filter((vehicle) => {
@@ -75,13 +96,11 @@ export default function VehiclesTable({ vehicles }: VehiclesTableProps) {
     const endIndex = startIndex + pageSize
     const paginatedVehicles = filteredVehicles.slice(startIndex, endIndex)
 
-    const handleDelete = async (id: string, plate: string) => {
-        if (!confirm(`"${plate}" plakalı aracı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`)) {
-            return
-        }
-
+    const handleDeleteConfirm = async () => {
+        if (!deleteTargetVehicle) return
+        setDeleting(true)
         try {
-            const res = await deleteVehicle(id)
+            const res = await deleteVehicle(deleteTargetVehicle.id)
             if (res.success) {
                 toast.success("Araç başarıyla silindi.")
                 if (paginatedVehicles.length === 1 && currentPage > 1) {
@@ -93,11 +112,15 @@ export default function VehiclesTable({ vehicles }: VehiclesTableProps) {
         } catch (error) {
             console.error(error)
             toast.error("İşlem gerçekleştirilemedi.")
+        } finally {
+            setDeleting(false)
+            setDeleteTargetVehicle(null)
         }
     }
 
-    const handleEdit = () => {
-        toast.info("Araç düzenleme özelliği yakında eklenecektir.")
+    const handleEditClick = (vehicle: Vehicle) => {
+        setEditTargetVehicle(vehicle)
+        setEditDialogOpen(true)
     }
 
     return (
@@ -143,11 +166,11 @@ export default function VehiclesTable({ vehicles }: VehiclesTableProps) {
                                     <TableCell className="font-medium text-xs text-zinc-800">{vehicle.brand} {vehicle.model}</TableCell>
                                     <TableCell className="text-zinc-500 text-xs">{vehicle.year || "-"}</TableCell>
                                     <TableCell className="text-zinc-500 text-xs">
-                                        {vehicle.customers 
-                                            ? `${vehicle.customers.first_name} ${vehicle.customers.last_name || ""}` 
+                                        {vehicle.customers
+                                            ? `${vehicle.customers.first_name} ${vehicle.customers.last_name || ""}`
                                             : 'Bilinmeyen Müşteri'}
                                     </TableCell>
-                                    <TableCell className="text-zinc-650 font-medium text-xs">{vehicle.mileage ? `${vehicle.mileage.toLocaleString('tr-TR')} KM` : "0 KM"}</TableCell>
+                                    <TableCell className="text-zinc-600 font-medium text-xs">{vehicle.mileage ? `${vehicle.mileage.toLocaleString('tr-TR')} KM` : "0 KM"}</TableCell>
                                     <TableCell className="text-right pr-6">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
@@ -156,13 +179,16 @@ export default function VehiclesTable({ vehicles }: VehiclesTableProps) {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end" className="bg-white border border-zinc-200 shadow-md rounded-md p-1 min-w-32 z-50">
-                                                <DropdownMenuItem onClick={handleEdit} className="text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 cursor-pointer">
+                                                <DropdownMenuItem
+                                                    onClick={() => handleEditClick(vehicle)}
+                                                    className="text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 cursor-pointer"
+                                                >
                                                     <Edit className="w-3.5 h-3.5 text-zinc-500" />
                                                     <span>Düzenle</span>
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
                                                     variant="destructive"
-                                                    onClick={() => handleDelete(vehicle.id, vehicle.plate)}
+                                                    onClick={() => setDeleteTargetVehicle(vehicle)}
                                                     className="text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer"
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5 text-red-500" />
@@ -177,7 +203,7 @@ export default function VehiclesTable({ vehicles }: VehiclesTableProps) {
                     </Table>
 
                     {/* Pagination Controls */}
-                    <div className="px-6 py-3 border-t border-zinc-150 flex items-center justify-between bg-zinc-50/50 text-xs text-zinc-500">
+                    <div className="px-6 py-3 border-t border-zinc-100 flex items-center justify-between bg-zinc-50/50 text-xs text-zinc-500">
                         <div className="flex items-center gap-4">
                             <span>
                                 Toplam {filteredVehicles.length} kayıttan {startIndex + 1}-{Math.min(endIndex, filteredVehicles.length)} arası gösteriliyor
@@ -228,6 +254,51 @@ export default function VehiclesTable({ vehicles }: VehiclesTableProps) {
                 <div className="bg-white border border-zinc-200 border-dashed rounded-lg p-12 text-center">
                     <p className="text-zinc-400 text-sm">Arama kriterlerinize uygun araç bulunamadı.</p>
                 </div>
+            )}
+
+            {/* AlertDialog: Silme Onayı */}
+            <AlertDialog
+                open={deleteTargetVehicle !== null}
+                onOpenChange={(isOpen) => {
+                    if (!isOpen && !deleting) setDeleteTargetVehicle(null)
+                }}
+            >
+                <AlertDialogContent className="bg-white border border-zinc-200 shadow-xl rounded-xl max-w-md">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-zinc-900 font-bold text-lg">Aracı Sil</AlertDialogTitle>
+                        <AlertDialogDescription className="text-zinc-500 text-sm leading-relaxed">
+                            <span className="font-semibold text-zinc-700">{deleteTargetVehicle?.plate}</span> plakalı aracı silmek istediğinize emin misiniz?{" "}
+                            <span className="text-red-600 font-medium">Bu işlem geri alınamaz.</span>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="gap-2">
+                        <AlertDialogCancel
+                            disabled={deleting}
+                            className="border-zinc-200 text-zinc-700 hover:bg-zinc-50 text-sm h-9"
+                        >
+                            İptal
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeleteConfirm}
+                            disabled={deleting}
+                            className="bg-red-600 hover:bg-red-700 text-white text-sm h-9 border-0"
+                        >
+                            {deleting ? "Siliniyor..." : "Evet, Sil"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* EditVehicleDialog */}
+            {editTargetVehicle && (
+                <EditVehicleDialog
+                    vehicle={editTargetVehicle}
+                    open={editDialogOpen}
+                    onOpenChange={(isOpen) => {
+                        setEditDialogOpen(isOpen)
+                        if (!isOpen) setEditTargetVehicle(null)
+                    }}
+                />
             )}
         </div>
     )

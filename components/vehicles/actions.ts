@@ -56,3 +56,44 @@ export async function deleteVehicle(id: string) {
     revalidatePath('/vehicles')
     return { success: true }
 }
+
+export async function updateVehicle(id: string, formData: FormData) {
+    const supabase = await createClient()
+
+    const plate = formData.get('plate') as string
+    const brand = formData.get('brand') as string
+    const model = formData.get('model') as string
+    const year = formData.get('year') as string
+    const chassis_number = formData.get('vin') as string
+    const engine_number = formData.get('engineNo') as string
+    const mileage = formData.get('currentKm') as string
+    const notes = formData.get('notes') as string
+
+    if (!plate || !brand || !model) {
+        return { success: false, message: 'Plaka, marka ve model zorunludur.' }
+    }
+
+    const { data, error } = await supabase
+        .from('vehicles')
+        .update({
+            plate: plate.trim().toUpperCase(),
+            brand: brand.trim(),
+            model: model.trim(),
+            year: year ? parseInt(year) : null,
+            chassis_number: chassis_number?.trim() || null,
+            engine_number: engine_number?.trim() || null,
+            mileage: mileage ? parseInt(mileage) : 0,
+            notes: notes?.trim() || null,
+        })
+        .eq('id', id)
+        .select()
+        .single()
+
+    if (error) {
+        console.error('Araç güncellenirken hata:', error.message)
+        return { success: false, message: 'Araç güncellenemedi: ' + error.message }
+    }
+
+    revalidatePath('/vehicles')
+    return { success: true, data }
+}
