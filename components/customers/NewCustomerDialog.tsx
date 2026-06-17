@@ -22,7 +22,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Plus, HelpCircle } from "lucide-react"
-import { createCustomer } from "./actions"
+import { createCustomer, getCustomerGroups } from "./actions"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
@@ -32,6 +32,9 @@ export default function NewCustomerDialog() {
     const [customerCode, setCustomerCode] = useState("")
     const [phone, setPhone] = useState("")
     const [taxNumber, setTaxNumber] = useState("")
+    const [discountRate, setDiscountRate] = useState("0")
+    const [groups, setGroups] = useState<any[]>([])
+    const [selectedGroupId, setSelectedGroupId] = useState("none")
     const [errors, setErrors] = useState<Record<string, string>>({})
     const [submitAction, setSubmitAction] = useState<"save" | "saveAndAdd">("save")
 
@@ -43,8 +46,26 @@ export default function NewCustomerDialog() {
         if (open) {
             setCustomerCode("MSTM-" + Math.floor(1000 + Math.random() * 9000).toString())
             setErrors({})
+            setDiscountRate("0")
+            setSelectedGroupId("none")
+            
+            getCustomerGroups().then((data) => {
+                setGroups(data)
+            })
         }
     }, [open])
+
+    const handleGroupChange = (groupId: string) => {
+        setSelectedGroupId(groupId)
+        if (groupId === "none") {
+            setDiscountRate("0")
+        } else {
+            const group = groups.find(g => g.id === groupId)
+            if (group) {
+                setDiscountRate(group.discount_rate.toString())
+            }
+        }
+    }
 
     const validatePhone = (val: string) => {
         if (!val) return "Telefon numarası zorunludur."
@@ -100,6 +121,8 @@ export default function NewCustomerDialog() {
                 setCustomerType("bireysel")
                 setPhone("")
                 setTaxNumber("")
+                setDiscountRate("0")
+                setSelectedGroupId("none")
                 setErrors({})
             } else {
                 // Reset form state but keep dialog open
@@ -107,6 +130,8 @@ export default function NewCustomerDialog() {
                 setCustomerType("bireysel")
                 setPhone("")
                 setTaxNumber("")
+                setDiscountRate("0")
+                setSelectedGroupId("none")
                 setErrors({})
                 setCustomerCode("MSTM-" + Math.floor(1000 + Math.random() * 9000).toString())
                 setTimeout(() => {
@@ -156,7 +181,7 @@ export default function NewCustomerDialog() {
                                 <div className="space-y-2">
                                     <Label>Müşteri Tipi <span className="text-red-500">*</span></Label>
                                     <Select name="type" value={customerType} onValueChange={setCustomerType}>
-                                        <SelectTrigger className="border-zinc-200">
+                                        <SelectTrigger className="border-zinc-200 bg-white">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent className="bg-white">
@@ -167,6 +192,25 @@ export default function NewCustomerDialog() {
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
+                                    <Label>Müşteri Grubu</Label>
+                                    <Select name="groupId" value={selectedGroupId} onValueChange={handleGroupChange}>
+                                        <SelectTrigger className="border-zinc-200 bg-white">
+                                            <SelectValue placeholder="Grup Seçin" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-white">
+                                            <SelectItem value="none">Grup Yok (Standart)</SelectItem>
+                                            {groups.map((g) => (
+                                                <SelectItem key={g.id} value={g.id}>
+                                                    {g.name} (%{g.discount_rate})
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="space-y-2">
                                     <Label htmlFor="customerCode">Müşteri Kodu <span className="text-red-500">*</span></Label>
                                     <Input 
                                         ref={firstInputRef}
@@ -176,15 +220,12 @@ export default function NewCustomerDialog() {
                                         onChange={(e) => setCustomerCode(e.target.value)}
                                         placeholder="Örn: MSTM-0001" 
                                         required 
-                                        className="border-zinc-200"
+                                        className="border-zinc-200 bg-white"
                                     />
                                 </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="firstName">Adı / Firma Adı <span className="text-red-500">*</span></Label>
-                                    <Input id="firstName" name="firstName" placeholder={customerType === "kurumsal" ? "Örn: Örnek Ltd. Şti." : "Ahmet"} required className="border-zinc-200" />
+                                    <Input id="firstName" name="firstName" placeholder={customerType === "kurumsal" ? "Örn: Örnek Ltd. Şti." : "Ahmet"} required className="border-zinc-200 bg-white" />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="lastName">Soyadı {customerType !== "kurumsal" && <span className="text-red-500">*</span>}</Label>
@@ -193,7 +234,7 @@ export default function NewCustomerDialog() {
                                         name="lastName" 
                                         placeholder={customerType === "kurumsal" ? "Boş bırakılabilir" : "Yılmaz"} 
                                         required={customerType !== "kurumsal"} 
-                                        className="border-zinc-200"
+                                        className="border-zinc-200 bg-white"
                                     />
                                 </div>
                             </div>
@@ -293,9 +334,10 @@ export default function NewCustomerDialog() {
                                         min="0" 
                                         max="100" 
                                         step="0.01" 
-                                        defaultValue="0" 
+                                        value={discountRate}
+                                        onChange={(e) => setDiscountRate(e.target.value)}
                                         placeholder="Örn: 10" 
-                                        className="border-zinc-200"
+                                        className="border-zinc-200 bg-white"
                                     />
                                 </div>
                             </div>

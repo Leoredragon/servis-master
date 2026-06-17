@@ -22,6 +22,7 @@ export async function createCustomer(formData: FormData) {
     const tax_number = formData.get('taxNumber') as string
     const discountRateVal = formData.get('discountRate')
     const discount_rate = discountRateVal ? parseFloat(discountRateVal as string) : 0
+    const group_id = formData.get('groupId') as string || null
 
     const { data, error } = await supabase
         .from('customers')
@@ -40,6 +41,7 @@ export async function createCustomer(formData: FormData) {
                 tax_office: tax_office || null,
                 tax_number: tax_number || null,
                 discount_rate,
+                group_id: group_id && group_id !== 'none' ? group_id : null,
             },
         ])
         .select()
@@ -52,4 +54,58 @@ export async function createCustomer(formData: FormData) {
 
     revalidatePath('/customers')
     return { success: true, data }
+}
+
+export async function getCustomerGroups() {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+        .from('customer_groups')
+        .select('*')
+        .order('name', { ascending: true })
+    if (error) {
+        console.error('Müşteri grupları getirilemedi:', error.message)
+        return []
+    }
+    return data || []
+}
+
+export async function createCustomerGroup(formData: FormData) {
+    const supabase = await createClient()
+    const name = formData.get('name') as string
+    const discountRateVal = formData.get('discountRate')
+    const discount_rate = discountRateVal ? parseFloat(discountRateVal as string) : 0
+
+    if (!name) {
+        return { success: false, message: 'Grup adı gereklidir.' }
+    }
+
+    const { data, error } = await supabase
+        .from('customer_groups')
+        .insert([{ name, discount_rate }])
+        .select()
+        .single()
+
+    if (error) {
+        console.error('Müşteri grubu eklenirken hata:', error.message)
+        return { success: false, message: 'Grup eklenemedi: ' + error.message }
+    }
+
+    revalidatePath('/customers')
+    return { success: true, data }
+}
+
+export async function deleteCustomerGroup(id: string) {
+    const supabase = await createClient()
+    const { error } = await supabase
+        .from('customer_groups')
+        .delete()
+        .eq('id', id)
+
+    if (error) {
+        console.error('Müşteri grubu silinirken hata:', error.message)
+        return { success: false, message: 'Grup silinemedi: ' + error.message }
+    }
+
+    revalidatePath('/customers')
+    return { success: true }
 }

@@ -1,4 +1,5 @@
 import NewCustomerDialog from "@/components/customers/NewCustomerDialog"
+import ManageGroupsSheet from "@/components/customers/ManageGroupsSheet"
 import { Button } from "@/components/ui/button"
 import {
     Table,
@@ -13,14 +14,32 @@ import { MoreHorizontal, Users } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { EmptyState } from "@/components/ui/empty-state"
 
+interface CustomerWithGroup {
+    id: string
+    customer_code: string
+    first_name: string
+    last_name: string | null
+    phone: string
+    email: string | null
+    type: string
+    discount_rate: number
+    tax_office?: string
+    tax_number?: string
+    customer_groups: {
+        name: string
+    } | null
+}
+
 export default async function CustomersPage() {
     const supabase = await createClient()
 
-    // Supabase'den tüm müşterileri çekiyoruz
-    const { data: customers, error } = await supabase
+    // Supabase'den tüm müşterileri ve grupları çekiyoruz
+    const { data, error } = await supabase
         .from('customers')
-        .select('*')
+        .select('*, customer_groups(name)')
         .order('created_at', { ascending: false })
+
+    const customers = data as unknown as CustomerWithGroup[] | null
 
     if (error) {
         console.error("Müşteriler çekilirken hata oluştu:", error.message)
@@ -37,7 +56,10 @@ export default async function CustomersPage() {
                     </p>
                 </div>
 
-                <NewCustomerDialog />
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <ManageGroupsSheet />
+                    <NewCustomerDialog />
+                </div>
             </div>
 
             {/* Tablo Alanı */}
@@ -51,6 +73,7 @@ export default async function CustomersPage() {
                                 <TableHead className="font-medium">Telefon</TableHead>
                                 <TableHead className="font-medium">E-posta</TableHead>
                                 <TableHead className="font-medium">Müşteri Tipi</TableHead>
+                                <TableHead className="font-medium">Grup</TableHead>
                                 <TableHead className="font-medium">İskonto Oranı</TableHead>
                                 <TableHead className="w-[50px]"></TableHead>
                             </TableRow>
@@ -90,6 +113,15 @@ export default async function CustomersPage() {
                                                 ? "Personel" 
                                                 : "Bireysel"}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        {customer.customer_groups?.name ? (
+                                            <Badge variant="outline" className="bg-zinc-50 text-zinc-700 border-zinc-200">
+                                                {customer.customer_groups.name}
+                                            </Badge>
+                                        ) : (
+                                            <span className="text-zinc-400 text-xs">-</span>
+                                        )}
                                     </TableCell>
                                     <TableCell className="text-zinc-500 font-medium">
                                         {customer.discount_rate && customer.discount_rate > 0 ? (
