@@ -28,6 +28,7 @@ import {
 import { MoreHorizontal, Search, Trash2, Edit } from "lucide-react"
 import { deleteCustomer } from "./actions"
 import { toast } from "sonner"
+import Customer360Sheet from "./Customer360Sheet"
 
 interface CustomerWithGroup {
     id: string
@@ -53,6 +54,8 @@ export default function CustomersTable({ customers }: CustomersTableProps) {
     const [searchQuery, setSearchQuery] = useState("")
     const [currentPage, setCurrentPage] = useState(1)
     const [pageSize, setPageSize] = useState(20)
+    const [selected360CustomerId, setSelected360CustomerId] = useState<string | null>(null)
+    const [sheetOpen, setSheetOpen] = useState(false)
 
     // Filter customers based on search query
     const filteredCustomers = customers.filter((customer) => {
@@ -140,7 +143,18 @@ export default function CustomersTable({ customers }: CustomersTableProps) {
                         </TableHeader>
                         <TableBody>
                             {paginatedCustomers.map((customer) => (
-                                <TableRow key={customer.id} className="hover:bg-zinc-50/50 transition-colors">
+                                <TableRow 
+                                    key={customer.id} 
+                                    className="hover:bg-zinc-50/50 transition-colors cursor-pointer"
+                                    onClick={(e) => {
+                                        const target = e.target as HTMLElement
+                                        if (target.closest('[data-slot="dropdown-menu-trigger"]') || target.closest('[data-slot="dropdown-menu-content"]')) {
+                                            return
+                                        }
+                                        setSelected360CustomerId(customer.id)
+                                        setSheetOpen(true)
+                                    }}
+                                >
                                     <TableCell className="font-medium text-zinc-900 text-xs">{customer.customer_code}</TableCell>
                                     <TableCell className="font-medium text-zinc-900 text-xs">
                                         <div>
@@ -271,6 +285,12 @@ export default function CustomersTable({ customers }: CustomersTableProps) {
                     <p className="text-zinc-400 text-sm">Arama kriterlerinize uygun müşteri bulunamadı.</p>
                 </div>
             )}
+            {/* Customer 360 Sheet */}
+            <Customer360Sheet 
+                customerId={selected360CustomerId} 
+                open={sheetOpen} 
+                onOpenChange={setSheetOpen} 
+            />
         </div>
     )
 }

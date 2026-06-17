@@ -125,3 +125,55 @@ export async function deleteCustomer(id: string) {
     revalidatePath('/customers')
     return { success: true }
 }
+
+export async function getCustomer360Data(customerId: string) {
+    const supabase = await createClient()
+
+    // 1. Fetch customer details
+    const { data: customer } = await supabase
+        .from('customers')
+        .select('*, customer_groups(name)')
+        .eq('id', customerId)
+        .single()
+
+    // 2. Fetch vehicles
+    const { data: vehicles } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('customer_id', customerId)
+        .order('created_at', { ascending: false })
+
+    // 3. Fetch service records
+    const { data: services } = await supabase
+        .from('service_records')
+        .select('*, vehicles(brand, model, plate), service_items(unit_price, quantity)')
+        .eq('customer_id', customerId)
+        .order('created_at', { ascending: false })
+
+    // 4. Fetch transactions
+    const { data: transactions } = await supabase
+        .from('transactions')
+        .select('*, cash_registers(name), bank_accounts(name)')
+        .eq('customer_id', customerId)
+        .order('transaction_date', { ascending: false })
+
+    // 5. Fetch cash registers and bank accounts
+    const { data: cashRegisters } = await supabase
+        .from('cash_registers')
+        .select('id, name')
+        .order('name', { ascending: true })
+
+    const { data: bankAccounts } = await supabase
+        .from('bank_accounts')
+        .select('id, name')
+        .order('name', { ascending: true })
+
+    return {
+        customer,
+        vehicles: vehicles || [],
+        services: services || [],
+        transactions: transactions || [],
+        cashRegisters: cashRegisters || [],
+        bankAccounts: bankAccounts || []
+    }
+}
