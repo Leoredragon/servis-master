@@ -13,9 +13,15 @@ interface CustomerWithGroup {
     email: string | null
     type: string
     discount_rate: number
-    tax_office?: string
-    tax_number?: string
+    city: string | null
+    district: string | null
+    address: string | null
+    notes: string | null
+    tax_office: string | null
+    tax_number: string | null
+    group_id: string | null
     customer_groups: {
+        id?: string
         name: string
     } | null
 }

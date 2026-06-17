@@ -149,6 +149,60 @@ export async function deleteCustomer(id: string) {
     return { success: true }
 }
 
+export async function updateCustomer(id: string, formData: FormData) {
+    const supabase = await createClient()
+
+    const type = formData.get('type') as string
+    const customer_code = formData.get('customerCode') as string
+    const first_name = formData.get('firstName') as string
+    const last_name = formData.get('lastName') as string
+    const phone = formData.get('phone') as string
+    const email = formData.get('email') as string
+    const city = formData.get('city') as string
+    const district = formData.get('district') as string
+    const address = formData.get('address') as string
+    const notes = formData.get('notes') as string
+    const tax_office = formData.get('taxOffice') as string
+    const tax_number = formData.get('taxNumber') as string
+    const discountRateVal = formData.get('discountRate')
+    const discount_rate = discountRateVal ? parseFloat(discountRateVal as string) : 0
+    const group_id_raw = formData.get('groupId') as string
+
+    if (!first_name || !phone) {
+        return { success: false, message: 'Ad ve telefon zorunludur.' }
+    }
+
+    const { data, error } = await supabase
+        .from('customers')
+        .update({
+            type,
+            customer_code: customer_code?.trim() || null,
+            first_name: first_name.trim(),
+            last_name: last_name?.trim() || null,
+            phone: phone.trim(),
+            email: email?.trim() || null,
+            city: city?.trim() || null,
+            district: district?.trim() || null,
+            address: address?.trim() || null,
+            notes: notes?.trim() || null,
+            tax_office: tax_office?.trim() || null,
+            tax_number: tax_number?.trim() || null,
+            discount_rate,
+            group_id: group_id_raw && group_id_raw !== 'none' ? group_id_raw : null,
+        })
+        .eq('id', id)
+        .select()
+        .single()
+
+    if (error) {
+        console.error('Müşteri güncellenirken hata:', error.message)
+        return { success: false, message: 'Müşteri güncellenemedi: ' + error.message }
+    }
+
+    revalidatePath('/customers')
+    return { success: true, data }
+}
+
 export async function getCustomer360Data(customerId: string) {
     const supabase = await createClient()
 

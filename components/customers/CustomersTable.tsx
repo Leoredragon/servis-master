@@ -29,6 +29,7 @@ import { MoreHorizontal, Search, Trash2, Edit } from "lucide-react"
 import { deleteCustomer } from "./actions"
 import { toast } from "sonner"
 import Customer360Dialog from "./Customer360Dialog"
+import EditCustomerDialog from "./EditCustomerDialog"
 
 interface CustomerWithGroup {
     id: string
@@ -39,9 +40,15 @@ interface CustomerWithGroup {
     email: string | null
     type: string
     discount_rate: number
-    tax_office?: string
-    tax_number?: string
+    city?: string | null
+    district?: string | null
+    address?: string | null
+    notes?: string | null
+    tax_office?: string | null
+    tax_number?: string | null
+    group_id?: string | null
     customer_groups: {
+        id?: string
         name: string
     } | null
 }
@@ -56,6 +63,10 @@ export default function CustomersTable({ customers }: CustomersTableProps) {
     const [pageSize, setPageSize] = useState(20)
     const [selected360CustomerId, setSelected360CustomerId] = useState<string | null>(null)
     const [sheetOpen, setSheetOpen] = useState(false)
+
+    // Edit dialog state
+    const [editTargetCustomer, setEditTargetCustomer] = useState<CustomerWithGroup | null>(null)
+    const [editDialogOpen, setEditDialogOpen] = useState(false)
 
     // Filter customers based on search query
     const filteredCustomers = customers.filter((customer) => {
@@ -105,8 +116,9 @@ export default function CustomersTable({ customers }: CustomersTableProps) {
         }
     }
 
-    const handleEdit = () => {
-        toast.info("Müşteri düzenleme özelliği yakında eklenecektir.")
+    const handleEditClick = (customer: CustomerWithGroup) => {
+        setEditTargetCustomer(customer)
+        setEditDialogOpen(true)
     }
 
     return (
@@ -212,7 +224,13 @@ export default function CustomersTable({ customers }: CustomersTableProps) {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end" className="bg-white border border-zinc-200 shadow-md rounded-md p-1 min-w-32 z-50">
-                                                <DropdownMenuItem onClick={handleEdit} className="text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 cursor-pointer">
+                                                <DropdownMenuItem
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        handleEditClick(customer)
+                                                    }}
+                                                    className="text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 cursor-pointer"
+                                                >
                                                     <Edit className="w-3.5 h-3.5 text-zinc-500" />
                                                     <span>Düzenle</span>
                                                 </DropdownMenuItem>
@@ -291,6 +309,17 @@ export default function CustomersTable({ customers }: CustomersTableProps) {
                 open={sheetOpen}
                 onOpenChange={setSheetOpen}
             />
+            {/* Edit Customer Dialog */}
+            {editTargetCustomer && (
+                <EditCustomerDialog
+                    customer={editTargetCustomer}
+                    open={editDialogOpen}
+                    onOpenChange={(isOpen) => {
+                        setEditDialogOpen(isOpen)
+                        if (!isOpen) setEditTargetCustomer(null)
+                    }}
+                />
+            )}
         </div>
     )
 }
