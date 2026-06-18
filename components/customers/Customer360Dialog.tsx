@@ -24,12 +24,19 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
     Phone, Mail, MapPin, Plus, Minus,
-    Sparkles, Bike, Wrench, Receipt, ArrowUpRight
+    Sparkles, Bike, Wrench, Receipt, ArrowUpRight,
+    AlertCircle, MoreVertical, Edit, Trash2
 } from "lucide-react"
 import { toast } from "sonner"
 import { getCustomer360Data } from "./actions"
 import { createVehicle } from "@/components/vehicles/actions"
-import { createTransaction } from "@/components/finance/actions"
+import { createTransaction, updateTransaction, deleteTransaction } from "@/components/finance/actions"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 
@@ -53,6 +60,20 @@ export default function Customer360Dialog({ customerId, open, onOpenChange }: Cu
     const [selectedBankAccount, setSelectedBankAccount] = useState("")
     const [activeFinanceTab, setActiveFinanceTab] = useState<"collect" | "debit">("collect")
     const [financeDate, setFinanceDate] = useState("")
+
+    // Edit transaction states
+    const [editTransaction, setEditTransaction] = useState<any | null>(null)
+    const [editAmount, setEditAmount] = useState("")
+    const [editDesc, setEditDesc] = useState("")
+    const [editPaymentMethod, setEditPaymentMethod] = useState("")
+    const [editCashRegister, setEditCashRegister] = useState("")
+    const [editBankAccount, setEditBankAccount] = useState("")
+    const [editDate, setEditDate] = useState("")
+    const [submittingEdit, setSubmittingEdit] = useState(false)
+
+    // Delete transaction states
+    const [deleteConfirmTransaction, setDeleteConfirmTransaction] = useState<any | null>(null)
+    const [submittingDelete, setSubmittingDelete] = useState(false)
 
     // Vehicle form states
     const [showAddVehicle, setShowAddVehicle] = useState(false)
@@ -190,6 +211,81 @@ export default function Customer360Dialog({ customerId, open, onOpenChange }: Cu
             }
         } catch (error: any) {
             toast.error("İşlem sırasında hata: " + error.message)
+        }
+    }
+
+    const openEditTransaction = (t: any) => {
+        setEditTransaction(t)
+        setEditAmount(t.amount.toString())
+        setEditDesc(t.description || "")
+        setEditPaymentMethod(t.payment_method)
+        setEditCashRegister(t.cash_register_id || "")
+        setEditBankAccount(t.bank_account_id || "")
+        setEditDate(t.transaction_date ? new Date(t.transaction_date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0])
+    }
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!editTransaction) return
+
+        const amountNum = parseFloat(editAmount)
+        if (isNaN(amountNum) || amountNum <= 0) {
+            toast.error("Lütfen geçerli bir tutar girin.")
+            return
+        }
+
+        if (editPaymentMethod === "nakit" && !editCashRegister) {
+            toast.error("Lütfen bir kasa seçin.")
+            return
+        }
+
+        if (["kredi_karti", "havale"].includes(editPaymentMethod) && !editBankAccount) {
+            toast.error("Lütfen bir banka hesabı seçin.")
+            return
+        }
+
+        setSubmittingEdit(true)
+        try {
+            const res = await updateTransaction(editTransaction.id, {
+                description: editDesc,
+                amount: amountNum,
+                transactionDate: editDate,
+                paymentMethod: editPaymentMethod,
+                cashRegisterId: editPaymentMethod === "nakit" ? editCashRegister : null,
+                bankAccountId: ["kredi_karti", "havale"].includes(editPaymentMethod) ? editBankAccount : null
+            })
+
+            if (res.success) {
+                toast.success("İşlem başarıyla güncellendi!")
+                setEditTransaction(null)
+                await loadData()
+            } else {
+                toast.error(res.message || "İşlem güncellenemedi.")
+            }
+        } catch (error: any) {
+            toast.error("Güncelleme sırasında hata: " + error.message)
+        } finally {
+            setSubmittingEdit(false)
+        }
+    }
+
+    const handleDeleteSubmit = async () => {
+        if (!deleteConfirmTransaction) return
+
+        setSubmittingDelete(true)
+        try {
+            const res = await deleteTransaction(deleteConfirmTransaction.id)
+            if (res.success) {
+                toast.success("İşlem başarıyla silindi!")
+                setDeleteConfirmTransaction(null)
+                await loadData()
+            } else {
+                toast.error(res.message || "İşlem silinemedi.")
+            }
+        } catch (error: any) {
+            toast.error("Silme işlemi sırasında hata: " + error.message)
+        } finally {
+            setSubmittingDelete(false)
         }
     }
 
@@ -487,6 +583,7 @@ export default function Customer360Dialog({ customerId, open, onOpenChange }: Cu
                                                             <TableHead className="text-xs font-medium">Ödeme Yöntemi</TableHead>
                                                             <TableHead className="text-xs font-medium">Kasa/Banka</TableHead>
                                                             <TableHead className="text-right text-xs font-medium">Tutar</TableHead>
+                                                            <TableHead className="w-[80px]"></TableHead>
                                                         </TableRow>
                                                     </TableHeader>
                                                     <TableBody>
@@ -539,6 +636,30 @@ export default function Customer360Dialog({ customerId, open, onOpenChange }: Cu
                                                                             : "text-zinc-800"
                                                                     )}>
                                                                         {isAccPay && isIncome ? "+" : "-"} {t.amount.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺
+                                                                    </TableCell>
+                                                                    <TableCell className="text-right">
+                                                                        <DropdownMenu>
+                                                                            <DropdownMenuTrigger asChild>
+                                                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                                                    <span className="sr-only">Menüyü aç</span>
+                                                                                    <MoreVertical className="h-4 w-4" />
+                                                                                </Button>
+                                                                            </DropdownMenuTrigger>
+                                                                            <DropdownMenuContent align="end" className="bg-white">
+                                                                                <DropdownMenuItem
+                                                                                    onClick={() => openEditTransaction(t)}
+                                                                                    className="text-xs text-zinc-700 cursor-pointer flex items-center gap-1.5"
+                                                                                >
+                                                                                    <Edit className="w-3.5 h-3.5" /> Düzenle
+                                                                                </DropdownMenuItem>
+                                                                                <DropdownMenuItem
+                                                                                    onClick={() => setDeleteConfirmTransaction(t)}
+                                                                                    className="text-xs text-red-600 focus:text-red-600 cursor-pointer flex items-center gap-1.5"
+                                                                                >
+                                                                                    <Trash2 className="w-3.5 h-3.5 text-red-600" /> Sil
+                                                                                </DropdownMenuItem>
+                                                                            </DropdownMenuContent>
+                                                                        </DropdownMenu>
                                                                     </TableCell>
                                                                 </TableRow>
                                                             )
@@ -722,6 +843,186 @@ export default function Customer360Dialog({ customerId, open, onOpenChange }: Cu
                             Kaydet ve Uygula
                         </Button>
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Transaction Dialog */}
+            <Dialog open={editTransaction !== null} onOpenChange={(isOpen) => { if (!isOpen) setEditTransaction(null) }}>
+                <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col p-0 bg-white overflow-hidden">
+                    <DialogHeader className="px-6 py-5 border-b border-zinc-100">
+                        <DialogTitle className="text-base font-bold text-zinc-950 flex items-center gap-1.5">
+                            <Sparkles className="w-4 h-4 text-blue-600" />
+                            <span>Cari Hareketi Düzenle</span>
+                        </DialogTitle>
+                        <DialogDescription className="text-xs text-zinc-500">
+                            Seçili cari hareketin detaylarını güncelleyin.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {editTransaction?.invoice_id && (
+                        <div className="mx-6 mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex gap-2 text-xs text-amber-800">
+                            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+                            <div>
+                                <span className="font-semibold">Faturaya Bağlı İşlem:</span> Bu hareket bir faturaya bağlı olduğu için tutar ve ödeme yöntemi değiştirilemez.
+                            </div>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleEditSubmit} className="flex-1 overflow-y-auto custom-scrollbar px-6 py-5 space-y-4">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="edit-amount" className="text-xs font-semibold text-zinc-700">Tutar (₺) <span className="text-red-500">*</span></Label>
+                            <Input
+                                id="edit-amount"
+                                type="number"
+                                step="0.01"
+                                value={editAmount}
+                                onChange={e => setEditAmount(e.target.value)}
+                                placeholder="0.00"
+                                className="border-zinc-200 h-10 text-sm font-semibold"
+                                required
+                                disabled={!!editTransaction?.invoice_id}
+                            />
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold text-zinc-700">Ödeme Yöntemi <span className="text-red-500">*</span></Label>
+                            <Select 
+                                value={editPaymentMethod} 
+                                onValueChange={setEditPaymentMethod}
+                                disabled={!!editTransaction?.invoice_id || editTransaction?.payment_method === "acik_hesap"}
+                            >
+                                <SelectTrigger className="border-zinc-200 bg-white text-xs h-9">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="bg-white">
+                                    <SelectItem value="nakit">Nakit (Kasa Girişi)</SelectItem>
+                                    <SelectItem value="kredi_karti">Kredi Kartı (Banka Girişi)</SelectItem>
+                                    <SelectItem value="havale">EFT / Havale (Banka Girişi)</SelectItem>
+                                    <SelectItem value="acik_hesap">Açık Hesap</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {editPaymentMethod === "nakit" && data?.cashRegisters && (
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-semibold text-zinc-700">Giriş Yapılacak Kasa <span className="text-red-500">*</span></Label>
+                                <Select value={editCashRegister} onValueChange={setEditCashRegister}>
+                                    <SelectTrigger className="border-zinc-200 bg-white text-xs h-9">
+                                        <SelectValue placeholder="Kasa seçin..." />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-white">
+                                        {data.cashRegisters.map((c: any) => (
+                                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+
+                        {["kredi_karti", "havale"].includes(editPaymentMethod) && data?.bankAccounts && (
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-semibold text-zinc-700">Giriş Yapılacak Banka Hesabı <span className="text-red-500">*</span></Label>
+                                <Select value={editBankAccount} onValueChange={setEditBankAccount}>
+                                    <SelectTrigger className="border-zinc-200 bg-white text-xs h-9">
+                                        <SelectValue placeholder="Banka hesabı seçin..." />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-white">
+                                        {data.bankAccounts.map((b: any) => (
+                                            <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+
+                        <div className="space-y-1.5">
+                            <Label htmlFor="edit-date" className="text-xs font-semibold text-zinc-700">İşlem Tarihi</Label>
+                            <Input
+                                id="edit-date"
+                                type="date"
+                                value={editDate}
+                                onChange={e => setEditDate(e.target.value)}
+                                className="border-zinc-200 h-9 text-xs"
+                            />
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label htmlFor="edit-description" className="text-xs font-semibold text-zinc-700">Açıklama</Label>
+                            <Textarea
+                                id="edit-description"
+                                value={editDesc}
+                                onChange={e => setEditDesc(e.target.value)}
+                                placeholder="Cari hareket açıklaması..."
+                                className="resize-none h-14 text-xs border-zinc-200 w-full"
+                            />
+                        </div>
+                    </form>
+
+                    <div className="px-6 py-4 border-t border-zinc-100 bg-zinc-50/50 flex justify-end gap-2 shrink-0">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setEditTransaction(null)}
+                            className="text-xs h-9 border-zinc-200"
+                        >
+                            Vazgeç
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={handleEditSubmit as any}
+                            disabled={submittingEdit}
+                            className="text-xs h-9 bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                            {submittingEdit ? "Kaydediliyor..." : "Değişiklikleri Kaydet"}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Transaction Dialog */}
+            <Dialog open={deleteConfirmTransaction !== null} onOpenChange={(isOpen) => { if (!isOpen) setDeleteConfirmTransaction(null) }}>
+                <DialogContent className="sm:max-w-md bg-white p-6 overflow-hidden">
+                    <DialogHeader>
+                        <DialogTitle className="text-base font-bold text-zinc-950 flex items-center gap-2">
+                            <AlertCircle className="w-5 h-5 text-red-600" />
+                            <span>İşlemi Sil</span>
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="py-3 space-y-3">
+                        <p className="text-xs text-zinc-600">
+                            Bu cari hareketi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                        </p>
+                        
+                        {deleteConfirmTransaction?.invoice_id && (
+                            <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2 text-xs text-red-800">
+                                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
+                                <div>
+                                    <span className="font-semibold">Önemli Uyarı:</span> Bu işlem bir faturaya bağlıdır, silinmesi fatura ödeme dengesini bozabilir. Devam etmek istiyor musunuz?
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <DialogFooter className="flex gap-2 justify-end pt-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setDeleteConfirmTransaction(null)}
+                            className="text-xs h-9 border-zinc-200"
+                            disabled={submittingDelete}
+                        >
+                            Vazgeç
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={handleDeleteSubmit}
+                            disabled={submittingDelete}
+                            className="text-xs h-9 bg-red-600 hover:bg-red-700 text-white"
+                        >
+                            {submittingDelete ? "Siliniyor..." : "Evet, Sil"}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </>

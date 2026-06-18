@@ -128,3 +128,56 @@ export async function createTransaction(formData: FormData) {
     revalidatePath('/customers')
     return { success: true, data }
 }
+
+export async function updateTransaction(id: string, data: {
+    description: string
+    amount: number
+    transactionDate: string
+    paymentMethod: string
+    cashRegisterId?: string | null
+    bankAccountId?: string | null
+}) {
+    const supabase = await createClient()
+    const { description, amount, transactionDate, paymentMethod, cashRegisterId, bankAccountId } = data
+
+    if (amount <= 0) {
+        return { success: false, message: 'Tutar sıfırdan büyük olmalıdır.' }
+    }
+
+    const { error } = await supabase
+        .from('transactions')
+        .update({
+            description,
+            amount,
+            transaction_date: new Date(transactionDate).toISOString(),
+            payment_method: paymentMethod,
+            cash_register_id: paymentMethod === 'nakit' ? cashRegisterId : null,
+            bank_account_id: ['kredi_karti', 'havale'].includes(paymentMethod) ? bankAccountId : null,
+        })
+        .eq('id', id)
+
+    if (error) {
+        return { success: false, message: 'İşlem güncellenemedi: ' + error.message }
+    }
+
+    revalidatePath('/finance')
+    revalidatePath('/customers')
+    return { success: true }
+}
+
+export async function deleteTransaction(id: string) {
+    const supabase = await createClient()
+
+    const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', id)
+
+    if (error) {
+        return { success: false, message: 'İşlem silinemedi: ' + error.message }
+    }
+
+    revalidatePath('/finance')
+    revalidatePath('/customers')
+    return { success: true }
+}
