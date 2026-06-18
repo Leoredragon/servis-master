@@ -326,7 +326,7 @@ export default function DashboardOverview({
                                                 </div>
                                                 <div className="text-right">
                                                     <div className="text-xs font-bold text-zinc-900">
-                                                        {inv.total_amount.toLocaleString('tr-TR')} ₺
+                                                        {(inv.grand_total || 0).toLocaleString('tr-TR')} ₺
                                                     </div>
                                                     <Badge 
                                                         variant="outline" 
