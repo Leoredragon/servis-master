@@ -82,6 +82,10 @@ DECLARE
     temp_count INTEGER;
 
 BEGIN
+    -- 0. Constraint Düzeltmesi (Eski kısıtlamayı kaldırıp en güncel parça/işçilik kısıtlamasını tanımlıyoruz)
+    ALTER TABLE service_items DROP CONSTRAINT IF EXISTS service_items_item_type_check;
+    ALTER TABLE service_items ADD CONSTRAINT service_items_item_type_check CHECK (item_type IN ('parça', 'işçilik'));
+
     -- 2. KULLANICI KONTROLÜ / OLUŞTURMA
     SELECT id INTO target_user_id FROM auth.users WHERE email = target_email;
 
