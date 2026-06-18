@@ -61,10 +61,10 @@ export default function Sidebar() {
                 {/* Ana Sayfa (Dashboard) */}
                 <div>
                     <Link
-                        href="/"
+                        href="/dashboard"
                         className={cn(
                             "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold transition-colors",
-                            pathname === "/"
+                            pathname === "/dashboard"
                                 ? "bg-zinc-800 text-white"
                                 : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
                         )}

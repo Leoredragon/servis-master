@@ -35,19 +35,24 @@ export async function middleware(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     const currentPath = request.nextUrl.pathname
-    const isAuthRoute = currentPath.startsWith('/login') || currentPath.startsWith('/register')
 
-    // Kural 1: Kullanıcı YOKSA ve yetki gerektiren bir sayfadaysa Login'e gönder
-    if (!user && !isAuthRoute) {
+    // Herkese açık rotalar: ana sayfa (landing) ve auth sayfaları
+    const isPublicRoute =
+        currentPath === '/' ||
+        currentPath.startsWith('/login') ||
+        currentPath.startsWith('/register')
+
+    // Kural 1: Kullanıcı YOKSA ve korumalı bir sayfadaysa Login'e gönder
+    if (!user && !isPublicRoute) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
         return NextResponse.redirect(url)
     }
 
-    // Kural 2: Kullanıcı VARSA ve Login/Register sayfasına gitmeye çalışıyorsa Ana Sayfaya gönder
-    if (user && isAuthRoute) {
+    // Kural 2: Kullanıcı VARSA ve Login/Register sayfasına gitmeye çalışıyorsa Dashboard'a gönder
+    if (user && (currentPath.startsWith('/login') || currentPath.startsWith('/register'))) {
         const url = request.nextUrl.clone()
-        url.pathname = '/'
+        url.pathname = '/dashboard'
         return NextResponse.redirect(url)
     }
 

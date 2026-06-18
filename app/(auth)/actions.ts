@@ -21,7 +21,7 @@ export async function login(formData: FormData) {
     }
 
     revalidatePath('/', 'layout')
-    redirect('/') // Başarılı girişte ana sayfaya yönlendir
+    redirect('/dashboard') // Başarılı girişte panele yönlendir
 }
 
 export async function register(formData: FormData) {
@@ -46,7 +46,7 @@ export async function register(formData: FormData) {
     }
 
     revalidatePath('/', 'layout')
-    redirect('/') // Başarılı kayıtta ana sayfaya yönlendir
+    redirect('/dashboard') // Başarılı kayıtta panele yönlendir
 }
 
 export async function logout() {
