@@ -1,5 +1,6 @@
-import { User, Search } from "lucide-react"
+import { Search } from "lucide-react"
 import NotificationCenter from "./NotificationCenter"
+import UserMenu from "./UserMenu"
 
 export default function Header() {
     return (
@@ -24,14 +25,13 @@ export default function Header() {
                 </button>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
                 {/* Real-time Notification Center */}
                 <NotificationCenter />
                 
-                <div className="h-8 w-8 bg-zinc-100 border border-zinc-200 rounded-full flex items-center justify-center cursor-pointer hover:bg-zinc-200 transition-colors">
-                    <User className="w-4 h-4 text-zinc-600" />
-                </div>
+                {/* Kullanıcı Menüsü (Profil + Çıkış Yap) */}
+                <UserMenu />
             </div>
         </header>
     )
-}
+}
