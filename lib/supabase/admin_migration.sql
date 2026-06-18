@@ -1,5 +1,7 @@
--- 1. Profiles tablosunu oluştur
-CREATE TABLE IF NOT EXISTS public.profiles (
+-- 1. Eski profiles tablosunu temizle ve yeniden oluştur
+DROP TABLE IF EXISTS public.profiles CASCADE;
+
+CREATE TABLE public.profiles (
     id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
     email VARCHAR(255) NOT NULL,
     full_name VARCHAR(255),
