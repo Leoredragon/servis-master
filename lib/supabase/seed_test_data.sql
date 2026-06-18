@@ -457,21 +457,21 @@ BEGIN
     INSERT INTO appointments (
         id, customer_id, vehicle_id, title, description, appointment_date, duration, status, reminder_sent, created_by, is_deleted
     ) VALUES (
-        gen_random_uuid(), cust_mustafa_id, veh_megane_id, 'Fren Disk Kontrolü', 'Araç sahibi frende hafif ses duyduğunu belirtti, kontrol edilecek.', now() + interval '1 hour', '1 Saat', 'planlandı', false, target_user_id, false
+        gen_random_uuid(), cust_mustafa_id, veh_megane_id, 'Fren Disk Kontrolü', 'Araç sahibi frende hafif ses duyduğunu belirtti, kontrol edilecek.', now() + interval '1 hour', 60, 'planlandı', false, target_user_id, false
     );
 
     -- Randevu 2: Ayşe Demir (Gelecek - 2 gün sonra)
     INSERT INTO appointments (
         id, customer_id, vehicle_id, title, description, appointment_date, duration, status, reminder_sent, created_by, is_deleted
     ) VALUES (
-        gen_random_uuid(), cust_ayse_id, veh_i20_id, 'Klima Gaz Dolumu ve Genel Kontrol', 'Yazlık klima bakımı yapılacak.', now() + interval '2 days', '45 Dakika', 'planlandı', false, target_user_id, false
+        gen_random_uuid(), cust_ayse_id, veh_i20_id, 'Klima Gaz Dolumu ve Genel Kontrol', 'Yazlık klima bakımı yapılacak.', now() + interval '2 days', 45, 'planlandı', false, target_user_id, false
     );
 
     -- Randevu 3: Aras Kargo (Gelecek - 5 gün sonra)
     INSERT INTO appointments (
         id, customer_id, vehicle_id, title, description, appointment_date, duration, status, reminder_sent, created_by, is_deleted
     ) VALUES (
-        gen_random_uuid(), cust_aras_id, veh_transit2_id, '190.000 KM Ağır Bakım', 'Zincir seti ve genel motor bakımları.', now() + interval '5 days', '4 Saat', 'planlandı', false, target_user_id, false
+        gen_random_uuid(), cust_aras_id, veh_transit2_id, '190.000 KM Ağır Bakım', 'Zincir seti ve genel motor bakımları.', now() + interval '5 days', 240, 'planlandı', false, target_user_id, false
     );
 
     -- 14. STOK REZERVASYONLARINI MANUEL AYARLA (Servislerin güncel durumuna göre)
