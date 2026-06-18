@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     // Varsayılan yanıt objesini oluştur
     let supabaseResponse = NextResponse.next({
         request,
@@ -59,7 +59,7 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse
 }
 
-// Middleware'in çalışacağı rotaları (URL'leri) belirliyoruz
+// Middleware (Proxy) çalışacağı rotaları (URL'leri) belirliyoruz
 export const config = {
     matcher: [
         /*

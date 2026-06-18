@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import LoginForm from "./LoginForm"
 import { Wrench } from "lucide-react"
 
@@ -39,7 +40,14 @@ export default function LoginPage() {
 
             {/* Sağ Taraf: Minimalist Giriş Formu */}
             <div className="flex items-center justify-center bg-zinc-50 md:bg-white h-full">
-                <LoginForm />
+                <Suspense fallback={
+                    <div className="flex flex-col items-center justify-center gap-2 text-zinc-500">
+                        <span className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900"></span>
+                        <span className="text-sm font-medium">Yükleniyor...</span>
+                    </div>
+                }>
+                    <LoginForm />
+                </Suspense>
             </div>
         </div>
     )

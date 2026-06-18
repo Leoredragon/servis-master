@@ -132,13 +132,21 @@ export default function LandingPage() {
                         <a href="#pricing" className="hover:text-white transition-colors">Fiyatlar</a>
                     </nav>
 
-                    <Link
-                        href="/login"
-                        className="group inline-flex items-center gap-2 bg-white text-zinc-950 hover:bg-zinc-100 font-bold text-sm px-5 py-2.5 rounded-lg transition-all duration-200 shadow-lg shadow-white/10"
-                    >
-                        Giriş Yap
-                        <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                    </Link>
+                    <div className="flex items-center gap-5">
+                        <Link
+                            href="/login"
+                            className="text-zinc-400 hover:text-white text-sm font-bold transition-colors"
+                        >
+                            Giriş Yap
+                        </Link>
+                        <Link
+                            href="/register"
+                            className="group inline-flex items-center gap-1.5 bg-white text-zinc-950 hover:bg-zinc-100 font-bold text-sm px-4.5 py-2 rounded-lg transition-all duration-200 shadow-lg shadow-white/10"
+                        >
+                            Kayıt Ol
+                            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                        </Link>
+                    </div>
                 </div>
             </header>
 

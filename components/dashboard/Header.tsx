@@ -1,3 +1,5 @@
+"use client"
+
 import { Search } from "lucide-react"
 import NotificationCenter from "./NotificationCenter"
 import UserMenu from "./UserMenu"
