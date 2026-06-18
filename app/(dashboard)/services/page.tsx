@@ -2,6 +2,7 @@ import NewServiceDialog from "@/components/services/NewServiceDialog"
 import ServicesTable from "@/components/services/ServicesTable"
 import { createClient } from "@/lib/supabase/server"
 import { EmptyState } from "@/components/ui/empty-state"
+import { Suspense } from "react"
 
 interface ServiceRecord {
     id: string
@@ -29,10 +30,11 @@ interface ServiceRecord {
 export default async function ServicesPage() {
     const supabase = await createClient()
 
-    // Supabase'den servis kayıtlarını, müşteri, araç ve kalem ilişkilerini çekiyoruz
+    // Supabase'den silinmemiş servis kayıtlarını, müşteri, araç ve kalem ilişkilerini çekiyoruz
     const { data } = await supabase
         .from('service_records')
         .select('*, customers(first_name, last_name), vehicles(brand, model, plate), service_items(unit_price, quantity)')
+        .eq('is_deleted', false)
         .order('created_at', { ascending: false })
 
     const services = data as unknown as ServiceRecord[] | null
@@ -53,7 +55,9 @@ export default async function ServicesPage() {
 
             {/* Tablo Alanı */}
             {services && services.length > 0 ? (
-                <ServicesTable services={services} />
+                <Suspense fallback={<div className="p-8 text-center text-xs text-zinc-400">Servis kayıtları yükleniyor...</div>}>
+                    <ServicesTable services={services} />
+                </Suspense>
             ) : (
                 <EmptyState
                     iconName="file-text"

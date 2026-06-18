@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import NewStockDialog from "@/components/stock/NewStockDialog"
 import StockTable from "@/components/stock/StockTable"
 import { EmptyState } from "@/components/ui/empty-state"
+import { Suspense } from "react"
 
 interface StockCard {
     id: string
@@ -23,10 +24,11 @@ interface StockCard {
 export default async function StockPage() {
     const supabase = await createClient()
 
-    // Supabase'den envanter verilerini çekiyoruz (created_at DESC sıralı)
+    // Supabase'den aktif envanter verilerini çekiyoruz (created_at DESC sıralı ve silinmemişler)
     const { data } = await supabase
         .from('stock_cards')
         .select('*')
+        .eq('is_deleted', false)
         .order('created_at', { ascending: false })
 
     const stocks = data as unknown as StockCard[] | null
@@ -45,7 +47,9 @@ export default async function StockPage() {
 
             {/* Tablo Alanı */}
             {stocks && stocks.length > 0 ? (
-                <StockTable stocks={stocks} />
+                <Suspense fallback={<div className="p-8 text-center text-xs text-zinc-400">Stok kartları yükleniyor...</div>}>
+                    <StockTable stocks={stocks} />
+                </Suspense>
             ) : (
                 <EmptyState
                     iconName="package"

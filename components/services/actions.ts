@@ -144,7 +144,7 @@ export async function deleteServiceRecord(id: string) {
     const supabase = await createClient()
     const { error } = await supabase
         .from('service_records')
-        .delete()
+        .update({ is_deleted: true })
         .eq('id', id)
 
     if (error) {

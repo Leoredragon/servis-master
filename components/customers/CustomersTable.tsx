@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import {
     Table,
     TableBody,
@@ -58,11 +59,21 @@ interface CustomersTableProps {
 }
 
 export default function CustomersTable({ customers }: CustomersTableProps) {
+    const searchParams = useSearchParams()
+    const customerIdParam = searchParams.get("id")
+
     const [searchQuery, setSearchQuery] = useState("")
     const [currentPage, setCurrentPage] = useState(1)
     const [pageSize, setPageSize] = useState(20)
     const [selected360CustomerId, setSelected360CustomerId] = useState<string | null>(null)
     const [sheetOpen, setSheetOpen] = useState(false)
+
+    useEffect(() => {
+        if (customerIdParam) {
+            setSelected360CustomerId(customerIdParam)
+            setSheetOpen(true)
+        }
+    }, [customerIdParam])
 
     // Edit dialog state
     const [editTargetCustomer, setEditTargetCustomer] = useState<CustomerWithGroup | null>(null)

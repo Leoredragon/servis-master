@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import {
     Table,
     TableBody,
@@ -60,9 +61,19 @@ interface VehiclesTableProps {
 }
 
 export default function VehiclesTable({ vehicles }: VehiclesTableProps) {
+    const searchParams = useSearchParams()
+    const searchQueryParam = searchParams.get("search")
+
     const [searchQuery, setSearchQuery] = useState("")
     const [currentPage, setCurrentPage] = useState(1)
     const [pageSize, setPageSize] = useState(20)
+
+    useEffect(() => {
+        if (searchQueryParam) {
+            setSearchQuery(searchQueryParam)
+            setCurrentPage(1)
+        }
+    }, [searchQueryParam])
 
     // Delete confirm state
     const [deleteTargetVehicle, setDeleteTargetVehicle] = useState<Vehicle | null>(null)

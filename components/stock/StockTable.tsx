@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import {
     Table,
     TableBody,
@@ -51,9 +52,19 @@ interface StockTableProps {
 }
 
 export default function StockTable({ stocks }: StockTableProps) {
+    const searchParams = useSearchParams()
+    const searchQueryParam = searchParams.get("search")
+
     const [searchQuery, setSearchQuery] = useState("")
     const [currentPage, setCurrentPage] = useState(1)
     const [pageSize, setPageSize] = useState(20)
+
+    useEffect(() => {
+        if (searchQueryParam) {
+            setSearchQuery(searchQueryParam)
+            setCurrentPage(1)
+        }
+    }, [searchQueryParam])
 
     // Filter stocks based on search query
     const filteredStocks = stocks.filter((stock) => {

@@ -3,6 +3,7 @@ import ManageGroupsDialog from "@/components/customers/ManageGroupsDialog"
 import CustomersTable from "@/components/customers/CustomersTable"
 import { createClient } from "@/lib/supabase/server"
 import { EmptyState } from "@/components/ui/empty-state"
+import { Suspense } from "react"
 
 interface CustomerWithGroup {
     id: string
@@ -29,10 +30,11 @@ interface CustomerWithGroup {
 export default async function CustomersPage() {
     const supabase = await createClient()
 
-    // Supabase'den tüm müşterileri ve grupları çekiyoruz
+    // Supabase'den tüm aktif müşterileri ve grupları çekiyoruz
     const { data, error } = await supabase
         .from('customers')
         .select('*, customer_groups(name)')
+        .eq('is_deleted', false)
         .order('created_at', { ascending: false })
 
     const customers = data as unknown as CustomerWithGroup[] | null
@@ -60,7 +62,9 @@ export default async function CustomersPage() {
 
             {/* Tablo Alanı */}
             {customers && customers.length > 0 ? (
-                <CustomersTable customers={customers} />
+                <Suspense fallback={<div className="p-8 text-center text-xs text-zinc-400">Müşteriler yükleniyor...</div>}>
+                    <CustomersTable customers={customers} />
+                </Suspense>
             ) : (
                 <EmptyState
                     iconName="users"

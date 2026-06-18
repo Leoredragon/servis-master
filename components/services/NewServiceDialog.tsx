@@ -29,7 +29,7 @@ import { createServiceRecord } from "./actions"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
-export default function NewServiceDialog() {
+export default function NewServiceDialog({ triggerVisible = true }: { triggerVisible?: boolean }) {
     const [open, setOpen] = useState(false)
     const [customers, setCustomers] = useState<any[]>([])
     const [vehicles, setVehicles] = useState<any[]>([])
@@ -77,6 +77,12 @@ export default function NewServiceDialog() {
         }
         loadData()
     }, [open])
+
+    useEffect(() => {
+        const handleOpen = () => setOpen(true)
+        window.addEventListener("open-new-service", handleOpen)
+        return () => window.removeEventListener("open-new-service", handleOpen)
+    }, [])
 
     // Seçilen müşterinin araçlarını filtrele
     const filteredVehicles = selectedCustomerId
@@ -216,11 +222,13 @@ export default function NewServiceDialog() {
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-                    <Plus className="w-4 h-4" /> Yeni Servis Kaydı
-                </Button>
-            </DialogTrigger>
+            {triggerVisible && (
+                <DialogTrigger asChild>
+                    <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
+                        <Plus className="w-4 h-4" /> Yeni Servis Kaydı
+                    </Button>
+                </DialogTrigger>
+            )}
 
             <DialogContent 
                 className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0 bg-white overflow-hidden" 

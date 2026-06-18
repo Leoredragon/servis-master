@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Printer, Share2 } from "lucide-react"
+import { Printer, Share2, Receipt } from "lucide-react"
 
 interface ServiceDetailActionsProps {
     serviceId: string
@@ -10,6 +10,8 @@ interface ServiceDetailActionsProps {
     phone: string
     plate: string
     totalAmount: number
+    customerId?: string
+    serviceItems?: any[]
 }
 
 export default function ServiceDetailActions({
@@ -19,6 +21,8 @@ export default function ServiceDetailActions({
     phone,
     plate,
     totalAmount,
+    customerId,
+    serviceItems = [],
 }: ServiceDetailActionsProps) {
     function handlePrint() {
         window.print()
@@ -38,8 +42,31 @@ export default function ServiceDetailActions({
         window.open(whatsappUrl, "_blank")
     }
 
+    function handleConvertToInvoice() {
+        const event = new CustomEvent("open-new-invoice", {
+            detail: {
+                customerId,
+                serviceId,
+                items: serviceItems.map((item: any) => ({
+                    description: item.description,
+                    quantity: item.quantity,
+                    unitPrice: item.unit_price
+                }))
+            }
+        })
+        window.dispatchEvent(event)
+    }
+
     return (
         <div className="flex items-center gap-2 print:hidden">
+            <Button
+                variant="outline"
+                onClick={handleConvertToInvoice}
+                className="gap-2 border-zinc-200 text-zinc-700 font-medium hover:bg-zinc-50 h-9 text-xs"
+            >
+                <Receipt className="w-4 h-4 text-blue-600" />
+                Faturaya Dönüştür
+            </Button>
             <Button
                 variant="outline"
                 onClick={handlePrint}

@@ -36,7 +36,7 @@ export async function deleteStock(id: string) {
     const supabase = await createClient()
     const { error } = await supabase
         .from('stock_cards')
-        .delete()
+        .update({ is_deleted: true })
         .eq('id', id)
 
     if (error) {

@@ -18,6 +18,7 @@ export default async function DashboardPage() {
     const { data: customers } = await supabase
         .from('customers')
         .select('id, first_name, last_name, phone, type, balance')
+        .eq('is_deleted', false)
 
     // 4. Finansal hareketleri çek
     const { data: transactions } = await supabase
@@ -29,11 +30,13 @@ export default async function DashboardPage() {
     const { data: serviceRecords } = await supabase
         .from('service_records')
         .select('id, status')
+        .eq('is_deleted', false)
 
     // 6. Stok durumlarını çek
     const { data: stockCards } = await supabase
         .from('stock_cards')
         .select('*')
+        .eq('is_deleted', false)
         .order('name', { ascending: true })
 
     // 7. Bugünkü / Yaklaşan randevuları çek (Bugün ve sonrası)
@@ -43,6 +46,7 @@ export default async function DashboardPage() {
     const { data: appointments } = await supabase
         .from('appointments')
         .select('*, customers(first_name, last_name, phone)')
+        .eq('is_deleted', false)
         .gte('appointment_date', todayStr.toISOString())
         .order('appointment_date', { ascending: true })
 

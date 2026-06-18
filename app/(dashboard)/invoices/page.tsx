@@ -10,10 +10,11 @@ import Link from "next/link"
 export default async function InvoicesPage() {
     const supabase = await createClient()
 
-    // Müşteri isimlerini de getirmek için join
+    // Müşteri isimlerini de getirmek için join (silinmemiş olanlar)
     const { data: invoices } = await supabase
         .from('invoices')
         .select('*, customers(first_name, last_name)')
+        .eq('is_deleted', false)
         .order('issue_date', { ascending: false })
 
     return (

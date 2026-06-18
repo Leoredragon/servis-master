@@ -2,6 +2,7 @@ import NewVehicleDialog from "@/components/vehicles/NewVehicleDialog"
 import VehiclesTable from "@/components/vehicles/VehiclesTable"
 import { createClient } from "@/lib/supabase/server"
 import { EmptyState } from "@/components/ui/empty-state"
+import { Suspense } from "react"
 
 interface Vehicle {
     id: string
@@ -22,10 +23,11 @@ interface Vehicle {
 export default async function VehiclesPage() {
     const supabase = await createClient()
 
-    // Supabase'den araçları ve müşteri ilişkisini çekiyoruz (created_at DESC sıralı)
+    // Supabase'den araçları ve müşteri ilişkisini çekiyoruz (created_at DESC sıralı ve silinmemişler)
     const { data } = await supabase
         .from('vehicles')
         .select('*, customers(first_name, last_name)')
+        .eq('is_deleted', false)
         .order('created_at', { ascending: false })
 
     const vehicles = data as unknown as Vehicle[] | null
@@ -46,7 +48,9 @@ export default async function VehiclesPage() {
 
             {/* Tablo Alanı */}
             {vehicles && vehicles.length > 0 ? (
-                <VehiclesTable vehicles={vehicles} />
+                <Suspense fallback={<div className="p-8 text-center text-xs text-zinc-400">Araçlar yükleniyor...</div>}>
+                    <VehiclesTable vehicles={vehicles} />
+                </Suspense>
             ) : (
                 <EmptyState
                     iconName="car"

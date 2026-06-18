@@ -45,7 +45,7 @@ export async function deleteVehicle(id: string) {
     const supabase = await createClient()
     const { error } = await supabase
         .from('vehicles')
-        .delete()
+        .update({ is_deleted: true })
         .eq('id', id)
 
     if (error) {

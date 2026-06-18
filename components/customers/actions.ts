@@ -137,7 +137,7 @@ export async function deleteCustomer(id: string) {
     const supabase = await createClient()
     const { error } = await supabase
         .from('customers')
-        .delete()
+        .update({ is_deleted: true })
         .eq('id', id)
 
     if (error) {
@@ -218,6 +218,7 @@ export async function getCustomer360Data(customerId: string) {
         .from('vehicles')
         .select('*')
         .eq('customer_id', customerId)
+        .eq('is_deleted', false)
         .order('created_at', { ascending: false })
 
     // 3. Fetch service records
@@ -225,6 +226,7 @@ export async function getCustomer360Data(customerId: string) {
         .from('service_records')
         .select('*, vehicles(brand, model, plate), service_items(unit_price, quantity)')
         .eq('customer_id', customerId)
+        .eq('is_deleted', false)
         .order('created_at', { ascending: false })
 
     // 4. Fetch transactions

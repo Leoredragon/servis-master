@@ -26,7 +26,7 @@ import { createCustomer, getCustomerGroups } from "./actions"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
-export default function NewCustomerDialog() {
+export default function NewCustomerDialog({ triggerVisible = true }: { triggerVisible?: boolean }) {
     const [open, setOpen] = useState(false)
     const [customerType, setCustomerType] = useState("bireysel")
     const [customerCode, setCustomerCode] = useState("")
@@ -54,6 +54,12 @@ export default function NewCustomerDialog() {
             })
         }
     }, [open])
+
+    useEffect(() => {
+        const handleOpen = () => setOpen(true)
+        window.addEventListener("open-new-customer", handleOpen)
+        return () => window.removeEventListener("open-new-customer", handleOpen)
+    }, [])
 
     const handleGroupChange = (groupId: string) => {
         setSelectedGroupId(groupId)
@@ -145,12 +151,14 @@ export default function NewCustomerDialog() {
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-                    <Plus className="w-4 h-4" />
-                    Yeni Müşteri Ekle
-                </Button>
-            </DialogTrigger>
+            {triggerVisible && (
+                <DialogTrigger asChild>
+                    <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
+                        <Plus className="w-4 h-4" />
+                        Yeni Müşteri Ekle
+                    </Button>
+                </DialogTrigger>
+            )}
 
             <DialogContent 
                 className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0 bg-white overflow-hidden" 

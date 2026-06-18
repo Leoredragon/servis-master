@@ -98,6 +98,8 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
                                 phone={service.customers?.phone || ""}
                                 plate={service.vehicles?.plate || ""}
                                 totalAmount={totalAmount}
+                                customerId={service.customer_id}
+                                serviceItems={service.service_items}
                             />
                         </div>
                         <p className="text-sm text-zinc-500 mt-1">
