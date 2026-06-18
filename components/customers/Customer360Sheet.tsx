@@ -52,13 +52,13 @@ export default function Customer360Sheet({ customerId, open, onOpenChange }: Cus
     const [activeTab, setActiveTab] = useState<"vehicles" | "services" | "transactions">("vehicles")
 
     // Finance dialog states
-    const [financeAction, setFinanceAction] = useState<"credit" | "collect" | null>(null)
+    const [financeAction, setFinanceAction] = useState<"debit" | "collect" | null>(null)
     const [financeAmount, setFinanceAmount] = useState("")
     const [financeDesc, setFinanceDesc] = useState("")
     const [paymentMethod, setPaymentMethod] = useState("nakit")
     const [selectedCashRegister, setSelectedCashRegister] = useState("")
     const [selectedBankAccount, setSelectedBankAccount] = useState("")
-    const [acikHesapType, setAcikHesapType] = useState("gider") // default "gider" for Alacaklandır
+    const [activeFinanceTab, setActiveFinanceTab] = useState<"collect" | "debit">("collect")
     const [financeDate, setFinanceDate] = useState("")
 
     // Vehicle form states
@@ -106,9 +106,9 @@ export default function Customer360Sheet({ customerId, open, onOpenChange }: Cus
     useEffect(() => {
         if (financeAction) {
             setFinanceAmount("")
-            setFinanceDesc(financeAction === "collect" ? "Cari Tahsilat" : "Cari Hareket Düzeltme")
+            setFinanceDesc(financeAction === "collect" ? "Cari Tahsilat" : "Cari Borçlandırma")
             setPaymentMethod("nakit")
-            setAcikHesapType(financeAction === "credit" ? "gider" : "gelir")
+            setActiveFinanceTab(financeAction === "collect" ? "collect" : "debit")
             setFinanceDate(new Date().toISOString().split("T")[0])
         }
     }, [financeAction])
@@ -160,6 +160,17 @@ export default function Customer360Sheet({ customerId, open, onOpenChange }: Cus
             return
         }
 
+        if (activeFinanceTab === "collect") {
+            if (paymentMethod === "nakit" && !selectedCashRegister) {
+                toast.error("Lütfen giriş yapılacak kasayı seçin.")
+                return
+            }
+            if (["kredi_karti", "havale"].includes(paymentMethod) && !selectedBankAccount) {
+                toast.error("Lütfen giriş yapılacak banka hesabını seçin.")
+                return
+            }
+        }
+
         try {
             const formData = new FormData()
             formData.append("customerId", customerId)
@@ -167,8 +178,8 @@ export default function Customer360Sheet({ customerId, open, onOpenChange }: Cus
             formData.append("description", financeDesc)
             formData.append("transactionDate", financeDate)
 
-            if (financeAction === "collect") {
-                formData.append("type", "gelir") // Tahsilat is always income (gelir)
+            if (activeFinanceTab === "collect") {
+                formData.append("type", "gelir")
                 formData.append("paymentMethod", paymentMethod)
                 if (paymentMethod === "nakit") {
                     formData.append("cashRegisterId", selectedCashRegister)
@@ -176,14 +187,13 @@ export default function Customer360Sheet({ customerId, open, onOpenChange }: Cus
                     formData.append("bankAccountId", selectedBankAccount)
                 }
             } else {
-                // credit adjustment is acik_hesap
-                formData.append("type", acikHesapType) // 'gelir' (borçlandır) or 'gider' (alacaklandır)
+                formData.append("type", "gelir")
                 formData.append("paymentMethod", "acik_hesap")
             }
 
             const res = await createTransaction(formData)
             if (res.success) {
-                toast.success(financeAction === "collect" ? "Tahsilat başarıyla işlendi!" : "Cari hareket başarıyla kaydedildi!")
+                toast.success(activeFinanceTab === "collect" ? "Tahsilat başarıyla işlendi!" : "Borçlandırma başarıyla kaydedildi!")
                 setFinanceAction(null)
                 await loadData()
             } else {
@@ -200,9 +210,8 @@ export default function Customer360Sheet({ customerId, open, onOpenChange }: Cus
     const transactions = data?.transactions || []
 
     const balance = customer?.balance || 0
-    // Math logic: Negative is Borç (Red), Positive is Alacak (Green)
-    const isDebit = balance < 0
-    const isCredit = balance > 0
+    const isDebit = balance > 0
+    const isCredit = balance < 0
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
@@ -265,7 +274,7 @@ export default function Customer360Sheet({ customerId, open, onOpenChange }: Cus
                                         {isDebit 
                                             ? `Borç: ${Math.abs(balance).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺` 
                                             : isCredit 
-                                            ? `Alacak: ${balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺` 
+                                            ? `Alacak: ${Math.abs(balance).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺` 
                                             : `0.00 ₺`}
                                     </div>
                                 </div>
@@ -273,11 +282,11 @@ export default function Customer360Sheet({ customerId, open, onOpenChange }: Cus
                                 {/* Quick Finance Buttons */}
                                 <div className="flex gap-2 w-full">
                                     <Button 
-                                        onClick={() => setFinanceAction("credit")}
+                                        onClick={() => setFinanceAction("debit")}
                                         variant="outline" 
                                         className="flex-1 text-xs border-zinc-200 hover:bg-zinc-50 hover:text-zinc-900 h-8 gap-1"
                                     >
-                                        <Plus className="w-3 h-3 text-emerald-600" /> Alacaklandır
+                                        <Plus className="w-3 h-3 text-red-600" /> Borçlandır
                                     </Button>
                                     <Button 
                                         onClick={() => setFinanceAction("collect")}
@@ -616,152 +625,159 @@ export default function Customer360Sheet({ customerId, open, onOpenChange }: Cus
 
             {/* Finance POPUP forms (Dialogs) */}
             <Dialog open={financeAction !== null} onOpenChange={(open) => { if (!open) setFinanceAction(null) }}>
-                <DialogContent className="sm:max-w-md bg-white border border-zinc-200">
-                    <DialogHeader>
+                <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col p-0 bg-white overflow-hidden">
+                    <DialogHeader className="px-6 py-5 border-b border-zinc-100">
                         <DialogTitle className="text-base font-bold text-zinc-950 flex items-center gap-1.5">
-                            {financeAction === "collect" ? (
-                                <>
-                                    <Minus className="w-4 h-4 text-blue-600" />
-                                    <span>Cari Tahsilat Yap</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Plus className="w-4 h-4 text-emerald-600" />
-                                    <span>Cari Hareket Gir (Alacaklandır/Borçlandır)</span>
-                                </>
-                            )}
+                            <Sparkles className="w-4 h-4 text-blue-600" />
+                            <span>Hızlı Finansal Aksiyon</span>
                         </DialogTitle>
                         <DialogDescription className="text-xs text-zinc-500">
-                            {financeAction === "collect" 
-                                ? "Müşteriden elden nakit veya banka kanalıyla aldığınız tahsilatı kaydedin."
-                                : "Müşterinin cari bakiyesini manuel borçlandırma veya alacaklandırma kaydıyla ayarlayın."}
+                            Müşteriye ait bakiye düzeltme veya tahsilat işlemlerini gerçekleştirin.
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form onSubmit={handleFinanceSubmit} className="space-y-4 py-2">
-                        <div className="grid grid-cols-1 gap-3.5">
-                            <div className="space-y-1.5">
-                                <Label htmlFor="amount" className="text-xs font-semibold text-zinc-700">Tutar (₺) <span className="text-red-500">*</span></Label>
-                                <Input 
-                                    id="amount" 
-                                    type="number" 
-                                    step="0.01" 
-                                    value={financeAmount} 
-                                    onChange={e => setFinanceAmount(e.target.value)} 
-                                    placeholder="0.00" 
-                                    className="border-zinc-200 h-10 text-sm font-semibold"
-                                    required 
-                                    autoFocus
-                                />
-                            </div>
+                    <form onSubmit={handleFinanceSubmit} className="flex-1 overflow-y-auto custom-scrollbar px-6 py-5 space-y-4">
+                        {/* Segmented Control / Tabs for quick action selection */}
+                        <div className="grid grid-cols-2 p-1 bg-zinc-100/80 rounded-lg">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setActiveFinanceTab("collect")
+                                    setFinanceDesc("Cari Tahsilat")
+                                }}
+                                className={cn(
+                                    "py-1.5 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-1.5",
+                                    activeFinanceTab === "collect"
+                                        ? "bg-white text-zinc-900 shadow-sm"
+                                        : "text-zinc-500 hover:text-zinc-900"
+                                )}
+                            >
+                                <Minus className="w-3.5 h-3.5 text-blue-600" />
+                                Tahsilat Yap
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setActiveFinanceTab("debit")
+                                    setFinanceDesc("Cari Borçlandırma")
+                                }}
+                                className={cn(
+                                    "py-1.5 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-1.5",
+                                    activeFinanceTab === "debit"
+                                        ? "bg-white text-zinc-900 shadow-sm"
+                                        : "text-zinc-500 hover:text-zinc-900"
+                                )}
+                            >
+                                <Plus className="w-3.5 h-3.5 text-red-600" />
+                                Borçlandır
+                            </button>
+                        </div>
 
-                            {/* Options specific to Tahsilat */}
-                            {financeAction === "collect" ? (
-                                <>
-                                    <div className="space-y-1.5">
-                                        <Label className="text-xs font-semibold text-zinc-700">Ödeme Yöntemi</Label>
-                                        <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                                            <SelectTrigger className="border-zinc-200 bg-white text-xs h-9">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent className="bg-white">
-                                                <SelectItem value="nakit">Nakit (Kasa Girişi)</SelectItem>
-                                                <SelectItem value="kredi_karti">Kredi Kartı (Banka Girişi)</SelectItem>
-                                                <SelectItem value="havale">EFT / Havale (Banka Girişi)</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="amount" className="text-xs font-semibold text-zinc-700">Tutar (₺) <span className="text-red-500">*</span></Label>
+                            <Input
+                                id="amount"
+                                type="number"
+                                step="0.01"
+                                value={financeAmount}
+                                onChange={e => setFinanceAmount(e.target.value)}
+                                placeholder="0.00"
+                                className="border-zinc-200 h-10 text-sm font-semibold"
+                                required
+                                autoFocus
+                            />
+                        </div>
 
-                                    {paymentMethod === "nakit" && data?.cashRegisters ? (
-                                        <div className="space-y-1.5">
-                                            <Label className="text-xs font-semibold text-zinc-700">Giriş Yapılacak Kasa <span className="text-red-500">*</span></Label>
-                                            <Select value={selectedCashRegister} onValueChange={setSelectedCashRegister}>
-                                                <SelectTrigger className="border-zinc-200 bg-white text-xs h-9">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent className="bg-white">
-                                                    {data.cashRegisters.map((c: any) => (
-                                                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    ) : null}
-
-                                    {(paymentMethod === "kredi_karti" || paymentMethod === "havale") && data?.bankAccounts ? (
-                                        <div className="space-y-1.5">
-                                            <Label className="text-xs font-semibold text-zinc-700">Giriş Yapılacak Banka Hesabı <span className="text-red-500">*</span></Label>
-                                            <Select value={selectedBankAccount} onValueChange={setSelectedBankAccount}>
-                                                <SelectTrigger className="border-zinc-200 bg-white text-xs h-9">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent className="bg-white">
-                                                    {data.bankAccounts.map((b: any) => (
-                                                        <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    ) : null}
-                                </>
-                            ) : (
-                                /* Options specific to Alacaklandır / Adjust */
+                        {activeFinanceTab === "collect" && (
+                            <>
                                 <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold text-zinc-700">Cari İşlem Türü</Label>
-                                    <Select value={acikHesapType} onValueChange={setAcikHesapType}>
+                                    <Label className="text-xs font-semibold text-zinc-700">Ödeme Yöntemi <span className="text-red-500">*</span></Label>
+                                    <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                                         <SelectTrigger className="border-zinc-200 bg-white text-xs h-9">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent className="bg-white">
-                                            <SelectItem value="gider">Müşteriyi Alacaklandır (Müşterinin Alacağı Artar / Biz Borçlanırız)</SelectItem>
-                                            <SelectItem value="gelir">Müşteriyi Borçlandır (Müşterinin Bize Borcu Artar)</SelectItem>
+                                            <SelectItem value="nakit">Nakit (Kasa Girişi)</SelectItem>
+                                            <SelectItem value="kredi_karti">Kredi Kartı (Banka Girişi)</SelectItem>
+                                            <SelectItem value="havale">EFT / Havale (Banka Girişi)</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
-                            )}
 
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1.5 col-span-2">
-                                    <Label htmlFor="date" className="text-xs font-semibold text-zinc-700">İşlem Tarihi</Label>
-                                    <Input 
-                                        id="date" 
-                                        type="date" 
-                                        value={financeDate} 
-                                        onChange={e => setFinanceDate(e.target.value)} 
-                                        className="border-zinc-200 h-9 text-xs" 
-                                    />
-                                </div>
-                            </div>
+                                {paymentMethod === "nakit" && data?.cashRegisters && (
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs font-semibold text-zinc-700">Giriş Yapılacak Kasa <span className="text-red-500">*</span></Label>
+                                        <Select value={selectedCashRegister} onValueChange={setSelectedCashRegister}>
+                                            <SelectTrigger className="border-zinc-200 bg-white text-xs h-9">
+                                                <SelectValue placeholder="Kasa seçin..." />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-white">
+                                                {data.cashRegisters.map((c: any) => (
+                                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
 
-                            <div className="space-y-1.5">
-                                <Label htmlFor="description" className="text-xs font-semibold text-zinc-700">Açıklama</Label>
-                                <Textarea 
-                                    id="description" 
-                                    value={financeDesc} 
-                                    onChange={e => setFinanceDesc(e.target.value)} 
-                                    placeholder="Cari hareket açıklaması..." 
-                                    className="resize-none h-14 text-xs border-zinc-200 w-full" 
-                                />
-                            </div>
+                                {(paymentMethod === "kredi_karti" || paymentMethod === "havale") && data?.bankAccounts && (
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs font-semibold text-zinc-700">Giriş Yapılacak Banka Hesabı <span className="text-red-500">*</span></Label>
+                                        <Select value={selectedBankAccount} onValueChange={setSelectedBankAccount}>
+                                            <SelectTrigger className="border-zinc-200 bg-white text-xs h-9">
+                                                <SelectValue placeholder="Banka hesabı seçin..." />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-white">
+                                                {data.bankAccounts.map((b: any) => (
+                                                    <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        <div className="space-y-1.5">
+                            <Label htmlFor="date" className="text-xs font-semibold text-zinc-700">İşlem Tarihi</Label>
+                            <Input
+                                id="date"
+                                type="date"
+                                value={financeDate}
+                                onChange={e => setFinanceDate(e.target.value)}
+                                className="border-zinc-200 h-9 text-xs"
+                            />
                         </div>
 
-                        <DialogFooter className="border-t border-zinc-100 pt-3 gap-2 flex sm:justify-end">
-                            <Button 
-                                type="button" 
-                                variant="outline" 
-                                onClick={() => setFinanceAction(null)}
-                                className="text-xs h-9 border-zinc-200"
-                            >
-                                Vazgeç
-                            </Button>
-                            <Button 
-                                type="submit" 
-                                className="text-xs h-9 bg-blue-600 hover:bg-blue-700 text-white"
-                            >
-                                Kaydet ve Uygula
-                            </Button>
-                        </DialogFooter>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="description" className="text-xs font-semibold text-zinc-700">Açıklama</Label>
+                            <Textarea
+                                id="description"
+                                value={financeDesc}
+                                onChange={e => setFinanceDesc(e.target.value)}
+                                placeholder="Cari hareket açıklaması..."
+                                className="resize-none h-14 text-xs border-zinc-200 w-full"
+                            />
+                        </div>
                     </form>
+
+                    <div className="px-6 py-4 border-t border-zinc-100 bg-zinc-50/50 flex justify-end gap-2 shrink-0">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setFinanceAction(null)}
+                            className="text-xs h-9 border-zinc-200"
+                        >
+                            Vazgeç
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={handleFinanceSubmit as any}
+                            className="text-xs h-9 bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                            Kaydet ve Uygula
+                        </Button>
+                    </div>
                 </DialogContent>
             </Dialog>
         </Sheet>

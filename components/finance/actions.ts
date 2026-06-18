@@ -58,10 +58,10 @@ export async function createTransaction(formData: FormData) {
     const supabase = await createClient()
 
     const customerId = formData.get('customerId') as string || null
-    const type = formData.get('type') as string // 'gelir' | 'gider'
-    const paymentMethod = formData.get('paymentMethod') as string // 'nakit' | 'kredi_karti' | 'havale'
-    const cashRegisterId = formData.get('cashRegisterId') as string || null
-    const bankAccountId = formData.get('bankAccountId') as string || null
+    let type = formData.get('type') as string // 'gelir' | 'gider'
+    let paymentMethod = formData.get('paymentMethod') as string // 'nakit' | 'kredi_karti' | 'havale' | 'acik_hesap'
+    let cashRegisterId = formData.get('cashRegisterId') as string || null
+    let bankAccountId = formData.get('bankAccountId') as string || null
     const amountVal = formData.get('amount')
     const description = formData.get('description') as string
     const dateVal = formData.get('transactionDate') as string
@@ -73,12 +73,34 @@ export async function createTransaction(formData: FormData) {
         return { success: false, message: 'İşlem tipi, ödeme yöntemi ve sıfırdan büyük tutar zorunludur.' }
     }
 
-    if (paymentMethod === 'nakit' && !cashRegisterId) {
-        return { success: false, message: 'Nakit işlemleri için kasa seçilmelidir.' }
-    }
-
-    if ((paymentMethod === 'kredi_karti' || paymentMethod === 'havale') && !bankAccountId) {
-        return { success: false, message: 'Banka işlemleri için banka hesabı seçilmelidir.' }
+    // Force constraints for customer transactions
+    if (customerId) {
+        if (paymentMethod === 'acik_hesap') {
+            type = 'gelir'
+            cashRegisterId = null
+            bankAccountId = null
+        } else if (['nakit', 'kredi_karti', 'havale'].includes(paymentMethod)) {
+            type = 'gelir'
+            if (paymentMethod === 'nakit') {
+                if (!cashRegisterId) {
+                    return { success: false, message: 'Nakit işlemleri için kasa seçilmelidir.' }
+                }
+                bankAccountId = null
+            } else {
+                if (!bankAccountId) {
+                    return { success: false, message: 'Banka işlemleri için banka hesabı seçilmelidir.' }
+                }
+                cashRegisterId = null
+            }
+        }
+    } else {
+        // For general/non-customer transactions
+        if (paymentMethod === 'nakit' && !cashRegisterId) {
+            return { success: false, message: 'Nakit işlemleri için kasa seçilmelidir.' }
+        }
+        if (['kredi_karti', 'havale'].includes(paymentMethod) && !bankAccountId) {
+            return { success: false, message: 'Banka işlemleri için banka hesabı seçilmelidir.' }
+        }
     }
 
     const transactionData: any = {
@@ -88,12 +110,8 @@ export async function createTransaction(formData: FormData) {
         amount,
         description,
         transaction_date: transactionDate,
-    }
-
-    if (paymentMethod === 'nakit') {
-        transactionData.cash_register_id = cashRegisterId
-    } else if (paymentMethod === 'kredi_karti' || paymentMethod === 'havale') {
-        transactionData.bank_account_id = bankAccountId
+        cash_register_id: paymentMethod === 'nakit' ? cashRegisterId : null,
+        bank_account_id: ['kredi_karti', 'havale'].includes(paymentMethod) ? bankAccountId : null,
     }
 
     const { data, error } = await supabase

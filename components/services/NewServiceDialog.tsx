@@ -170,11 +170,11 @@ export default function NewServiceDialog() {
     }
 
     async function handleSubmit(formData: FormData) {
-        if (!selectedCustomerId) {
+        if (!selectedCustomerId || selectedCustomerId.trim() === "") {
             toast.error("Lütfen bir müşteri seçin.")
             return
         }
-        if (!selectedVehicleId) {
+        if (!selectedVehicleId || selectedVehicleId.trim() === "") {
             toast.error("Lütfen bir araç seçin.")
             return
         }
@@ -206,6 +206,8 @@ export default function NewServiceDialog() {
                         customerComboboxTriggerRef.current?.focus()
                     }, 100)
                 }
+            } else {
+                toast.error(res.error || "Servis kaydı oluşturulurken bir hata oluştu.")
             }
         } catch (err: any) {
             toast.error("Servis kaydı oluşturulurken hata oluştu: " + err.message)
