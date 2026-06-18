@@ -18,14 +18,20 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Kullanıcılar kendi profillerini görebilir" ON public.profiles
     FOR SELECT USING (auth.uid() = id);
 
+-- Sonsuz döngüyü (recursion) önlemek için SECURITY DEFINER fonksiyon oluştur
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE id = auth.uid() AND role = 'admin'
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Sadece adminler tüm profilleri görebilir/düzenleyebilir
 CREATE POLICY "Adminler tüm profilleri yönetebilir" ON public.profiles
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
-        )
-    );
+    USING (public.is_admin());
 
 -- 3. Yeni kullanıcı kaydolduğunda otomatik profil oluşturan trigger fonksiyonu
 CREATE OR REPLACE FUNCTION public.handle_new_user()
