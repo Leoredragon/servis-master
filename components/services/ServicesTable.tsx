@@ -255,7 +255,7 @@ export default function ServicesTable({ services }: ServicesTableProps) {
                                                     <DropdownMenuItem asChild className="text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 cursor-pointer">
                                                         <Link href={`/services/${service.id}`} className="flex items-center gap-1.5 w-full">
                                                             <FileText className="w-3.5 h-3.5 text-zinc-500" />
-                                                            <span>📄 Detaylar</span>
+                                                            <span>Detaylar</span>
                                                         </Link>
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={handleEdit} className="text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 cursor-pointer">
