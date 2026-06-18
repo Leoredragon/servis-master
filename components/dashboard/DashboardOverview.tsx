@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import {
     BarChart,
     Bar,
@@ -8,28 +9,25 @@ import {
     YAxis,
     Tooltip,
     ResponsiveContainer,
-    PieChart,
-    Pie,
-    Cell,
-    Legend
 } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
-    Wallet,
-    Landmark,
-    TrendingUp,
-    TrendingDown,
-    ArrowUpRight,
-    ArrowDownRight,
-    Users,
+    Wrench,
     AlertTriangle,
     Calendar,
     Clock,
-    Wrench
+    TrendingUp,
+    AlertCircle,
+    ArrowUpRight,
+    FileText,
+    CircleDollarSign,
+    Package
 } from "lucide-react"
 import Link from "next/link"
+import { cn } from "@/lib/utils"
 
 interface DashboardOverviewProps {
     cashRegisters: any[]
@@ -39,6 +37,7 @@ interface DashboardOverviewProps {
     serviceRecords: any[]
     stockCards: any[]
     appointments: any[]
+    openInvoices: any[]
 }
 
 export default function DashboardOverview({
@@ -49,27 +48,41 @@ export default function DashboardOverview({
     serviceRecords,
     stockCards,
     appointments,
+    openInvoices,
 }: DashboardOverviewProps) {
-    // 1. Calculate Metrics
-    const totalKasa = cashRegisters.reduce((sum, r) => sum + (r.balance || 0), 0)
-    const totalBanka = bankAccounts.reduce((sum, b) => sum + (b.balance || 0), 0)
-    const totalCariAlacak = customers.reduce((sum, c) => sum + (c.balance > 0 ? c.balance : 0), 0)
+    const router = useRouter()
 
-    // Calculate Monthly Revenue (Aylık Ciro)
-    const currentMonth = new Date().getMonth()
-    const currentYear = new Date().getFullYear()
-    const monthlyCiro = transactions
+    // Date Helper for today
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+
+    // 1. Bugünü Açılan Servis Sayısı
+    const todayServicesCount = serviceRecords.filter(s => {
+        const d = new Date(s.created_at)
+        return d >= todayStart
+    }).length
+
+    // 2. Parça Bekleyen Araçlar (status: 'parca bekleniyor' veya 'parça bekleniyor')
+    const pendingPartsCount = serviceRecords.filter(s => {
+        const st = (s.status || "").toLowerCase()
+        return st === "parca bekleniyor" || st === "parça bekleniyor"
+    }).length
+
+    // 3. Kritik Stok Uyarıları (Stok miktarı < 10)
+    const criticalStocksCount = stockCards.filter(s => s.current_stock < 10).length
+    const criticalStockList = stockCards.filter(s => s.current_stock < 10).slice(0, 5)
+
+    // 4. Günlük Toplam Tahsilat
+    const dailyCollection = transactions
         .filter(tx => {
             const txDate = new Date(tx.transaction_date)
-            return txDate.getMonth() === currentMonth && 
-                   txDate.getFullYear() === currentYear && 
-                   tx.type === "gelir"
+            return txDate >= todayStart && tx.type === "gelir"
         })
         .reduce((sum, tx) => sum + tx.amount, 0)
 
-    // 2. Format 30-Day Cash Flow Chart Data
+    // Nakit Akış Grafiği (Son 15 Gün)
     const daysMap: Record<string, { date: string; Gelir: number; Gider: number }> = {}
-    for (let i = 14; i >= 0; i--) { // Let's group last 15 days for cleaner visual layout on responsive screen
+    for (let i = 14; i >= 0; i--) {
         const date = new Date()
         date.setDate(date.getDate() - i)
         const dateString = date.toLocaleDateString("tr-TR", { day: "numeric", month: "short" })
@@ -89,292 +102,346 @@ export default function DashboardOverview({
     })
     const flowChartData = Object.values(daysMap)
 
-    // 3. Format Service Status Pie Chart Data
-    const statusCounts: Record<string, number> = {
-        "Kabul / Tespit": 0,
-        "Onarımda": 0,
-        "Parça Bekliyor": 0,
-        "Teslimata Hazır": 0,
+    const statusLabels: Record<string, string> = {
+        "araç kabul": "Araç Kabul",
+        "ariza tespiti": "Arıza Tespiti",
+        "parca bekleniyor": "Parça Bekleniyor",
+        "onarimda": "Onarımda",
+        "kalite_kontrol": "Kalite Kontrol",
+        "teslimata_hazir": "Teslimata Hazır",
+        "tamamlandı": "Tamamlandı",
+        "iptal": "İptal"
     }
 
-    serviceRecords.forEach(s => {
-        const status = (s.status || "").toLowerCase()
-        if (status === "araç kabul" || status === "arıza tespiti") {
-            statusCounts["Kabul / Tespit"]++
-        } else if (status === "onarımda" || status === "kalite kontrol") {
-            statusCounts["Onarımda"]++
-        } else if (status === "parça bekleniyor") {
-            statusCounts["Parça Bekliyor"]++
-        } else if (status === "teslimata hazır" || status === "tamamlandı") {
-            statusCounts["Teslimata Hazır"]++
-        }
-    })
-
-    const statusChartData = Object.entries(statusCounts)
-        .map(([name, value]) => ({ name, value }))
-        .filter(item => item.value > 0)
-
-    const STATUS_COLORS = {
-        "Kabul / Tespit": "#3B82F6", // Blue
-        "Onarımda": "#8B5CF6",     // Violet
-        "Parça Bekliyor": "#F59E0B",  // Amber
-        "Teslimata Hazır": "#10B981"  // Emerald
+    const getStatusBadgeClass = (status: string) => {
+        const st = (status || "").toLowerCase()
+        if (st === "tamamlandı") return "bg-emerald-50 text-emerald-700 hover:bg-emerald-50 border-emerald-200"
+        if (st === "iptal") return "bg-red-50 text-red-700 hover:bg-red-50 border-red-200"
+        if (st === "onarimda" || st === "kalite_kontrol") return "bg-blue-50 text-blue-700 hover:bg-blue-50 border-blue-200"
+        if (st === "parca bekleniyor" || st === "parça bekleniyor") return "bg-amber-50 text-amber-700 hover:bg-amber-50 border-amber-200"
+        return "bg-zinc-50 text-zinc-700 hover:bg-zinc-50 border-zinc-200"
     }
-
-    // 4. Low stock items (min_stock limit exceeded)
-    const lowStockItems = stockCards
-        .filter(item => item.current_stock <= (item.min_stock ?? 0))
-        .slice(0, 4)
 
     return (
         <div className="space-y-6">
-            {/* KPI Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Nakit Kasa */}
-                <Card className="bg-white border border-zinc-200 shadow-sm relative overflow-hidden">
+            
+            {/* 1. ÜST İSTATİSTİK KARTLARI (KPI WIDGETS) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                
+                {/* Bugün Açılan Servisler */}
+                <Card className="bg-white border border-zinc-200 shadow-sm relative overflow-hidden transition-all hover:border-zinc-300">
                     <CardContent className="p-5 flex items-center justify-between">
                         <div className="space-y-1">
-                            <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Kasa Bakiyesi</span>
-                            <div className="text-2xl font-extrabold text-zinc-900">
-                                {totalKasa.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Bugün Açılan Servisler</span>
+                            <div className="text-3xl font-black text-zinc-900 leading-none pt-1">
+                                {todayServicesCount}
                             </div>
-                            <div className="text-xs text-emerald-600 font-semibold flex items-center gap-1 mt-1">
-                                <TrendingUp className="w-3.5 h-3.5" />
-                                Geçen aya göre %12.4 artış
-                            </div>
+                            <p className="text-[10px] text-zinc-500 font-medium">Gün içinde açılan iş emirleri</p>
                         </div>
-                        <div className="h-12 w-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-                            <Wallet className="w-6 h-6" />
+                        <div className="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shadow-inner">
+                            <Wrench className="w-5 h-5 stroke-[2]" />
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Banka Hesapları */}
-                <Card className="bg-white border border-zinc-200 shadow-sm relative overflow-hidden">
+                {/* Parça Bekleyen Araçlar */}
+                <Card className="bg-white border border-zinc-200 shadow-sm relative overflow-hidden transition-all hover:border-zinc-300">
                     <CardContent className="p-5 flex items-center justify-between">
                         <div className="space-y-1">
-                            <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Banka Bakiyesi</span>
-                            <div className="text-2xl font-extrabold text-zinc-900">
-                                {totalBanka.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Parça Bekleyen Araçlar</span>
+                            <div className={cn(
+                                "text-3xl font-black leading-none pt-1",
+                                pendingPartsCount > 0 ? "text-amber-600" : "text-zinc-900"
+                            )}>
+                                {pendingPartsCount}
                             </div>
-                            <div className="text-xs text-emerald-600 font-semibold flex items-center gap-1 mt-1">
-                                <TrendingUp className="w-3.5 h-3.5" />
-                                Geçen aya göre %8.2 artış
-                            </div>
+                            <p className="text-[10px] text-zinc-500 font-medium">Tedarik statüsündeki işler</p>
                         </div>
-                        <div className="h-12 w-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
-                            <Landmark className="w-6 h-6" />
+                        <div className={cn(
+                            "h-10 w-10 rounded-lg flex items-center justify-center shadow-inner",
+                            pendingPartsCount > 0 ? "bg-amber-50 text-amber-600" : "bg-zinc-50 text-zinc-500"
+                        )}>
+                            <Package className="w-5 h-5 stroke-[2]" />
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Cari Alacaklar */}
-                <Card className="bg-white border border-zinc-200 shadow-sm relative overflow-hidden">
+                {/* Kritik Stok Uyarıları */}
+                <Card className="bg-white border border-zinc-200 shadow-sm relative overflow-hidden transition-all hover:border-zinc-300">
                     <CardContent className="p-5 flex items-center justify-between">
                         <div className="space-y-1">
-                            <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Cari Alacaklar</span>
-                            <div className="text-2xl font-extrabold text-zinc-900">
-                                {totalCariAlacak.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Kritik Stok Uyarıları</span>
+                            <div className={cn(
+                                "text-3xl font-black leading-none pt-1",
+                                criticalStocksCount > 0 ? "text-red-600" : "text-zinc-900"
+                            )}>
+                                {criticalStocksCount}
                             </div>
-                            <div className="text-xs text-amber-600 font-semibold flex items-center gap-1 mt-1">
-                                <TrendingDown className="w-3.5 h-3.5" />
-                                Bekleyen 4 fatura satışı
-                            </div>
+                            <p className="text-[10px] text-zinc-500 font-medium">Miktarı 10'un altındaki yedek parçalar</p>
                         </div>
-                        <div className="h-12 w-12 rounded-full bg-amber-50 flex items-center justify-center text-amber-600">
-                            <Users className="w-6 h-6" />
+                        <div className={cn(
+                            "h-10 w-10 rounded-lg flex items-center justify-center shadow-inner",
+                            criticalStocksCount > 0 ? "bg-red-50 text-red-600" : "bg-zinc-50 text-zinc-500"
+                        )}>
+                            <AlertCircle className="w-5 h-5 stroke-[2]" />
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Aylık Ciro */}
-                <Card className="bg-white border border-zinc-200 shadow-sm relative overflow-hidden">
+                {/* Günlük Toplam Tahsilat */}
+                <Card className="bg-white border border-zinc-200 shadow-sm relative overflow-hidden transition-all hover:border-zinc-300">
                     <CardContent className="p-5 flex items-center justify-between">
                         <div className="space-y-1">
-                            <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Aylık Net Ciro</span>
-                            <div className="text-2xl font-extrabold text-zinc-900">
-                                {monthlyCiro.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Günlük Tahsilat</span>
+                            <div className="text-2xl font-black text-emerald-600 leading-none pt-1.5">
+                                {dailyCollection.toLocaleString('tr-TR')} ₺
                             </div>
-                            <div className="text-xs text-emerald-600 font-semibold flex items-center gap-1 mt-1">
-                                <TrendingUp className="w-3.5 h-3.5" />
-                                Geçen aya göre %15.3 artış
-                            </div>
+                            <p className="text-[10px] text-zinc-500 font-medium">Bugün yapılan kasa/banka girişleri</p>
                         </div>
-                        <div className="h-12 w-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-                            <TrendingUp className="w-6 h-6" />
+                        <div className="h-10 w-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-inner">
+                            <CircleDollarSign className="w-5 h-5 stroke-[2]" />
                         </div>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Graphs Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Cash Flow Chart */}
-                <Card className="bg-white border border-zinc-200 shadow-sm lg:col-span-2">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-base font-bold text-zinc-900">Nakit Akış Analizi</CardTitle>
-                        <CardDescription className="text-xs">Son 15 günün kasa/banka gelir-gider dağılımı</CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                        <div className="h-[280px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={flowChartData} barGap={4}>
-                                    <XAxis dataKey="date" stroke="#888888" fontSize={11} tickLine={false} axisLine={false} />
-                                    <YAxis stroke="#888888" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `${val} ₺`} />
-                                    <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #e4e4e7", borderRadius: "8px", fontSize: "12px" }} />
-                                    <Bar dataKey="Gelir" fill="#10B981" radius={[3, 3, 0, 0]} />
-                                    <Bar dataKey="Gider" fill="#EF4444" radius={[3, 3, 0, 0]} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Service Record Distribution Donut Chart */}
-                <Card className="bg-white border border-zinc-200 shadow-sm">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-base font-bold text-zinc-900">Atölye Yoğunluk Analizi</CardTitle>
-                        <CardDescription className="text-xs">Servisteki araçların güncel durum oranları</CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-4 flex flex-col items-center justify-center">
-                        <div className="h-[180px] w-full relative">
-                            {statusChartData.length > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie
-                                            data={statusChartData}
-                                            cx="50%"
-                                            cy="50%"
-                                            innerRadius={60}
-                                            outerRadius={80}
-                                            paddingAngle={3}
-                                            dataKey="value"
+            {/* 2. ORTA BÖLÜM - İKİ KOLONLU AKIŞ */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                {/* SOL KOLON: Aktif İşlemler (Son 5 Servis Kaydı) & Grafikler (lg:col-span-8) */}
+                <div className="lg:col-span-8 space-y-6 flex flex-col justify-start">
+                    
+                    {/* Son 5 Servis Kaydı Tablosu */}
+                    <Card className="bg-white border border-zinc-200 shadow-sm overflow-hidden flex flex-col">
+                        <CardHeader className="pb-3 border-b border-zinc-100 flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle className="text-sm font-extrabold text-zinc-800 uppercase tracking-wider">Son 5 Servis Kaydı</CardTitle>
+                                <CardDescription className="text-xs">Atölyeye kabul edilen son aktif iş emri kayıtları</CardDescription>
+                            </div>
+                            <Link href="/services">
+                                <Button size="sm" variant="ghost" className="text-xs font-semibold text-blue-600 hover:text-blue-800">
+                                    Tüm Servisler
+                                </Button>
+                            </Link>
+                        </CardHeader>
+                        
+                        <Table className="text-xs">
+                            <TableHeader className="bg-zinc-50/50">
+                                <TableRow>
+                                    <TableHead className="font-semibold">Plaka</TableHead>
+                                    <TableHead className="font-semibold">Müşteri</TableHead>
+                                    <TableHead className="font-semibold">Araç Detayı</TableHead>
+                                    <TableHead className="w-32 text-center font-semibold">Durum</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {serviceRecords && serviceRecords.length > 0 ? (
+                                    serviceRecords.slice(0, 5).map((record) => (
+                                        <TableRow 
+                                            key={record.id}
+                                            onClick={() => router.push(`/services/${record.id}`)}
+                                            className="hover:bg-zinc-50/60 cursor-pointer transition-colors"
                                         >
-                                            {statusChartData.map((entry: any) => (
-                                                <Cell 
-                                                    key={`cell-${entry.name}`} 
-                                                    fill={STATUS_COLORS[entry.name as keyof typeof STATUS_COLORS] || "#d4d4d8"} 
-                                                />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            ) : (
-                                <div className="absolute inset-0 flex items-center justify-center text-xs text-zinc-400 font-semibold">
-                                    Aktif servis kaydı bulunmuyor
-                                </div>
-                            )}
-                        </div>
-                        {/* Legend */}
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs font-semibold mt-4 w-full">
-                            {Object.entries(STATUS_COLORS).map(([name, color]) => {
-                                const count = statusCounts[name] || 0
-                                return (
-                                    <div key={name} className="flex items-center gap-1.5">
-                                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                                        <span className="text-zinc-600 truncate">{name}</span>
-                                        <span className="text-zinc-400 ml-auto font-normal">({count})</span>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Bottom Widgets */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Stok Uyarı Listesi */}
-                <Card className="bg-white border border-zinc-200 shadow-sm flex flex-col justify-between">
-                    <CardHeader className="pb-3 border-b border-zinc-100 flex flex-row items-center justify-between">
-                        <div>
-                            <CardTitle className="text-base font-bold text-zinc-900 flex items-center gap-2">
-                                <AlertTriangle className="w-5 h-5 text-red-500" /> Kritik Stok Uyarıları
-                            </CardTitle>
-                            <CardDescription className="text-xs">Minimum stok seviyesinin altına düşen parçalar</CardDescription>
-                        </div>
-                        <Link href="/stock">
-                            <Button size="sm" variant="ghost" className="text-xs font-semibold text-blue-600 hover:text-blue-800">
-                                Stokları Yönet
-                            </Button>
-                        </Link>
-                    </CardHeader>
-                    <CardContent className="p-0 flex-1">
-                        <div className="divide-y divide-zinc-100">
-                            {lowStockItems.length > 0 ? (
-                                lowStockItems.map((item: any) => (
-                                    <div key={item.id} className="p-4 flex items-center justify-between">
-                                        <div className="space-y-0.5">
-                                            <p className="text-sm font-bold text-zinc-900">{item.name}</p>
-                                            <p className="text-xs text-zinc-400">SKU: {item.stock_code} | Marka: {item.brand || "-"}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-sm font-extrabold text-red-600">
-                                                {item.current_stock} {item.unit || "Adet"}
-                                            </div>
-                                            <p className="text-[10px] text-zinc-400">Min. Limit: {item.min_stock}</p>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="p-8 text-center text-xs text-zinc-400 font-medium">
-                                    Kritik seviyede olan yedek parça bulunmuyor.
-                                </div>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Bugünkü / Yaklaşan Randevular */}
-                <Card className="bg-white border border-zinc-200 shadow-sm flex flex-col justify-between">
-                    <CardHeader className="pb-3 border-b border-zinc-100 flex flex-row items-center justify-between">
-                        <div>
-                            <CardTitle className="text-base font-bold text-zinc-900 flex items-center gap-2">
-                                <Calendar className="w-5 h-5 text-blue-500" /> Yaklaşan Randevular
-                            </CardTitle>
-                            <CardDescription className="text-xs">Kabul bekleyen güncel araç randevuları</CardDescription>
-                        </div>
-                        <Link href="/calendar">
-                            <Button size="sm" variant="ghost" className="text-xs font-semibold text-blue-600 hover:text-blue-800">
-                                Ajandayı Aç
-                            </Button>
-                        </Link>
-                    </CardHeader>
-                    <CardContent className="p-0 flex-1">
-                        <div className="divide-y divide-zinc-100">
-                            {appointments.length > 0 ? (
-                                appointments.slice(0, 4).map((appt: any) => {
-                                    const apptDate = new Date(appt.appointment_date)
-                                    return (
-                                        <div key={appt.id} className="p-4 flex items-center justify-between hover:bg-zinc-50/20 transition-colors">
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-9 w-9 rounded-md bg-blue-50 flex items-center justify-center border border-blue-100 text-blue-600 font-bold text-xs flex-col">
-                                                    <span>{apptDate.toLocaleDateString('tr-TR', { day: 'numeric' })}</span>
-                                                    <span className="text-[8px] uppercase">{apptDate.toLocaleDateString('tr-TR', { month: 'short' })}</span>
+                                            <TableCell className="font-bold text-zinc-950">
+                                                <div className="inline-block border border-zinc-950 bg-white px-2 py-0.5 rounded text-zinc-950 font-black tracking-wider text-[10px] shadow-sm select-none">
+                                                    {record.vehicles?.plate}
                                                 </div>
-                                                <div className="space-y-0.5">
-                                                    <p className="text-sm font-bold text-zinc-900">{appt.title}</p>
-                                                    <p className="text-xs text-zinc-400">
-                                                        Müşteri: {appt.customers?.first_name} {appt.customers?.last_name || ""}
+                                            </TableCell>
+                                            <TableCell className="font-semibold text-zinc-800">
+                                                {record.customers?.first_name} {record.customers?.last_name || ""}
+                                            </TableCell>
+                                            <TableCell className="text-zinc-500">
+                                                {record.vehicles?.brand} {record.vehicles?.model}
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                <Badge variant="outline" className={cn("text-[9px] font-bold px-1.5 py-0.5", getStatusBadgeClass(record.status))}>
+                                                    {statusLabels[record.status]?.toUpperCase() || record.status?.toUpperCase()}
+                                                </Badge>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="text-center py-8 text-zinc-400 italic">
+                                            Aktif servis kaydı bulunmuyor.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </Card>
+
+                    {/* Nakit Akış Analizi Grafiği */}
+                    <Card className="bg-white border border-zinc-200 shadow-sm flex flex-col">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-extrabold text-zinc-800 uppercase tracking-wider">Nakit Akış Analizi</CardTitle>
+                            <CardDescription className="text-xs">Son 15 günün kasalara ve banka hesaplarına giren/çıkan işlem toplamları</CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-4">
+                            <div className="h-[235px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={flowChartData} barGap={4}>
+                                        <XAxis dataKey="date" stroke="#888888" fontSize={10} tickLine={false} axisLine={false} />
+                                        <YAxis stroke="#888888" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(val) => `${val} ₺`} />
+                                        <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #e4e4e7", borderRadius: "8px", fontSize: "11px" }} />
+                                        <Bar dataKey="Gelir" fill="#10B981" radius={[3, 3, 0, 0]} />
+                                        <Bar dataKey="Gider" fill="#EF4444" radius={[3, 3, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* SAĞ KOLON: Stok, Finans Bildirimleri & Randevular (lg:col-span-4) */}
+                <div className="lg:col-span-4 space-y-6 flex flex-col">
+                    
+                    {/* Açık Faturalar Bildirimi */}
+                    <Card className="bg-white border border-zinc-200 shadow-sm flex flex-col">
+                        <CardHeader className="pb-3 border-b border-zinc-100 flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle className="text-xs font-extrabold text-zinc-800 uppercase tracking-wider flex items-center gap-1.5">
+                                    <FileText className="w-4 h-4 text-blue-500" /> Açık Faturalar
+                                </CardTitle>
+                                <CardDescription className="text-[10px]">Vadesi bekleyen / ödenmemiş son 3 fatura</CardDescription>
+                            </div>
+                            <Link href="/invoices">
+                                <Button size="sm" variant="ghost" className="text-[10px] font-semibold text-blue-600 hover:text-blue-800 p-0 h-6">
+                                    Faturalara Git
+                                </Button>
+                            </Link>
+                        </CardHeader>
+                        <CardContent className="p-0 flex-1">
+                            <div className="divide-y divide-zinc-100">
+                                {openInvoices && openInvoices.length > 0 ? (
+                                    openInvoices.slice(0, 3).map((inv: any) => {
+                                        const isOverdue = new Date(inv.due_date) < new Date() && inv.status !== 'ödendi'
+                                        return (
+                                            <div key={inv.id} className="p-3.5 flex items-center justify-between hover:bg-zinc-50/20 transition-colors">
+                                                <div className="space-y-0.5 max-w-[170px]">
+                                                    <p className="text-xs font-bold text-zinc-900 truncate">No: {inv.invoice_no}</p>
+                                                    <p className="text-[10px] text-zinc-400 truncate">
+                                                        {inv.customers?.first_name} {inv.customers?.last_name || ""}
                                                     </p>
                                                 </div>
+                                                <div className="text-right">
+                                                    <div className="text-xs font-bold text-zinc-900">
+                                                        {inv.total_amount.toLocaleString('tr-TR')} ₺
+                                                    </div>
+                                                    <Badge 
+                                                        variant="outline" 
+                                                        className={cn(
+                                                            "text-[8px] font-bold px-1 py-0 border-zinc-100 leading-none",
+                                                            isOverdue ? "bg-red-50 text-red-700 border-red-200" : "bg-amber-50 text-amber-700 border-amber-200"
+                                                        )}
+                                                    >
+                                                        {isOverdue ? "VADESİ GEÇTİ" : "BEKLİYOR"}
+                                                    </Badge>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-2 text-xs font-semibold text-zinc-500">
-                                                <Clock className="w-3.5 h-3.5 text-zinc-400" />
-                                                {apptDate.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                                        )
+                                    })
+                                ) : (
+                                    <div className="p-6 text-center text-[10px] text-zinc-400 italic">
+                                        Bekleyen açık fatura bulunmuyor.
+                                    </div>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Kritik Stok Mini Listesi */}
+                    <Card className="bg-white border border-zinc-200 shadow-sm flex flex-col">
+                        <CardHeader className="pb-3 border-b border-zinc-100 flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle className="text-xs font-extrabold text-zinc-800 uppercase tracking-wider flex items-center gap-1.5">
+                                    <AlertTriangle className="w-4 h-4 text-red-500" /> Kritik Parçalar
+                                </CardTitle>
+                                <CardDescription className="text-[10px]">Stok miktarı 10'un altına düşen kartlar</CardDescription>
+                            </div>
+                            <Link href="/stock">
+                                <Button size="sm" variant="ghost" className="text-[10px] font-semibold text-blue-600 hover:text-blue-800 p-0 h-6">
+                                    Stok Kartları
+                                </Button>
+                            </Link>
+                        </CardHeader>
+                        <CardContent className="p-0 flex-1">
+                            <div className="divide-y divide-zinc-100">
+                                {criticalStockList.length > 0 ? (
+                                    criticalStockList.map((item: any) => (
+                                        <div key={item.id} className="p-3.5 flex items-center justify-between">
+                                            <div className="space-y-0.5 max-w-[180px]">
+                                                <p className="text-xs font-bold text-zinc-900 truncate">{item.name}</p>
+                                                <p className="text-[10px] text-zinc-400">SKU: {item.stock_code}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-xs font-black text-red-600">
+                                                    {item.current_stock} {item.unit || "Adet"}
+                                                </div>
+                                                <p className="text-[8px] text-zinc-400 font-medium">Min: {item.min_stock ?? 0}</p>
                                             </div>
                                         </div>
-                                    )
-                                })
-                            ) : (
-                                <div className="p-8 text-center text-xs text-zinc-400 font-medium">
-                                    Yaklaşan randevu bulunmuyor.
-                                </div>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
+                                    ))
+                                ) : (
+                                    <div className="p-6 text-center text-[10px] text-zinc-400 italic">
+                                        Kritik seviyede parça bulunmuyor.
+                                    </div>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Yaklaşan Randevular */}
+                    <Card className="bg-white border border-zinc-200 shadow-sm flex flex-col">
+                        <CardHeader className="pb-3 border-b border-zinc-100 flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle className="text-xs font-extrabold text-zinc-800 uppercase tracking-wider flex items-center gap-1.5">
+                                    <Calendar className="w-4 h-4 text-zinc-450" /> Randevular
+                                </CardTitle>
+                                <CardDescription className="text-[10px]">Bugün ve yakındaki randevular</CardDescription>
+                            </div>
+                            <Link href="/calendar">
+                                <Button size="sm" variant="ghost" className="text-[10px] font-semibold text-blue-600 hover:text-blue-800 p-0 h-6">
+                                    Ajandayı Aç
+                                </Button>
+                            </Link>
+                        </CardHeader>
+                        <CardContent className="p-0 flex-1">
+                            <div className="divide-y divide-zinc-100">
+                                {appointments.length > 0 ? (
+                                    appointments.slice(0, 3).map((appt: any) => {
+                                        const apptDate = new Date(appt.appointment_date)
+                                        return (
+                                            <div key={appt.id} className="p-3 flex items-center justify-between">
+                                                <div className="flex items-center gap-2 max-w-[190px]">
+                                                    <div className="h-8 w-8 rounded bg-blue-50/70 border border-blue-100 flex flex-col items-center justify-center text-[9px] font-bold text-blue-700 shrink-0">
+                                                        <span>{apptDate.getDate()}</span>
+                                                        <span className="text-[7px] uppercase font-black">{apptDate.toLocaleDateString('tr-TR', { month: 'short' })}</span>
+                                                    </div>
+                                                    <div className="space-y-0.5 truncate">
+                                                        <p className="text-xs font-bold text-zinc-900 truncate">{appt.title}</p>
+                                                        <p className="text-[9px] text-zinc-400 truncate">
+                                                            {appt.customers?.first_name} {appt.customers?.last_name || ""}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-1 text-[10px] font-semibold text-zinc-500 shrink-0">
+                                                    <Clock className="w-3 h-3 text-zinc-400" />
+                                                    {apptDate.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                                                </div>
+                                            </div>
+                                        )
+                                    })
+                                ) : (
+                                    <div className="p-6 text-center text-[10px] text-zinc-400 italic">
+                                        Yakın zamanda randevu bulunmuyor.
+                                    </div>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                    
+                </div>
             </div>
         </div>
     )

@@ -14,7 +14,7 @@ export default async function DashboardPage() {
         .from('bank_accounts')
         .select('*')
 
-    // 3. Müşteri bakiyelerini ve tiplerini çek
+    // 3. Müşteri bakiyelerini ve tiplerini çek (silinmemiş olanlar)
     const { data: customers } = await supabase
         .from('customers')
         .select('id, first_name, last_name, phone, type, balance')
@@ -26,20 +26,21 @@ export default async function DashboardPage() {
         .select('*')
         .order('transaction_date', { ascending: false })
 
-    // 5. Servis kayıtlarının durumlarını çek
+    // 5. Servis kayıtlarını detaylarıyla çek (silinmemiş olanlar)
     const { data: serviceRecords } = await supabase
         .from('service_records')
-        .select('id, status')
+        .select('*, customers(first_name, last_name), vehicles(plate, brand, model)')
         .eq('is_deleted', false)
+        .order('created_at', { ascending: false })
 
-    // 6. Stok durumlarını çek
+    // 6. Stok durumlarını çek (silinmemiş olanlar)
     const { data: stockCards } = await supabase
         .from('stock_cards')
         .select('*')
         .eq('is_deleted', false)
         .order('name', { ascending: true })
 
-    // 7. Bugünkü / Yaklaşan randevuları çek (Bugün ve sonrası)
+    // 7. Bugünkü / Yaklaşan randevuları çek (Bugün ve sonrası, silinmemiş olanlar)
     const todayStr = new Date()
     todayStr.setHours(0, 0, 0, 0)
 
@@ -49,6 +50,14 @@ export default async function DashboardPage() {
         .eq('is_deleted', false)
         .gte('appointment_date', todayStr.toISOString())
         .order('appointment_date', { ascending: true })
+
+    // 8. Açık faturaları çek (is_deleted = false, status != 'ödendi', en yakın vadeye göre sıralı)
+    const { data: openInvoices } = await supabase
+        .from('invoices')
+        .select('*, customers(first_name, last_name, phone)')
+        .eq('is_deleted', false)
+        .neq('status', 'ödendi')
+        .order('due_date', { ascending: true })
 
     return (
         <div className="space-y-6">
@@ -67,6 +76,7 @@ export default async function DashboardPage() {
                 serviceRecords={serviceRecords || []}
                 stockCards={stockCards || []}
                 appointments={appointments || []}
+                openInvoices={openInvoices || []}
             />
         </div>
     )

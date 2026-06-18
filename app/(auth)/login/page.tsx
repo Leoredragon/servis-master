@@ -1,58 +1,46 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { login } from "../actions"
+import LoginForm from "./LoginForm"
+import { Wrench } from "lucide-react"
 
-export default async function LoginPage(props: { searchParams: Promise<{ message: string }> }) {
-    const searchParams = await props.searchParams;
-
+export default function LoginPage() {
     return (
-        <Card className="border-zinc-200 shadow-sm">
-            <CardHeader className="space-y-1">
-                <CardTitle className="text-2xl text-center">Giriş Yap</CardTitle>
-                <CardDescription className="text-center text-zinc-500">
-                    Sisteme erişmek için e-posta ve şifrenizi girin
-                </CardDescription>
-            </CardHeader>
+        <div className="grid grid-cols-1 md:grid-cols-2 h-screen w-screen overflow-hidden font-sans bg-zinc-50 md:bg-white">
+            {/* Sol Taraf: Premium Hero Görseli & Hoşgeldin Mesajı */}
+            <div className="relative hidden md:flex flex-col justify-between p-12 bg-zinc-950 text-white select-none">
+                {/* Background Image with Overlay */}
+                <div 
+                    className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30 mix-blend-luminosity"
+                    style={{ backgroundImage: "url('/login_hero_bg.png')" }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/30 to-zinc-950/20 z-0" />
 
-            {/* Form etiketini ekledik ve action parametresine server fonksiyonumuzu verdik */}
-            <form action={login}>
-                <CardContent className="space-y-4">
-                    {searchParams?.message && (
-                        <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md text-center font-medium">
-                            {searchParams.message}
-                        </div>
-                    )}
-                    <div className="space-y-2">
-                        <Label htmlFor="email">E-posta</Label>
-                        {/* name="email" attribute'u server action için zorunlu */}
-                        <Input id="email" name="email" type="email" placeholder="ornek@sirket.com" required />
+                {/* Logo & Brand */}
+                <div className="relative z-10 flex items-center gap-2">
+                    <div className="h-9 w-9 bg-white text-zinc-950 rounded-lg flex items-center justify-center shadow-md">
+                        <Wrench className="w-5 h-5 stroke-[2.5]" />
                     </div>
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                            <Label htmlFor="password">Şifre</Label>
-                            <Link href="#" className="text-sm font-medium text-blue-600 hover:text-blue-500">
-                                Şifremi unuttum
-                            </Link>
-                        </div>
-                        {/* name="password" attribute'u eklendi */}
-                        <Input id="password" name="password" type="password" required />
-                    </div>
-                </CardContent>
-                <CardFooter className="flex flex-col gap-4">
-                    <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                        Sisteme Giriş Yap
-                    </Button>
-                    <div className="text-center text-sm text-zinc-500">
-                        Hesabınız yok mu?{" "}
-                        <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500">
-                            Kayıt Olun
-                        </Link>
-                    </div>
-                </CardFooter>
-            </form>
-        </Card>
+                    <span className="font-black tracking-wider text-xl uppercase">Servis Master</span>
+                </div>
+
+                {/* Slogan / Welcome Info */}
+                <div className="relative z-10 max-w-md space-y-4">
+                    <h2 className="text-4xl font-extrabold tracking-tight leading-tight">
+                        Teknik Servis ve Atölye Operasyonlarında Yeni Standart.
+                    </h2>
+                    <p className="text-sm text-zinc-300 leading-relaxed font-medium">
+                        İş emirleri, yedek parça rezervasyonları, müşteri 360 cari hesap takibi ve gerçek zamanlı bildirimleri tek bir kokpitten yönetin.
+                    </p>
+                </div>
+
+                {/* Footer Info */}
+                <div className="relative z-10 text-xs text-zinc-400 font-medium">
+                    &copy; 2026 Servis Master. Tüm hakları saklıdır.
+                </div>
+            </div>
+
+            {/* Sağ Taraf: Minimalist Giriş Formu */}
+            <div className="flex items-center justify-center bg-zinc-50 md:bg-white h-full">
+                <LoginForm />
+            </div>
+        </div>
     )
 }

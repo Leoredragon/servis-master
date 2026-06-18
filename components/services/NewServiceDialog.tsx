@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import {
     Dialog,
     DialogContent,
@@ -12,7 +11,6 @@ import {
     DialogHeader,
     DialogTitle,
     DialogTrigger,
-    DialogFooter,
 } from "@/components/ui/dialog"
 import {
     Select,
@@ -23,7 +21,7 @@ import {
 } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { Plus, ChevronsUpDown, Check, UserPlus, X, UploadCloud } from "lucide-react"
+import { Plus, ChevronsUpDown, Check, UserPlus, X } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { createServiceRecord } from "./actions"
 import { toast } from "sonner"
@@ -38,12 +36,7 @@ export default function NewServiceDialog({ triggerVisible = true }: { triggerVis
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>("")
     const [selectedVehicleId, setSelectedVehicleId] = useState<string>("")
     const [comboboxOpen, setComboboxOpen] = useState(false)
-    const [entryMileage, setEntryMileage] = useState("")
     const [submitAction, setSubmitAction] = useState<"save" | "saveAndAdd">("save")
-
-    // Dropzone states
-    const [selectedFiles, setSelectedFiles] = useState<File[]>([])
-    const [dragActive, setDragActive] = useState(false)
 
     // Refs
     const customerComboboxTriggerRef = useRef<HTMLButtonElement>(null)
@@ -90,49 +83,6 @@ export default function NewServiceDialog({ triggerVisible = true }: { triggerVis
         : []
 
     const selectedCustomer = customers.find(c => c.id === selectedCustomerId)
-
-    // Smart Default: selectedVehicleId değiştiğinde aracın son KM'sini otomatik getir
-    useEffect(() => {
-        if (selectedVehicleId) {
-            const vehicle = vehicles.find(v => v.id === selectedVehicleId)
-            if (vehicle) {
-                setEntryMileage(vehicle.mileage ? vehicle.mileage.toString() : "")
-            }
-        } else {
-            setEntryMileage("")
-        }
-    }, [selectedVehicleId, vehicles])
-
-    const handleDrag = (e: React.DragEvent) => {
-        e.preventDefault()
-        e.stopPropagation()
-        if (e.type === "dragenter" || e.type === "dragover") {
-            setDragActive(true)
-        } else if (e.type === "dragleave") {
-            setDragActive(false)
-        }
-    }
-
-    const handleDrop = (e: React.DragEvent) => {
-        e.preventDefault()
-        e.stopPropagation()
-        setDragActive(false)
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            const files = Array.from(e.dataTransfer.files)
-            setSelectedFiles(prev => [...prev, ...files])
-        }
-    }
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const files = Array.from(e.target.files)
-            setSelectedFiles(prev => [...prev, ...files])
-        }
-    }
-
-    const removeFile = (index: number) => {
-        setSelectedFiles(prev => prev.filter((_, i) => i !== index))
-    }
 
     async function handleQuickAdd() {
         if (!quickFirstName || !quickLastName || !quickPhone) {
@@ -187,7 +137,6 @@ export default function NewServiceDialog({ triggerVisible = true }: { triggerVis
 
         formData.append("customerId", selectedCustomerId)
         formData.append("vehicleId", selectedVehicleId)
-        formData.set("entryMileage", entryMileage)
 
         try {
             const res = await createServiceRecord(formData)
@@ -199,15 +148,11 @@ export default function NewServiceDialog({ triggerVisible = true }: { triggerVis
                     // Seçimleri sıfırla
                     setSelectedCustomerId("")
                     setSelectedVehicleId("")
-                    setEntryMileage("")
-                    setSelectedFiles([])
                 } else {
                     formRef.current?.reset()
                     // Seçimleri sıfırla
                     setSelectedCustomerId("")
                     setSelectedVehicleId("")
-                    setEntryMileage("")
-                    setSelectedFiles([])
                     setTimeout(() => {
                         customerComboboxTriggerRef.current?.focus()
                     }, 100)
@@ -231,7 +176,7 @@ export default function NewServiceDialog({ triggerVisible = true }: { triggerVis
             )}
 
             <DialogContent 
-                className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0 bg-white overflow-hidden" 
+                className="sm:max-w-[600px] max-h-[85vh] flex flex-col p-0 bg-white overflow-hidden" 
                 onInteractOutside={(e) => e.preventDefault()}
                 onOpenAutoFocus={(e) => {
                     e.preventDefault()
@@ -242,7 +187,7 @@ export default function NewServiceDialog({ triggerVisible = true }: { triggerVis
                 <DialogHeader className="px-6 py-4 border-b border-zinc-100">
                     <DialogTitle className="text-xl font-bold tracking-tight text-zinc-900">Yeni Servis Kaydı</DialogTitle>
                     <DialogDescription className="text-zinc-500">
-                        Araç için yeni bir iş emri oluşturun. Gerekli alanları doldurup kaydedin.
+                        Araç için yeni bir iş emri oluşturun. Müşteri ve araç seçimini tamamlayın.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -294,7 +239,7 @@ export default function NewServiceDialog({ triggerVisible = true }: { triggerVis
                         
                         {/* Bölüm 1: Müşteri ve Araç Seçimi */}
                         <div className="space-y-4">
-                            <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">1. Müşteri & Araç Seçimi</h4>
+                            <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Müşteri & Araç Seçimi</h4>
                             <div className="h-px bg-zinc-100 w-full" />
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -350,7 +295,7 @@ export default function NewServiceDialog({ triggerVisible = true }: { triggerVis
                                                                     )}
                                                                 />
                                                                 {customer.first_name} {customer.last_name || ""} ({customer.phone})
-                                                            </CommandItem>
+                                                             </CommandItem>
                                                         ))}
                                                     </CommandGroup>
                                                 </CommandList>
@@ -393,146 +338,6 @@ export default function NewServiceDialog({ triggerVisible = true }: { triggerVis
                             </div>
                         </div>
 
-                        {/* Bölüm 2: Kabul Detayları */}
-                        <div className="space-y-4 pt-2">
-                            <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">2. Kabul Detayları</h4>
-                            <div className="h-px bg-zinc-100 w-full" />
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Servis Tipi</Label>
-                                    <Select name="serviceType" defaultValue="bakim">
-                                        <SelectTrigger className="border-zinc-200 bg-white">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent className="bg-white">
-                                            <SelectItem value="bakim">Periyodik Bakım</SelectItem>
-                                            <SelectItem value="tamir">Tamir / Onarım</SelectItem>
-                                            <SelectItem value="muayene">Muayene Hazırlık</SelectItem>
-                                            <SelectItem value="modifikasyon">Modifikasyon</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Öncelik</Label>
-                                    <Select name="priority" defaultValue="normal">
-                                        <SelectTrigger className="border-zinc-200 bg-white">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent className="bg-white">
-                                            <SelectItem value="dusuk">Düşük</SelectItem>
-                                            <SelectItem value="normal">Normal</SelectItem>
-                                            <SelectItem value="yuksek">Yüksek</SelectItem>
-                                            <SelectItem value="acil">Acil!</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="entryMileage">Giriş Kilometresi (KM)</Label>
-                                    <Input
-                                        id="entryMileage"
-                                        name="entryMileage"
-                                        type="number"
-                                        value={entryMileage}
-                                        onChange={e => setEntryMileage(e.target.value)}
-                                        placeholder="Örn: 42500"
-                                        className="border-zinc-200"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Yakıt Durumu</Label>
-                                    <Select name="fuelLevel" defaultValue="yarim">
-                                        <SelectTrigger className="border-zinc-200 bg-white">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent className="bg-white">
-                                            <SelectItem value="bos">Işık Yanıyor / Boş</SelectItem>
-                                            <SelectItem value="ceyrek">Çeyrek Depo</SelectItem>
-                                            <SelectItem value="yarim">Yarım Depo</SelectItem>
-                                            <SelectItem value="ucceyrek">3/4 Depo</SelectItem>
-                                            <SelectItem value="dolu">Dolu Depo</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Bölüm 3: Şikayet & Hasar Notları ve Görseller */}
-                        <div className="space-y-4 pt-2">
-                            <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">3. Hasar / Talep Notları & Görseller</h4>
-                            <div className="h-px bg-zinc-100 w-full" />
-                            
-                            <div className="space-y-2">
-                                <Label htmlFor="complaint">Müşteri Şikayeti / Talep</Label>
-                                <Textarea
-                                    id="complaint"
-                                    name="complaint"
-                                    placeholder="Müşterinin belirttiği sorunları veya istekleri buraya yazın..."
-                                    className="resize-none h-20 border-zinc-200 w-full"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="damageAssessment">Hasar Tespit / Kaporta Çizik Notları</Label>
-                                <Textarea
-                                    id="damageAssessment"
-                                    name="damageAssessment"
-                                    placeholder="Dış kasa hasarları, çizikler veya kabul sırasındaki görsel kusurları belirtin..."
-                                    className="resize-none h-20 border-zinc-200 w-full"
-                                />
-                            </div>
-
-                            {/* Sürükle Bırak Fotoğraf Yükleme Alanı */}
-                            <div className="space-y-2 pt-2">
-                                <Label className="text-xs font-semibold text-zinc-600">Araç Kabul Hasar Fotoğrafları</Label>
-                                <div 
-                                    onDragEnter={handleDrag}
-                                    onDragOver={handleDrag}
-                                    onDragLeave={handleDrag}
-                                    onDrop={handleDrop}
-                                    className={cn(
-                                        "border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all",
-                                        dragActive ? "border-blue-500 bg-blue-50/50" : "border-zinc-200 hover:border-zinc-300 bg-zinc-50/50"
-                                    )}
-                                    onClick={() => document.getElementById("service-files-input")?.click()}
-                                >
-                                    <input 
-                                        id="service-files-input"
-                                        type="file" 
-                                        multiple 
-                                        accept="image/*"
-                                        className="hidden" 
-                                        onChange={handleFileChange}
-                                    />
-                                    <UploadCloud className="w-8 h-8 text-zinc-400" />
-                                    <p className="text-sm font-medium text-zinc-700">Fotoğraf sürükleyin veya göz atın</p>
-                                    <p className="text-xs text-zinc-500">PNG, JPG veya JPEG (Maksimum 5MB)</p>
-                                </div>
-
-                                {selectedFiles.length > 0 && (
-                                    <div className="space-y-1.5 mt-2">
-                                        {selectedFiles.map((file, i) => (
-                                            <div key={i} className="flex items-center justify-between text-xs p-2 bg-zinc-50 border border-zinc-200 rounded-md">
-                                                <span className="font-medium text-zinc-700 truncate max-w-[240px]">{file.name} ({(file.size / 1024).toFixed(1)} KB)</span>
-                                                <button 
-                                                    type="button" 
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        removeFile(i)
-                                                    }}
-                                                    className="text-red-500 hover:text-red-700 font-semibold"
-                                                >
-                                                    Kaldır
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
                     </div>
 
                     {/* Footer: Sabit (Sticky) */}
