@@ -480,10 +480,10 @@ export default function ServiceCockpitClient({
                     <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-400">İş Emri / Servis Kodu</span>
                     <h2 className="text-xl font-black tracking-wide leading-none">{service.service_code}</h2>
                     <div className="pt-2 flex items-center gap-1.5">
-                        <Badge className="bg-emerald-600 hover:bg-emerald-600 text-[10px]">{service.service_type.toUpperCase()}</Badge>
+                        <Badge className="bg-emerald-600 hover:bg-emerald-600 text-[10px]">{(service.service_type || 'bakim').toUpperCase()}</Badge>
                         <Badge className={cn("text-[10px]", 
                             service.priority === "yuksek" || service.priority === "yüksek" ? "bg-red-600" : "bg-zinc-700"
-                        )}>{service.priority.toUpperCase()}</Badge>
+                        )}>{(service.priority || 'normal').toUpperCase()}</Badge>
                     </div>
                 </div>
 
