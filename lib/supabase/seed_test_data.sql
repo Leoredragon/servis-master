@@ -225,7 +225,7 @@ BEGIN
     ) VALUES (
         srv1_id, 'SRV-2026-001', cust_esen_id, veh_sprinter_id, 'tamir', 'normal', '2026-04-03 09:00:00+03', '2026-04-03 17:00:00+03', 'tamamlandı',
         'Fren balataları aşınmış, disklerde çizik yok. Ön fren balatası değiştirildi.', 'Fren yaparken gıcırtı sesi geliyor, fren mesafesi uzadı.',
-        'Ön fren balatası bitmiş seviyede.', 'Ön balatalar yenilendi.', 2800, 420, 2380, '6 Ay', target_user_id, 83500, '3/4', 'Sağ arka çamurluk çizik'
+        'Ön fren balatası bitmiş seviyede.', 'Ön balatalar yenilendi.', 2800, 420, 2380, true, target_user_id, 83500, '3/4', 'Sağ arka çamurluk çizik'
     );
     INSERT INTO service_items (service_id, stock_id, item_type, description, quantity, unit_price, vat_rate, total_price)
     VALUES (srv1_id, stock_balata_id, 'parca', 'Ön Fren Balatası (Bosch)', 1, 1800, 20, 2160);
@@ -251,7 +251,7 @@ BEGIN
     ) VALUES (
         srv2_id, 'SRV-2026-002', cust_ahmet_id, veh_golf_id, 'bakim', 'normal', '2026-04-10 08:30:00+03', '2026-04-10 14:00:00+03', 'tamamlandı',
         '120.000 KM periyodik bakımı yapıldı. Yağ, yağ filtresi, hava filtresi ve polen filtresi değiştirildi.', 'Periyodik bakım zamanı geldi.',
-        'Bakım zamanı aşılmış, yağ kirli.', 'Filtreler ve motor yağı değiştirildi, genel sıvı seviyeleri tamamlandı.', 2930, 0, 2930, '1 Yıl', target_user_id, 124000, 'Full', 'Yok'
+        'Bakım zamanı aşılmış, yağ kirli.', 'Filtreler ve motor yağı değiştirildi, genel sıvı seviyeleri tamamlandı.', 2930, 0, 2930, true, target_user_id, 124000, 'Full', 'Yok'
     );
     INSERT INTO service_items (service_id, stock_id, item_type, description, quantity, unit_price, vat_rate, total_price) VALUES
     (srv2_id, stock_yag_id, 'parca', 'Motor Yağı 5W-30 4L (Castrol)', 1, 1200, 20, 1440),
@@ -283,7 +283,7 @@ BEGIN
     ) VALUES (
         srv3_id, 'SRV-2026-003', cust_mustafa_id, veh_megane_id, 'tamir', 'normal', '2026-04-22 10:00:00+03', '2026-04-22 16:00:00+03', 'tamamlandı',
         'Buji takımı eskimiş, silecekler aşınmış. İkisi de yenisiyle değiştirildi.', 'Motor tekleme yapıyor, silecekler camı iyi silmiyor.',
-        'Ateşleme zayıflamış buji ömrü dolmuş.', 'Buji takımı ve silecek seti değiştirildi.', 1400, 0, 1400, '3 Ay', target_user_id, 156000, '1/2', 'Sol ön kapıda ufak göçük'
+        'Ateşleme zayıflamış buji ömrü dolmuş.', 'Buji takımı ve silecek seti değiştirildi.', 1400, 0, 1400, true, target_user_id, 156000, '1/2', 'Sol ön kapıda ufak göçük'
     );
     INSERT INTO service_items (service_id, stock_id, item_type, description, quantity, unit_price, vat_rate, total_price) VALUES
     (srv3_id, stock_buji_id, 'parca', 'Buji Seti 4lü (NGK)', 1, 650, 20, 780),
@@ -311,7 +311,7 @@ BEGIN
     ) VALUES (
         srv4_id, 'SRV-2026-004', cust_aras_id, veh_transit1_id, 'tamir', 'normal', '2026-05-05 08:30:00+03', '2026-05-05 18:00:00+03', 'tamamlandı',
         'Ön fren balatası ve ön fren disk seti yenisiyle değiştirildi. Kurumsal filo iskontosu uygulandı.', 'Fren yapınca titreme yapıyor ve zayıf tutuyor.',
-        'Diskler aşırı ısınmadan dolayı eğrilmiş ve balatalar bitmiş.', 'Fren diski takımı ve balatalar değiştirildi. Kaliper temizliği yapıldı.', 13200, 1320, 11880, '6 Ay', target_user_id, 145000, 'Full', 'Yok'
+        'Diskler aşırı ısınmadan dolayı eğrilmiş ve balatalar bitmiş.', 'Fren diski takımı ve balatalar değiştirildi. Kaliper temizliği yapıldı.', 13200, 1320, 11880, true, target_user_id, 145000, 'Full', 'Yok'
     );
     INSERT INTO service_items (service_id, stock_id, item_type, description, quantity, unit_price, vat_rate, total_price) VALUES
     (srv4_id, stock_balata_id, 'parca', 'Ön Fren Balatası (Bosch)', 2, 1800, 20, 4320),
@@ -341,7 +341,7 @@ BEGIN
     ) VALUES (
         srv5_id, 'SRV-2026-005', cust_ayse_id, veh_i20_id, 'bakim', 'düşük', '2026-05-18 09:30:00+03', '2026-05-18 15:30:00+03', 'tamamlandı',
         'Motor yağı, yağ filtresi değiştirildi. Soğutma suyuna kırmızı antifriz eklendi. Genel kontroller yapıldı.', 'Yıllık bakım yapılacak, antifriz kontrol edilecek.',
-        'Motor yağı kararmış, soğutma suyu antifriz oranı düşük.', 'Periyodik bakım yapıldı, antifriz 3L Shell eklenerek yenilendi.', 2200, 0, 2200, '1 Yıl', target_user_id, 42000, '1/4', 'Arka tamponda hafif sürtme izi'
+        'Motor yağı kararmış, soğutma suyu antifriz oranı düşük.', 'Periyodik bakım yapıldı, antifriz 3L Shell eklenerek yenilendi.', 2200, 0, 2200, true, target_user_id, 42000, '1/4', 'Arka tamponda hafif sürtme izi'
     );
     INSERT INTO service_items (service_id, stock_id, item_type, description, quantity, unit_price, vat_rate, total_price) VALUES
     (srv5_id, stock_yag_id, 'parca', 'Motor Yağı 5W-30 (Castrol)', 1, 1200, 20, 1440),
@@ -376,7 +376,7 @@ BEGIN
     ) VALUES (
         srv6_id, 'SRV-2026-006', cust_global_id, veh_doblo_id, 'bakim', 'normal', '2026-06-02 08:30:00+03', '2026-06-02 17:00:00+03', 'tamamlandı',
         'Mazot filtresi, yağ filtresi ve motor yağı değiştirildi. Filtre grubu yenilendi.', 'Geç çalışma sorunu var, bakım zamanı geldi.',
-        'Mazot filtresi tıkanmaya başlamış.', 'Filtreler ve yağ değiştirildi. Enjektör temizleyici katkı eklendi.', 2800, 420, 2380, '6 Ay', target_user_id, 210000, '1/2', 'Kaporta ezikler mevcut (sol arka kapı)'
+        'Mazot filtresi tıkanmaya başlamış.', 'Filtreler ve yağ değiştirildi. Enjektör temizleyici katkı eklendi.', 2800, 420, 2380, true, target_user_id, 210000, '1/2', 'Kaporta ezikler mevcut (sol arka kapı)'
     );
     INSERT INTO service_items (service_id, stock_id, item_type, description, quantity, unit_price, vat_rate, total_price) VALUES
     (srv6_id, stock_yag_id, 'parca', 'Motor Yağı 5W-30 (Castrol)', 1, 1200, 20, 1440),
@@ -403,7 +403,7 @@ BEGIN
     ) VALUES (
         srv7_id, 'SRV-2026-007', cust_aras_id, veh_transit2_id, 'tamir', 'acil', '2026-06-08 09:00:00+03', '2026-06-08 18:00:00+03', 'tamamlandı',
         'Alternatör şarj dinamosu sökülerek iç konvertör ve kömür grubu yenilendi.', 'Akü lambası yanıyor, araç çalışmıyor, şarj etmiyor.',
-        'Alternatör kömürleri bitmiş ve şarj dinamosu arızalı.', 'Alternatör revizyonu yapıldı ve şarj gerilimi 14.2V olarak ölçüldü.', 5000, 500, 4500, '3 Ay', target_user_id, 188000, '1/4', 'Yok'
+        'Alternatör kömürleri bitmiş ve şarj dinamosu arızalı.', 'Alternatör revizyonu yapıldı ve şarj gerilimi 14.2V olarak ölçüldü.', 5000, 500, 4500, true, target_user_id, 188000, '1/4', 'Yok'
     );
     INSERT INTO service_items (service_id, stock_id, item_type, description, quantity, unit_price, vat_rate, total_price) VALUES
     (srv7_id, NULL, 'parca', 'Alternatör Kömür ve Diyot Grubu', 1, 3500, 20, 4200),
