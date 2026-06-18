@@ -65,15 +65,15 @@ export default function ServicesTable({ services }: ServicesTableProps) {
     // Filter services based on search query
     const filteredServices = services.filter((service) => {
         const query = searchQuery.toLowerCase()
-        const code = service.service_code.toLowerCase()
+        const code = (service.service_code || "").toLowerCase()
         const customerName = service.customers
             ? `${service.customers.first_name} ${service.customers.last_name || ""}`.toLowerCase()
             : ""
         const vehicleInfo = service.vehicles
             ? `${service.vehicles.brand} ${service.vehicles.model} ${service.vehicles.plate}`.toLowerCase()
             : ""
-        const status = service.status.toLowerCase()
-        const type = service.service_type.toLowerCase()
+        const status = (service.status || "").toLowerCase()
+        const type = (service.service_type || "").toLowerCase()
 
         return (
             code.includes(query) ||
@@ -130,7 +130,8 @@ export default function ServicesTable({ services }: ServicesTableProps) {
     }
 
     // Status map
-    const getStatusText = (status: string) => {
+    const getStatusText = (status: string | null | undefined) => {
+        if (!status) return "-"
         switch (status.toLowerCase()) {
             case "araç kabul":
                 return "Araç Kabul"
@@ -148,7 +149,8 @@ export default function ServicesTable({ services }: ServicesTableProps) {
     }
 
     // Service type map
-    const getTypeText = (type: string) => {
+    const getTypeText = (type: string | null | undefined) => {
+        if (!type) return "-"
         switch (type.toLowerCase()) {
             case "bakim":
             case "bakım":
@@ -202,6 +204,7 @@ export default function ServicesTable({ services }: ServicesTableProps) {
                                     (sum, item) => sum + (item.unit_price * item.quantity),
                                     0
                                 ) || 0
+                                const statusLower = (service.status || "").toLowerCase()
 
                                 return (
                                     <TableRow key={service.id} className="hover:bg-zinc-50/50 transition-colors">
@@ -226,9 +229,9 @@ export default function ServicesTable({ services }: ServicesTableProps) {
                                             <Badge
                                                 variant="secondary"
                                                 className={
-                                                    service.status.toLowerCase() === "tamamlandi" || service.status.toLowerCase() === "tamamlandı"
+                                                    statusLower === "tamamlandi" || statusLower === "tamamlandı"
                                                         ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-50 text-[10px] px-1.5 py-0.5"
-                                                        : service.status.toLowerCase() === "araç kabul"
+                                                        : statusLower === "araç kabul"
                                                         ? "bg-blue-50 text-blue-700 hover:bg-blue-50 text-[10px] px-1.5 py-0.5"
                                                         : "bg-amber-50 text-amber-700 hover:bg-amber-50 text-[10px] px-1.5 py-0.5"
                                                 }
