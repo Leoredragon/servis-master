@@ -228,9 +228,9 @@ BEGIN
         'Ön fren balatası bitmiş seviyede.', 'Ön balatalar yenilendi.', 2800, 420, 2380, true, target_user_id, 83500, '3/4', 'Sağ arka çamurluk çizik'
     );
     INSERT INTO service_items (service_id, stock_id, item_type, description, quantity, unit_price, vat_rate, total_price)
-    VALUES (srv1_id, stock_balata_id, 'parca', 'Ön Fren Balatası (Bosch)', 1, 1800, 20, 2160);
+    VALUES (srv1_id, stock_balata_id, 'parça', 'Ön Fren Balatası (Bosch)', 1, 1800, 20, 2160);
     INSERT INTO service_items (service_id, stock_id, item_type, description, quantity, unit_price, vat_rate, total_price)
-    VALUES (srv1_id, NULL, 'iscilik', 'Fren Balatası Montaj İşçiliği', 1, 1000, 20, 1200);
+    VALUES (srv1_id, NULL, 'işçilik', 'Fren Balatası Montaj İşçiliği', 1, 1000, 20, 1200);
 
     -- Fatura ve Cari Hareketi (Banka Havalesi ile Ödendi)
     INSERT INTO invoices (
@@ -254,11 +254,11 @@ BEGIN
         'Bakım zamanı aşılmış, yağ kirli.', 'Filtreler ve motor yağı değiştirildi, genel sıvı seviyeleri tamamlandı.', 2930, 0, 2930, true, target_user_id, 124000, 'Full', 'Yok'
     );
     INSERT INTO service_items (service_id, stock_id, item_type, description, quantity, unit_price, vat_rate, total_price) VALUES
-    (srv2_id, stock_yag_id, 'parca', 'Motor Yağı 5W-30 4L (Castrol)', 1, 1200, 20, 1440),
-    (srv2_id, stock_yag_filtresi_id, 'parca', 'Yağ Filtresi (Mann)', 1, 250, 20, 300),
-    (srv2_id, stock_hava_filtresi_id, 'parca', 'Hava Filtresi (Fil Filter)', 1, 300, 20, 360),
-    (srv2_id, stock_polen_id, 'parca', 'Polen Filtresi Karbonlu (Mann)', 1, 380, 20, 456),
-    (srv2_id, NULL, 'iscilik', 'Periyodik Bakım İşçiliği', 1, 800, 20, 960);
+    (srv2_id, stock_yag_id, 'parça', 'Motor Yağı 5W-30 4L (Castrol)', 1, 1200, 20, 1440),
+    (srv2_id, stock_yag_filtresi_id, 'parça', 'Yağ Filtresi (Mann)', 1, 250, 20, 300),
+    (srv2_id, stock_hava_filtresi_id, 'parça', 'Hava Filtresi (Fil Filter)', 1, 300, 20, 360),
+    (srv2_id, stock_polen_id, 'parça', 'Polen Filtresi Karbonlu (Mann)', 1, 380, 20, 456),
+    (srv2_id, NULL, 'işçilik', 'Periyodik Bakım İşçiliği', 1, 800, 20, 960);
 
     -- Fatura ve Cari Hareketi (Kredi Kartı ile Ödendi)
     INSERT INTO invoices (
@@ -286,9 +286,9 @@ BEGIN
         'Ateşleme zayıflamış buji ömrü dolmuş.', 'Buji takımı ve silecek seti değiştirildi.', 1400, 0, 1400, true, target_user_id, 156000, '1/2', 'Sol ön kapıda ufak göçük'
     );
     INSERT INTO service_items (service_id, stock_id, item_type, description, quantity, unit_price, vat_rate, total_price) VALUES
-    (srv3_id, stock_buji_id, 'parca', 'Buji Seti 4lü (NGK)', 1, 650, 20, 780),
-    (srv3_id, stock_silecek_id, 'parca', 'Silecek Takımı (Valeo)', 1, 350, 20, 420),
-    (srv3_id, NULL, 'iscilik', 'Montaj İşçiliği', 1, 400, 20, 480);
+    (srv3_id, stock_buji_id, 'parça', 'Buji Seti 4lü (NGK)', 1, 650, 20, 780),
+    (srv3_id, stock_silecek_id, 'parça', 'Silecek Takımı (Valeo)', 1, 350, 20, 420),
+    (srv3_id, NULL, 'işçilik', 'Montaj İşçiliği', 1, 400, 20, 480);
 
     -- Fatura ve Cari Hareketi (Nakit ile Ödendi)
     INSERT INTO invoices (
@@ -314,9 +314,9 @@ BEGIN
         'Diskler aşırı ısınmadan dolayı eğrilmiş ve balatalar bitmiş.', 'Fren diski takımı ve balatalar değiştirildi. Kaliper temizliği yapıldı.', 13200, 1320, 11880, true, target_user_id, 145000, 'Full', 'Yok'
     );
     INSERT INTO service_items (service_id, stock_id, item_type, description, quantity, unit_price, vat_rate, total_price) VALUES
-    (srv4_id, stock_balata_id, 'parca', 'Ön Fren Balatası (Bosch)', 2, 1800, 20, 4320),
-    (srv4_id, stock_disk_id, 'parca', 'Ön Fren Diski Set (Brembo)', 2, 3800, 20, 9120),
-    (srv4_id, NULL, 'iscilik', 'Fren Disk ve Balata İşçiliği', 1, 2000, 20, 2400);
+    (srv4_id, stock_balata_id, 'parça', 'Ön Fren Balatası (Bosch)', 2, 1800, 20, 4320),
+    (srv4_id, stock_disk_id, 'parça', 'Ön Fren Diski Set (Brembo)', 2, 3800, 20, 9120),
+    (srv4_id, NULL, 'işçilik', 'Fren Disk ve Balata İşçiliği', 1, 2000, 20, 2400);
 
     -- Fatura ve Cari Hareketi (Havale ile Ödendi)
     INSERT INTO invoices (
@@ -344,9 +344,9 @@ BEGIN
         'Motor yağı kararmış, soğutma suyu antifriz oranı düşük.', 'Periyodik bakım yapıldı, antifriz 3L Shell eklenerek yenilendi.', 2200, 0, 2200, true, target_user_id, 42000, '1/4', 'Arka tamponda hafif sürtme izi'
     );
     INSERT INTO service_items (service_id, stock_id, item_type, description, quantity, unit_price, vat_rate, total_price) VALUES
-    (srv5_id, stock_yag_id, 'parca', 'Motor Yağı 5W-30 (Castrol)', 1, 1200, 20, 1440),
-    (srv5_id, stock_antifriz_id, 'parca', 'Antifriz Kırmızı 3L (Shell)', 1, 400, 20, 480),
-    (srv5_id, NULL, 'iscilik', 'Bakım ve Antifriz İşçiliği', 1, 600, 20, 720);
+    (srv5_id, stock_yag_id, 'parça', 'Motor Yağı 5W-30 (Castrol)', 1, 1200, 20, 1440),
+    (srv5_id, stock_antifriz_id, 'parça', 'Antifriz Kırmızı 3L (Shell)', 1, 400, 20, 480),
+    (srv5_id, NULL, 'işçilik', 'Bakım ve Antifriz İşçiliği', 1, 600, 20, 720);
 
     -- Fatura ve Cari Hareketi (Kredi Kartı ile Ödendi)
     INSERT INTO invoices (
@@ -379,10 +379,10 @@ BEGIN
         'Mazot filtresi tıkanmaya başlamış.', 'Filtreler ve yağ değiştirildi. Enjektör temizleyici katkı eklendi.', 2800, 420, 2380, true, target_user_id, 210000, '1/2', 'Kaporta ezikler mevcut (sol arka kapı)'
     );
     INSERT INTO service_items (service_id, stock_id, item_type, description, quantity, unit_price, vat_rate, total_price) VALUES
-    (srv6_id, stock_yag_id, 'parca', 'Motor Yağı 5W-30 (Castrol)', 1, 1200, 20, 1440),
-    (srv6_id, stock_yag_filtresi_id, 'parca', 'Yağ Filtresi (HU 7002)', 1, 250, 20, 300),
-    (srv6_id, stock_mazot_filtresi_id, 'parca', 'Mazot Filtresi (Bosch)', 1, 550, 20, 660),
-    (srv6_id, NULL, 'iscilik', 'Filtre ve Periyodik Bakım İşçiliği', 1, 800, 20, 960);
+    (srv6_id, stock_yag_id, 'parça', 'Motor Yağı 5W-30 (Castrol)', 1, 1200, 20, 1440),
+    (srv6_id, stock_yag_filtresi_id, 'parça', 'Yağ Filtresi (HU 7002)', 1, 250, 20, 300),
+    (srv6_id, stock_mazot_filtresi_id, 'parça', 'Mazot Filtresi (Bosch)', 1, 550, 20, 660),
+    (srv6_id, NULL, 'işçilik', 'Filtre ve Periyodik Bakım İşçiliği', 1, 800, 20, 960);
 
     -- Fatura ve Cari Hareketi (Havale ile Ödendi)
     INSERT INTO invoices (
@@ -406,8 +406,8 @@ BEGIN
         'Alternatör kömürleri bitmiş ve şarj dinamosu arızalı.', 'Alternatör revizyonu yapıldı ve şarj gerilimi 14.2V olarak ölçüldü.', 5000, 500, 4500, true, target_user_id, 188000, '1/4', 'Yok'
     );
     INSERT INTO service_items (service_id, stock_id, item_type, description, quantity, unit_price, vat_rate, total_price) VALUES
-    (srv7_id, NULL, 'parca', 'Alternatör Kömür ve Diyot Grubu', 1, 3500, 20, 4200),
-    (srv7_id, NULL, 'iscilik', 'Alternatör Revizyon ve Sök-Tak İşçiliği', 1, 1500, 20, 1800);
+    (srv7_id, NULL, 'parça', 'Alternatör Kömür ve Diyot Grubu', 1, 3500, 20, 4200),
+    (srv7_id, NULL, 'işçilik', 'Alternatör Revizyon ve Sök-Tak İşçiliği', 1, 1500, 20, 1800);
 
     -- Fatura ve Cari Hareketi (AÇIK HESAP - Tahsil Edilmedi, Cari Borç Yansıdı)
     INSERT INTO invoices (
