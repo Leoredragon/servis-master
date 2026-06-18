@@ -55,3 +55,36 @@ export async function logout() {
     revalidatePath('/', 'layout')
     redirect('/login')
 }
+
+export async function demoLoginAction() {
+    const supabase = await createClient()
+
+    const DEMO_EMAIL = 'demo@servismaster.app'
+    const DEMO_PASSWORD = 'Demo123456!'
+
+    // Önce kayıt olmayı dene — zaten varsa hatayı yoksay
+    try {
+        await supabase.auth.signUp({
+            email: DEMO_EMAIL,
+            password: DEMO_PASSWORD,
+            options: {
+                data: { full_name: 'Demo Kullanıcı' }
+            }
+        })
+    } catch {
+        // Zaten kayıtlı ise sessizce geç
+    }
+
+    // Şimdi giriş yap
+    const { error } = await supabase.auth.signInWithPassword({
+        email: DEMO_EMAIL,
+        password: DEMO_PASSWORD,
+    })
+
+    if (error) {
+        return redirect('/login?message=Demo hesabı şu an kullanılamıyor. Lütfen Supabase email onayını kapatın.')
+    }
+
+    revalidatePath('/', 'layout')
+    redirect('/dashboard')
+}

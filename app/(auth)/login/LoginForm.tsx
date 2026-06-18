@@ -7,9 +7,9 @@ import { useFormStatus } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { Eye, EyeOff, Loader2, Zap } from "lucide-react"
 import { toast } from "sonner"
-import { login } from "../actions"
+import { login, demoLoginAction } from "../actions"
 
 function SubmitButton() {
     const { pending } = useFormStatus()
@@ -35,6 +35,7 @@ function SubmitButton() {
 export default function LoginForm() {
     const searchParams = useSearchParams()
     const [showPassword, setShowPassword] = useState(false)
+    const [isDemoLoading, setIsDemoLoading] = useState(false)
     const errorMsg = searchParams.get("message")
 
     useEffect(() => {
@@ -94,6 +95,40 @@ export default function LoginForm() {
                 </div>
 
                 <SubmitButton />
+
+                {/* Ayırıcı */}
+                <div className="relative flex items-center gap-3 py-1">
+                    <div className="flex-1 h-px bg-zinc-200" />
+                    <span className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest">veya</span>
+                    <div className="flex-1 h-px bg-zinc-200" />
+                </div>
+
+                {/* Demo Giriş Butonu */}
+                <button
+                    type="button"
+                    disabled={isDemoLoading}
+                    onClick={async () => {
+                        setIsDemoLoading(true)
+                        try {
+                            await demoLoginAction()
+                        } catch {
+                            setIsDemoLoading(false)
+                        }
+                    }}
+                    className="w-full h-11 rounded-lg border-2 border-dashed border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-sm flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                    {isDemoLoading ? (
+                        <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Demo hesabı açılıyor...
+                        </>
+                    ) : (
+                        <>
+                            <Zap className="w-4 h-4 fill-amber-500 text-amber-500" />
+                            Test Hesabıyla Hızlı Giriş (Demo)
+                        </>
+                    )}
+                </button>
 
                 <div className="text-center text-xs text-zinc-500 pt-2">
                     Hesabınız yok mu?{" "}
