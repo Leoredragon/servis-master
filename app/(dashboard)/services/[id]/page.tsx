@@ -29,12 +29,6 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
         )
     }
 
-    // Arıza kodlarını çekiyoruz
-    const { data: faultCodes } = await supabase
-        .from('fault_codes')
-        .select('*')
-        .order('category', { ascending: true })
-
     // Aktif stok kartlarını çekiyoruz
     const { data: stockCards } = await supabase
         .from('stock_cards')
@@ -84,7 +78,6 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
                 {/* 3-Column SPA Cockpit */}
                 <ServiceCockpitClient 
                     serviceInitial={service as any} 
-                    faultCodes={(faultCodes || []) as any} 
                     stockCards={(stockCards || []) as any} 
                 />
             </div>

@@ -33,13 +33,6 @@ interface StockCard {
     reserved_stock: number
 }
 
-interface FaultCode {
-    id: string
-    category: string
-    code: string
-    solution: string
-}
-
 interface ServiceItem {
     id: string
     stock_id: string | null
@@ -86,13 +79,11 @@ interface ServiceRecord {
 
 interface ServiceCockpitClientProps {
     serviceInitial: ServiceRecord
-    faultCodes: FaultCode[]
     stockCards: StockCard[]
 }
 
 export default function ServiceCockpitClient({
     serviceInitial,
-    faultCodes,
     stockCards
 }: ServiceCockpitClientProps) {
     const supabase = createClient()
@@ -126,9 +117,6 @@ export default function ServiceCockpitClient({
     const [mediaFiles, setMediaFiles] = useState<any[]>([])
     const [isUploading, setIsUploading] = useState(false)
     const [activeLightbox, setActiveLightbox] = useState<{ url: string; type: string } | null>(null)
-
-    // Fault code select dropdown selection
-    const [selectedFaultCodeId, setSelectedFaultCodeId] = useState("")
 
     // Status styling maps
     const statusLabels: Record<string, string> = {
@@ -221,23 +209,7 @@ export default function ServiceCockpitClient({
         }
     }
 
-    // Fault code selection auto-fill
-    const handleFaultCodeChange = (codeId: string) => {
-        setSelectedFaultCodeId(codeId)
-        const code = faultCodes.find(f => f.id === codeId)
-        if (code) {
-            setComplaint(prev => (prev ? prev + "\n" : "") + `Arıza Kodu: ${code.code} (${code.category})`)
-            setSolution(prev => (prev ? prev + "\n" : "") + code.solution)
-            toast.success("Arıza kodu çözümü eklendi.")
-            
-            // Trigger automatic save to database
-            saveTextContent(
-                (complaint ? complaint + "\n" : "") + `Arıza Kodu: ${code.code} (${code.category})`, 
-                (solution ? solution + "\n" : "") + code.solution, 
-                notes
-            )
-        }
-    }
+
 
     // Auto-save texts (complaint, solution, description) on blur
     async function saveTextContent(currentComplaint: string, currentSolution: string, currentNotes: string) {
@@ -325,13 +297,19 @@ export default function ServiceCockpitClient({
         let stockId: string | null = null
 
         if (newLineType === 'parça') {
-            const selectedStock = stockCards.find(s => s.id === selectedStockId)
-            if (!selectedStock) {
-                toast.error("Lütfen listeden bir yedek parça seçin.")
+            if (selectedStockId) {
+                const selectedStock = stockCards.find(s => s.id === selectedStockId)
+                if (selectedStock) {
+                    stockId = selectedStock.id
+                    if (!desc.trim()) {
+                        desc = selectedStock.name
+                    }
+                }
+            }
+            if (!desc.trim()) {
+                toast.error("Lütfen parça açıklaması girin veya listeden parça seçin.")
                 return
             }
-            desc = selectedStock.name
-            stockId = selectedStock.id
         } else {
             if (!desc.trim()) {
                 toast.error("İşçilik açıklaması girilmelidir.")
@@ -645,7 +623,7 @@ export default function ServiceCockpitClient({
             {/* ORTA KOLON: Ana Operasyon, Şikayet/Çözüm ve Excel Kalemler Tablosu */}
             <div className="lg:col-span-6 h-full overflow-y-auto custom-scrollbar space-y-6 px-2 pb-4 border-r border-zinc-200">
                 
-                {/* 1. Arıza Şikayeti & Hata Kodu Entegrasyonu */}
+                {/* 1. Arıza Şikayeti & Detaylar */}
                 <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm space-y-4">
                     <div className="flex justify-between items-center border-b pb-2">
                         <div className="flex items-center gap-2">
@@ -660,45 +638,27 @@ export default function ServiceCockpitClient({
                     </div>
 
                     <div className="space-y-4">
-                        {/* Hata Kodu Combobox */}
-                        <div className="space-y-1.5">
-                            <Label className="text-xs font-semibold text-zinc-600">Arıza Ağacı (Fault Codes) Kısayolu</Label>
-                            <Select value={selectedFaultCodeId} onValueChange={handleFaultCodeChange}>
-                                <SelectTrigger className="border-zinc-200 bg-white text-xs h-9">
-                                    <SelectValue placeholder="Kayıtlı bir arıza kodu seçin..." />
-                                </SelectTrigger>
-                                <SelectContent className="bg-white">
-                                    {faultCodes.map(code => (
-                                        <SelectItem key={code.id} value={code.id} className="text-xs">
-                                            [{code.category}] {code.code} - {code.solution.slice(0, 50)}...
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <p className="text-[9px] text-zinc-400">Hata kodu seçimi şikayet ve çözüm alanlarını otomatik olarak doldurur.</p>
-                        </div>
-
                         {/* Müşteri Şikayeti */}
-                        <div className="space-y-1">
-                            <Label className="text-xs font-semibold text-zinc-600">Müşteri Şikayeti / Talep</Label>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold text-zinc-650">Müşteri Şikayeti / Talebi</Label>
                             <Textarea
                                 value={complaint}
                                 onChange={(e) => setComplaint(e.target.value)}
                                 onBlur={() => saveTextContent(complaint, solution, notes)}
-                                placeholder="Müşterinin bildirdiği şikayet veya talebi yazın..."
-                                className="border-zinc-200 text-xs bg-white min-h-[60px]"
+                                placeholder="Müşterinin bildirdiği şikayet veya talebi detaylı olarak yazın..."
+                                className="border-zinc-200 text-xs bg-white min-h-[120px] leading-relaxed"
                             />
                         </div>
 
                         {/* Çözüm Açıklaması */}
-                        <div className="space-y-1">
-                            <Label className="text-xs font-semibold text-zinc-600">Yapılan Çözüm / İşlem Açıklaması</Label>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold text-zinc-650">Uygulanan Çözüm / İşlem</Label>
                             <Textarea
                                 value={solution}
                                 onChange={(e) => setSolution(e.target.value)}
                                 onBlur={() => saveTextContent(complaint, solution, notes)}
-                                placeholder="Uygulanan teknik onarımı ve çözümü yazın..."
-                                className="border-zinc-200 text-xs bg-white min-h-[65px]"
+                                placeholder="Uygulanan teknik onarımı ve çözümü detaylı olarak yazın..."
+                                className="border-zinc-200 text-xs bg-white min-h-[140px] leading-relaxed"
                             />
                         </div>
                     </div>
@@ -828,17 +788,25 @@ export default function ServiceCockpitClient({
                                                         onChange={(e) => setPartSearch(e.target.value)}
                                                         className="h-7 text-[10px] border-zinc-200 bg-white"
                                                     />
-                                                    <Select value={selectedStockId} onValueChange={(val) => {
-                                                        setSelectedStockId(val)
-                                                        const card = stockCards.find(c => c.id === val)
-                                                        if (card) {
-                                                            setNewLinePrice(card.sale_price || 0)
+                                                    <Select value={selectedStockId || "no_stock"} onValueChange={(val) => {
+                                                        if (val === "no_stock") {
+                                                            setSelectedStockId("")
+                                                            setNewLinePrice(0)
+                                                            setNewLineDesc("")
+                                                        } else {
+                                                            setSelectedStockId(val)
+                                                            const card = stockCards.find(c => c.id === val)
+                                                            if (card) {
+                                                                setNewLinePrice(card.sale_price || 0)
+                                                                setNewLineDesc(card.name)
+                                                            }
                                                         }
                                                     }}>
                                                         <SelectTrigger className="h-8 text-[10px] border-zinc-200 bg-white">
-                                                            <SelectValue placeholder="Parça seçin..." />
+                                                            <SelectValue placeholder="Parça seçin (Opsiyonel)..." />
                                                         </SelectTrigger>
                                                         <SelectContent className="bg-white max-h-48 overflow-y-auto">
+                                                            <SelectItem value="no_stock" className="text-xs italic text-zinc-400">--- Stok Seçimi Yok (Serbest Giriş) ---</SelectItem>
                                                             {filteredStocks.map(card => (
                                                                 <SelectItem key={card.id} value={card.id} className="text-xs">
                                                                     {card.name} (Kod: {card.stock_code}) - {card.sale_price || 0} ₺
@@ -846,6 +814,12 @@ export default function ServiceCockpitClient({
                                                             ))}
                                                         </SelectContent>
                                                     </Select>
+                                                    <Input
+                                                        placeholder="Parça açıklamasını girin..."
+                                                        value={newLineDesc}
+                                                        onChange={(e) => setNewLineDesc(e.target.value)}
+                                                        className="h-8 text-xs border-zinc-200 bg-white mt-1.5"
+                                                    />
                                                 </div>
                                             ) : (
                                                 <Input
