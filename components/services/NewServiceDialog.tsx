@@ -209,21 +209,21 @@ export default function NewServiceDialog({ triggerVisible = true }: { triggerVis
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
                                 <Label className="text-xs">Adı <span className="text-red-500">*</span></Label>
-                                <Input value={quickFirstName} onChange={e => setQuickFirstName(e.target.value)} placeholder="örn. Ahmet" className="h-9 border-zinc-200" />
+                                <Input value={quickFirstName} onChange={e => setQuickFirstName(e.target.value)} placeholder="örn. Ahmet" className="h-9 border-zinc-200 w-full" />
                             </div>
                             <div className="space-y-1">
                                 <Label className="text-xs">Soyadı <span className="text-red-500">*</span></Label>
-                                <Input value={quickLastName} onChange={e => setQuickLastName(e.target.value)} placeholder="örn. Yılmaz" className="h-9 border-zinc-200" />
+                                <Input value={quickLastName} onChange={e => setQuickLastName(e.target.value)} placeholder="örn. Yılmaz" className="h-9 border-zinc-200 w-full" />
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
                                 <Label className="text-xs">Telefon <span className="text-red-500">*</span></Label>
-                                <Input value={quickPhone} onChange={e => setQuickPhone(e.target.value)} placeholder="örn. 0555..." className="h-9 border-zinc-200" />
+                                <Input value={quickPhone} onChange={e => setQuickPhone(e.target.value)} placeholder="örn. 0555..." className="h-9 border-zinc-200 w-full" />
                             </div>
                             <div className="space-y-1">
                                 <Label className="text-xs">E-posta</Label>
-                                <Input value={quickEmail} onChange={e => setQuickEmail(e.target.value)} placeholder="örn. ahmet@mail.com" type="email" className="h-9 border-zinc-200" />
+                                <Input value={quickEmail} onChange={e => setQuickEmail(e.target.value)} placeholder="örn. ahmet@mail.com" type="email" className="h-9 border-zinc-200 w-full" />
                             </div>
                         </div>
                         <div className="flex justify-end gap-2 pt-2">
@@ -242,11 +242,11 @@ export default function NewServiceDialog({ triggerVisible = true }: { triggerVis
                             <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Müşteri & Araç Seçimi</h4>
                             <div className="h-px bg-zinc-100 w-full" />
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Müşteri Arama (Combobox) */}
                                 <div className="space-y-2">
-                                    <div className="flex justify-between items-center">
-                                        <Label>Müşteri Seçimi <span className="text-red-500">*</span></Label>
+                                    <div className="flex items-center justify-between w-full">
+                                        <Label className="m-0">Müşteri Seçimi <span className="text-red-500">*</span></Label>
                                         {!showQuickAdd && (
                                             <button
                                                 type="button"
@@ -264,12 +264,14 @@ export default function NewServiceDialog({ triggerVisible = true }: { triggerVis
                                                 variant="outline"
                                                 role="combobox"
                                                 aria-expanded={comboboxOpen}
-                                                className="w-full justify-between font-normal text-left h-10 border-zinc-200 bg-white"
+                                                className="w-full flex items-center justify-between font-normal text-left h-10 border-zinc-200 bg-white px-3"
                                             >
-                                                {selectedCustomerId
-                                                    ? `${selectedCustomer?.first_name} ${selectedCustomer?.last_name || ""} (${selectedCustomer?.phone})`
-                                                    : "Müşteri arayın veya seçin..."}
-                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                <span className="truncate pr-2">
+                                                    {selectedCustomerId
+                                                        ? `${selectedCustomer?.first_name} ${selectedCustomer?.last_name || ""} (${selectedCustomer?.phone})`
+                                                        : "Müşteri arayın veya seçin..."}
+                                                </span>
+                                                <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-white border border-zinc-200 shadow-md rounded-md overflow-hidden z-50">
@@ -312,7 +314,7 @@ export default function NewServiceDialog({ triggerVisible = true }: { triggerVis
                                         onValueChange={setSelectedVehicleId}
                                         disabled={!selectedCustomerId}
                                     >
-                                        <SelectTrigger className="border-zinc-200 bg-white">
+                                        <SelectTrigger className="w-full border-zinc-200 bg-white truncate">
                                             <SelectValue placeholder={
                                                 selectedCustomerId 
                                                     ? filteredVehicles.length > 0 
