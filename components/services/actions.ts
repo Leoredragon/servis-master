@@ -189,3 +189,44 @@ export async function deleteServiceRecord(id: string) {
     revalidatePath('/services')
     return { success: true }
 }
+
+export async function updateServiceRecord(id: string, data: {
+    customerId: string
+    vehicleId: string
+    entryMileage: any
+    fuelLevel: string | null
+    damageAssessment: string | null
+}) {
+    try {
+        const supabase = await createClient()
+        let parsedMileage: number | null = null
+        if (data.entryMileage !== undefined && data.entryMileage !== null && data.entryMileage !== '') {
+            const num = parseInt(String(data.entryMileage), 10)
+            parsedMileage = isNaN(num) ? null : num
+        }
+
+        const { error } = await supabase
+            .from('service_records')
+            .update({
+                customer_id: data.customerId,
+                vehicle_id: data.vehicleId,
+                entry_mileage: parsedMileage,
+                fuel_level: data.fuelLevel || null,
+                damage_assessment: data.damageAssessment || null
+            })
+            .eq('id', id)
+
+        if (error) {
+            console.error('Servis kaydı güncellenemedi:', error.message)
+            return { success: false, error: error.message }
+        }
+
+        revalidatePath(`/services/${id}`)
+        revalidatePath('/services')
+        return { success: true }
+    } catch (error: any) {
+        console.error("Servis Güncelleme Hatası:", error)
+        return { success: false, error: error.message || 'Servis kaydı güncellenirken bilinmeyen bir hata oluştu.' }
+    }
+}
+

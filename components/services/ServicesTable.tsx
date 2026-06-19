@@ -29,6 +29,7 @@ import { MoreHorizontal, Search, Trash2, Edit, FileText } from "lucide-react"
 import { deleteServiceRecord } from "./actions"
 import { toast } from "sonner"
 import Link from "next/link"
+import EditServiceDialog from "./EditServiceDialog"
 
 interface ServiceRecord {
     id: string
@@ -61,6 +62,8 @@ export default function ServicesTable({ services }: ServicesTableProps) {
     const [searchQuery, setSearchQuery] = useState("")
     const [currentPage, setCurrentPage] = useState(1)
     const [pageSize, setPageSize] = useState(20)
+    const [editDialogOpen, setEditDialogOpen] = useState(false)
+    const [selectedService, setSelectedService] = useState<any | null>(null)
 
     // Filter services based on search query
     const filteredServices = services.filter((service) => {
@@ -111,8 +114,9 @@ export default function ServicesTable({ services }: ServicesTableProps) {
         }
     }
 
-    const handleEdit = () => {
-        toast.info("Servis kaydı düzenleme özelliği yakında eklenecektir.")
+    const handleEdit = (service: any) => {
+        setSelectedService(service)
+        setEditDialogOpen(true)
     }
 
     // Date formatter
@@ -258,7 +262,7 @@ export default function ServicesTable({ services }: ServicesTableProps) {
                                                             <span>Detaylar</span>
                                                         </Link>
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={handleEdit} className="text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 cursor-pointer">
+                                                    <DropdownMenuItem onClick={() => handleEdit(service)} className="text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 cursor-pointer">
                                                         <Edit className="w-3.5 h-3.5 text-zinc-500" />
                                                         <span>Düzenle</span>
                                                     </DropdownMenuItem>
@@ -331,6 +335,14 @@ export default function ServicesTable({ services }: ServicesTableProps) {
                 <div className="bg-white border border-zinc-200 border-dashed rounded-lg p-12 text-center">
                     <p className="text-zinc-400 text-sm">Arama kriterlerinize uygun aktif servis kaydı bulunamadı.</p>
                 </div>
+            )}
+
+            {selectedService && (
+                <EditServiceDialog
+                    service={selectedService}
+                    open={editDialogOpen}
+                    onOpenChange={setEditDialogOpen}
+                />
             )}
         </div>
     )
