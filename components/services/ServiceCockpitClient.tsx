@@ -140,6 +140,7 @@ export default function ServiceCockpitClient({
 
     // Calculations
     const totalAmount = service.service_items?.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0) || 0
+    const hasNotesChanges = complaint !== (service.customer_complaint || "") || solution !== (service.solution || "")
 
     // Fetch and list media files from storage folder `${service.id}/`
     async function loadMediaFiles() {
@@ -211,32 +212,58 @@ export default function ServiceCockpitClient({
 
 
 
-    // Auto-save texts (complaint, solution, description) on blur
-    async function saveTextContent(currentComplaint: string, currentSolution: string, currentNotes: string) {
+    // Save customer complaint and solution explicitly
+    async function handleSaveNotes() {
         setIsSavingTexts(true)
         try {
             const { error } = await supabase
                 .from('service_records')
                 .update({
-                    customer_complaint: currentComplaint || null,
-                    solution: currentSolution || null,
+                    customer_complaint: complaint || null,
+                    solution: solution || null
+                })
+                .eq('id', service.id)
+
+            if (error) {
+                toast.error("Notlar kaydedilemedi: " + error.message)
+            } else {
+                setService(prev => ({
+                    ...prev,
+                    customer_complaint: complaint,
+                    solution: solution
+                }))
+                toast.success("Servis notları başarıyla güncellendi")
+            }
+        } catch (err: any) {
+            console.error("Save notes error:", err)
+            toast.error("Bir hata oluştu.")
+        } finally {
+            setIsSavingTexts(false)
+        }
+    }
+
+    // Save general notebook content on blur
+    async function handleSaveGeneralNotes(currentNotes: string) {
+        setIsSavingTexts(true)
+        try {
+            const { error } = await supabase
+                .from('service_records')
+                .update({
                     description: currentNotes || null
                 })
                 .eq('id', service.id)
 
             if (error) {
-                toast.error("Kaydedilemedi: " + error.message)
+                toast.error("Not kaydedilemedi: " + error.message)
             } else {
-                // local update
                 setService(prev => ({
                     ...prev,
-                    customer_complaint: currentComplaint,
-                    solution: currentSolution,
                     description: currentNotes
                 }))
+                toast.success("Genel not defteri güncellendi")
             }
         } catch (err: any) {
-            console.error("Text save error:", err)
+            console.error("General notes save error:", err)
         } finally {
             setIsSavingTexts(false)
         }
@@ -644,7 +671,6 @@ export default function ServiceCockpitClient({
                             <Textarea
                                 value={complaint}
                                 onChange={(e) => setComplaint(e.target.value)}
-                                onBlur={() => saveTextContent(complaint, solution, notes)}
                                 placeholder="Müşterinin bildirdiği şikayet veya talebi detaylı olarak yazın..."
                                 className="border-zinc-200 text-xs bg-white min-h-[120px] leading-relaxed"
                             />
@@ -656,10 +682,29 @@ export default function ServiceCockpitClient({
                             <Textarea
                                 value={solution}
                                 onChange={(e) => setSolution(e.target.value)}
-                                onBlur={() => saveTextContent(complaint, solution, notes)}
                                 placeholder="Uygulanan teknik onarımı ve çözümü detaylı olarak yazın..."
                                 className="border-zinc-200 text-xs bg-white min-h-[140px] leading-relaxed"
                             />
+                        </div>
+
+                        {/* Explicit Save Button */}
+                        <div className="flex justify-end pt-1">
+                            <Button
+                                type="button"
+                                size="sm"
+                                onClick={handleSaveNotes}
+                                disabled={!hasNotesChanges || isSavingTexts}
+                                className="bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-xs px-3.5 h-8 flex items-center gap-1.5 rounded-lg shadow-sm transition-colors disabled:opacity-50"
+                            >
+                                {isSavingTexts ? (
+                                    <>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        Kaydediliyor...
+                                    </>
+                                ) : (
+                                    "Notları Kaydet"
+                                )}
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -999,7 +1044,7 @@ export default function ServiceCockpitClient({
                     <Textarea
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
-                        onBlur={() => saveTextContent(complaint, solution, notes)}
+                        onBlur={() => handleSaveGeneralNotes(notes)}
                         placeholder="Teknisyen notları veya dökümantasyon detayları..."
                         className="border-zinc-200 text-xs bg-white min-h-[80px] leading-relaxed"
                     />
