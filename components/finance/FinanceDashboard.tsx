@@ -29,8 +29,8 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Wallet, Landmark, ArrowUpRight, ArrowDownRight, Plus, History, MoreHorizontal } from "lucide-react"
-import { createCashRegister, createBankAccount, createTransaction } from "./actions"
+import { Wallet, Landmark, ArrowUpRight, ArrowDownRight, Plus, History, MoreHorizontal, Trash2, Edit } from "lucide-react"
+import { createCashRegister, createBankAccount, createTransaction, updateTransaction, deleteTransaction } from "./actions"
 import { toast } from "sonner"
 
 interface FinanceDashboardProps {
@@ -52,6 +52,10 @@ export default function FinanceDashboard({
     const [isKasaOpen, setIsKasaOpen] = useState(false)
     const [isBankaOpen, setIsBankaOpen] = useState(false)
     const [isTxOpen, setIsTxOpen] = useState(false)
+    
+    // Edit state
+    const [isEditTxOpen, setIsEditTxOpen] = useState(false)
+    const [editingTx, setEditingTx] = useState<any>(null)
 
     // Selection state for quick transaction
     const [txType, setTxType] = useState<"gelir" | "gider">("gelir")
@@ -95,6 +99,52 @@ export default function FinanceDashboard({
         } else {
             toast.error(res.message || "İşlem kaydedilemedi.")
         }
+    }
+
+    async function handleEditTx(formData: FormData) {
+        if (!editingTx) return
+
+        const data = {
+            description: formData.get("description") as string,
+            amount: parseFloat(formData.get("amount") as string),
+            transactionDate: formData.get("transactionDate") as string,
+            paymentMethod: txPaymentMethod,
+            cashRegisterId: txCashRegisterId,
+            bankAccountId: txBankAccountId,
+        }
+
+        const res = await updateTransaction(editingTx.id, data)
+        if (res.success) {
+            toast.success("İşlem başarıyla güncellendi!")
+            setIsEditTxOpen(false)
+            setEditingTx(null)
+        } else {
+            toast.error(res.message || "İşlem güncellenemedi.")
+        }
+    }
+
+    async function handleDeleteTx(id: string) {
+        if (!confirm("Bu finansal hareketi silmek istediğinize emin misiniz?")) return
+
+        const res = await deleteTransaction(id)
+        if (res.success) {
+            toast.success("İşlem başarıyla silindi!")
+        } else {
+            toast.error(res.message || "İşlem silinemedi.")
+        }
+    }
+
+    function openEditModal(tx: any) {
+        setEditingTx(tx)
+        setTxType(tx.type)
+        setTxPaymentMethod(tx.payment_method)
+        if (tx.payment_method === 'nakit' && tx.cash_register_id) {
+            setTxCashRegisterId(tx.cash_register_id)
+        }
+        if (['kredi_karti', 'havale'].includes(tx.payment_method) && tx.bank_account_id) {
+            setTxBankAccountId(tx.bank_account_id)
+        }
+        setIsEditTxOpen(true)
     }
 
     function handleRowClick(serviceId?: string) {
@@ -206,8 +256,9 @@ export default function FinanceDashboard({
                             <TableHead className="font-semibold text-zinc-500">Açıklama & Cari</TableHead>
                             <TableHead className="font-semibold text-zinc-500 w-[140px]">Yöntem</TableHead>
                             <TableHead className="font-semibold text-zinc-500 w-[160px]">Kasa / Banka</TableHead>
-                            <TableHead className="font-semibold text-zinc-500 w-[120px]">Tip</TableHead>
-                            <TableHead className="text-right font-semibold text-zinc-500 w-[160px]">Tutar</TableHead>
+                            <TableHead className="font-semibold text-zinc-500 w-[100px]">Tip</TableHead>
+                            <TableHead className="text-right font-semibold text-zinc-500 w-[140px]">Tutar</TableHead>
+                            <TableHead className="w-[60px]"></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -229,7 +280,12 @@ export default function FinanceDashboard({
                                 return (
                                     <TableRow 
                                         key={tx.id} 
-                                        onClick={() => handleRowClick(tx.service_id)}
+                                        onClick={(e) => {
+                                            // Menüye tıklandıysa row'un kendi onclick'ini engelle
+                                            const target = e.target as HTMLElement;
+                                            if (target.closest('.action-menu-container')) return;
+                                            handleRowClick(tx.service_id);
+                                        }}
                                         className={`transition-colors border-zinc-100 ${hasServiceLink ? "cursor-pointer hover:bg-zinc-50 group" : "hover:bg-transparent"}`}
                                     >
                                         <TableCell className="py-4">
@@ -284,12 +340,31 @@ export default function FinanceDashboard({
                                         <TableCell className={`py-4 text-right font-black text-base ${isGelir ? "text-emerald-600" : "text-rose-600"}`}>
                                             {isGelir ? "+" : "-"}{tx.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                                         </TableCell>
+                                        <TableCell className="py-4 text-right action-menu-container">
+                                            {!hasServiceLink && (
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-zinc-100">
+                                                            <MoreHorizontal className="h-4 w-4 text-zinc-500" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-40 bg-white">
+                                                        <DropdownMenuItem onClick={() => openEditModal(tx)} className="cursor-pointer gap-2">
+                                                            <Edit className="w-4 h-4 text-zinc-500" /> Düzenle
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleDeleteTx(tx.id)} className="cursor-pointer gap-2 text-rose-600 focus:text-rose-600 focus:bg-rose-50">
+                                                            <Trash2 className="w-4 h-4" /> Sil
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            )}
+                                        </TableCell>
                                     </TableRow>
                                 )
                             })
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center py-16 text-zinc-400 font-medium">
+                                <TableCell colSpan={7} className="text-center py-16 text-zinc-400 font-medium">
                                     <div className="flex flex-col items-center justify-center gap-2">
                                         <History className="w-8 h-8 text-zinc-200" />
                                         <span>Henüz finansal işlem hareketi bulunmuyor.</span>
@@ -350,7 +425,7 @@ export default function FinanceDashboard({
                 </DialogContent>
             </Dialog>
 
-            {/* 3. Genel Tahsilat & Ödeme Dialog */}
+            {/* 3. Genel Tahsilat & Ödeme Dialog (Ekleme) */}
             <Dialog open={isTxOpen} onOpenChange={setIsTxOpen}>
                 <DialogContent className="bg-white max-w-md">
                     <DialogHeader>
@@ -428,6 +503,89 @@ export default function FinanceDashboard({
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* 4. İşlem Düzenleme Dialog */}
+            <Dialog open={isEditTxOpen} onOpenChange={setIsEditTxOpen}>
+                <DialogContent className="bg-white max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>İşlemi Düzenle</DialogTitle>
+                        <DialogDescription>
+                            Manuel girilen işlemi düzenliyorsunuz. İşlem türü ({txType === "gelir" ? "Tahsilat" : "Ödeme Çıkışı"}) değiştirilemez.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {editingTx && (
+                        <form action={handleEditTx} className="space-y-4">
+                            <div className="space-y-2">
+                                <Label>Ödeme Yöntemi</Label>
+                                <Select value={txPaymentMethod} onValueChange={setTxPaymentMethod}>
+                                    <SelectTrigger className="border-zinc-200">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-white">
+                                        <SelectItem value="nakit">Nakit</SelectItem>
+                                        <SelectItem value="kredi_karti">Kredi Kartı</SelectItem>
+                                        <SelectItem value="havale">EFT / Havale</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {txPaymentMethod === "nakit" && (
+                                <div className="space-y-2">
+                                    <Label>İlgili Kasa</Label>
+                                    <Select value={txCashRegisterId} onValueChange={setTxCashRegisterId}>
+                                        <SelectTrigger className="border-zinc-200">
+                                            <SelectValue placeholder="Kasa seçin..." />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-white">
+                                            {initialCashRegisters.map(r => (
+                                                <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+
+                            {(txPaymentMethod === "kredi_karti" || txPaymentMethod === "havale") && (
+                                <div className="space-y-2">
+                                    <Label>İlgili Banka Hesabı</Label>
+                                    <Select value={txBankAccountId} onValueChange={setTxBankAccountId}>
+                                        <SelectTrigger className="border-zinc-200">
+                                            <SelectValue placeholder="Banka seçin..." />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-white">
+                                            {initialBankAccounts.map(b => (
+                                                <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <Label htmlFor="editTxAmount">İşlem Tutarı</Label>
+                                    <Input id="editTxAmount" name="amount" type="number" min="0.01" step="0.01" defaultValue={editingTx.amount} required />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label htmlFor="editTxDate">İşlem Tarihi</Label>
+                                    <Input id="editTxDate" name="transactionDate" type="datetime-local" defaultValue={new Date(editingTx.transaction_date).toISOString().slice(0, 16)} />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="editTxDesc">Açıklama</Label>
+                                <Textarea id="editTxDesc" name="description" defaultValue={editingTx.description} className="resize-none h-16" required />
+                            </div>
+
+                            <DialogFooter className="pt-4">
+                                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md transition-all">
+                                    Değişiklikleri Kaydet
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    )}
                 </DialogContent>
             </Dialog>
         </div>
