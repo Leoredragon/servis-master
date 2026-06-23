@@ -36,8 +36,7 @@ const groups = [
         title: "Finans",
         items: [
             { name: "Faturalar", path: "/invoices", icon: FileText },
-            { name: "Kasa", path: "/finance", icon: Wallet },
-            { name: "Banka", path: "/finance", icon: Landmark },
+            { name: "Finans", path: "/finance", icon: Landmark },
         ]
     },
     {

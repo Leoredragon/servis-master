@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -22,7 +23,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { Wallet, Landmark, ArrowUpRight, ArrowDownRight, Plus, History, Users, RefreshCw } from "lucide-react"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Wallet, Landmark, ArrowUpRight, ArrowDownRight, Plus, History, MoreHorizontal } from "lucide-react"
 import { createCashRegister, createBankAccount, createTransaction } from "./actions"
 import { toast } from "sonner"
 
@@ -39,19 +46,21 @@ export default function FinanceDashboard({
     initialCustomers,
     initialTransactions,
 }: FinanceDashboardProps) {
-    const [activeTab, setActiveTab] = useState<"safes" | "caris" | "transactions">("safes")
+    const router = useRouter()
 
     // Modals open state
     const [isKasaOpen, setIsKasaOpen] = useState(false)
     const [isBankaOpen, setIsBankaOpen] = useState(false)
     const [isTxOpen, setIsTxOpen] = useState(false)
 
-    // Selection state for quick customer transaction
-    const [selectedCustomerForTx, setSelectedCustomerForTx] = useState<any>(null)
+    // Selection state for quick transaction
     const [txType, setTxType] = useState<"gelir" | "gider">("gelir")
     const [txPaymentMethod, setTxPaymentMethod] = useState("nakit")
     const [txCashRegisterId, setTxCashRegisterId] = useState(initialCashRegisters[0]?.id || "")
     const [txBankAccountId, setTxBankAccountId] = useState(initialBankAccounts[0]?.id || "")
+
+    const totalCash = initialCashRegisters.reduce((sum, r) => sum + Number(r.balance || 0), 0)
+    const totalBank = initialBankAccounts.reduce((sum, b) => sum + Number(b.balance || 0), 0)
 
     async function handleAddKasa(formData: FormData) {
         const res = await createCashRegister(formData)
@@ -74,9 +83,6 @@ export default function FinanceDashboard({
     }
 
     async function handleAddTx(formData: FormData) {
-        if (selectedCustomerForTx) {
-            formData.append("customerId", selectedCustomerForTx.id)
-        }
         formData.append("type", txType)
         formData.append("paymentMethod", txPaymentMethod)
         formData.append("cashRegisterId", txCashRegisterId)
@@ -86,316 +92,216 @@ export default function FinanceDashboard({
         if (res.success) {
             toast.success("Finansal hareket başarıyla kaydedildi!")
             setIsTxOpen(false)
-            setSelectedCustomerForTx(null)
         } else {
             toast.error(res.message || "İşlem kaydedilemedi.")
         }
     }
 
+    function handleRowClick(serviceId?: string) {
+        if (serviceId) {
+            router.push(`/services/${serviceId}`)
+        }
+    }
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-8 max-w-7xl mx-auto pb-12">
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-zinc-900 font-sans">Kasa & Finans Yönetimi</h2>
-                    <p className="text-sm text-zinc-500 mt-1">
-                        Kasalarınızı, banka hesaplarınızı, müşteri cari bakiyelerini ve finansal hareketleri takip edin.
+                    <h2 className="text-3xl font-black tracking-tight text-zinc-900 font-sans">Kasa & Banka</h2>
+                    <p className="text-sm text-zinc-500 mt-1.5 font-medium">
+                        İşletmenize giren ve çıkan tüm nakit akışını takip edin.
                     </p>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant="outline"
-                        onClick={() => {
-                            setTxType("gelir")
-                            setSelectedCustomerForTx(null)
-                            setIsTxOpen(true)
-                        }}
-                        className="gap-2 border-zinc-200 text-zinc-700 font-medium hover:bg-zinc-50"
-                    >
-                        <ArrowUpRight className="w-4 h-4 text-emerald-600" />
-                        Tahsilat Gir
-                    </Button>
+                <div className="flex items-center gap-3">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="border-zinc-200 text-zinc-700 font-semibold hover:bg-zinc-50 shadow-sm">
+                                <Plus className="w-4 h-4 mr-2" />
+                                Yeni Hesap
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onClick={() => setIsKasaOpen(true)} className="gap-2 cursor-pointer">
+                                <Wallet className="w-4 h-4 text-zinc-500" />
+                                Yeni Kasa Ekle
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setIsBankaOpen(true)} className="gap-2 cursor-pointer">
+                                <Landmark className="w-4 h-4 text-zinc-500" />
+                                Yeni Banka Hesabı Ekle
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
                     <Button
                         variant="outline"
                         onClick={() => {
                             setTxType("gider")
-                            setSelectedCustomerForTx(null)
                             setIsTxOpen(true)
                         }}
-                        className="gap-2 border-zinc-200 text-zinc-700 font-medium hover:bg-zinc-50"
+                        className="gap-2 border-zinc-200 text-zinc-700 font-semibold hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 shadow-sm transition-colors"
                     >
-                        <ArrowDownRight className="w-4 h-4 text-rose-600" />
-                        Ödeme Gir
+                        <ArrowDownRight className="w-4 h-4 text-rose-500" />
+                        Ödeme Çıkışı
+                    </Button>
+
+                    <Button
+                        onClick={() => {
+                            setTxType("gelir")
+                            setIsTxOpen(true)
+                        }}
+                        className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md transition-all"
+                    >
+                        <ArrowUpRight className="w-4 h-4" />
+                        Tahsilat Gir
                     </Button>
                 </div>
             </div>
 
-            {/* Custom Tabs Navigation */}
-            <div className="border-b border-zinc-200 flex gap-6">
-                <button
-                    onClick={() => setActiveTab("safes")}
-                    className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${
-                        activeTab === "safes"
-                            ? "border-blue-600 text-blue-600"
-                            : "border-transparent text-zinc-500 hover:text-zinc-900"
-                    }`}
-                >
-                    <Wallet className="w-4 h-4" />
-                    Kasa & Bankalar
-                </button>
-                <button
-                    onClick={() => setActiveTab("caris")}
-                    className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${
-                        activeTab === "caris"
-                            ? "border-blue-600 text-blue-600"
-                            : "border-transparent text-zinc-500 hover:text-zinc-900"
-                    }`}
-                >
-                    <Users className="w-4 h-4" />
-                    Müşteri Cari Hesapları
-                </button>
-                <button
-                    onClick={() => setActiveTab("transactions")}
-                    className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${
-                        activeTab === "transactions"
-                            ? "border-blue-600 text-blue-600"
-                            : "border-transparent text-zinc-500 hover:text-zinc-900"
-                    }`}
-                >
-                    <History className="w-4 h-4" />
-                    Finansal Hareketler
-                </button>
-            </div>
-
-            {/* 1. Kasa & Bankalar Tab Content */}
-            {activeTab === "safes" && (
-                <div className="space-y-6">
-                    {/* Kasalar Section */}
-                    <div>
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
-                                <Wallet className="w-5 h-5 text-zinc-500" /> Kasalar (Nakit)
-                            </h3>
-                            <Button
-                                onClick={() => setIsKasaOpen(true)}
-                                size="sm"
-                                className="bg-blue-600 hover:bg-blue-700 text-white gap-1"
-                            >
-                                <Plus className="w-4 h-4" /> Yeni Kasa Ekle
-                            </Button>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {initialCashRegisters.map(kasa => (
-                                <div key={kasa.id} className="bg-white border border-zinc-200 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 p-4 opacity-10">
-                                        <Wallet className="w-16 h-16 text-blue-600" />
-                                    </div>
-                                    <h4 className="text-sm font-bold text-zinc-500 uppercase tracking-wider">{kasa.name}</h4>
-                                    <p className="text-3xl font-extrabold text-zinc-900 mt-2">
-                                        {kasa.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                                    </p>
-                                    <div className="text-xs text-zinc-400 mt-4">
-                                        Son Güncelleme: {new Date(kasa.created_at).toLocaleDateString('tr-TR')}
-                                    </div>
-                                </div>
-                            ))}
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white border border-zinc-200/60 rounded-2xl p-6 shadow-sm relative overflow-hidden flex flex-col justify-between h-36 group hover:shadow-md transition-shadow">
+                    <div className="absolute -right-6 -top-6 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-colors" />
+                    <div className="flex justify-between items-center relative z-10">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                                <Wallet className="w-4 h-4 text-emerald-600" />
+                            </div>
+                            <span className="font-semibold text-zinc-500 text-sm tracking-wide uppercase">Toplam Nakit (Kasa)</span>
                         </div>
                     </div>
-
-                    {/* Bankalar Section */}
-                    <div className="pt-6 border-t border-zinc-100">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
-                                <Landmark className="w-5 h-5 text-zinc-500" /> Banka Hesapları (EFT/Havale/Kart)
-                            </h3>
-                            <Button
-                                onClick={() => setIsBankaOpen(true)}
-                                size="sm"
-                                className="bg-blue-600 hover:bg-blue-700 text-white gap-1"
-                            >
-                                <Plus className="w-4 h-4" /> Yeni Hesap Ekle
-                            </Button>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {initialBankAccounts.map(bank => (
-                                <div key={bank.id} className="bg-white border border-zinc-200 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 p-4 opacity-10">
-                                        <Landmark className="w-16 h-16 text-blue-600" />
-                                    </div>
-                                    <h4 className="text-sm font-bold text-zinc-500 uppercase tracking-wider">{bank.name}</h4>
-                                    <p className="text-3xl font-extrabold text-zinc-900 mt-2">
-                                        {bank.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                                    </p>
-                                    <div className="text-xs text-zinc-400 mt-4 space-y-0.5">
-                                        {bank.account_number && <div>Hesap No: {bank.account_number}</div>}
-                                        {bank.iban && <div className="truncate">IBAN: {bank.iban}</div>}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                    <div className="text-4xl font-black text-zinc-900 tracking-tight relative z-10">
+                        {totalCash.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} <span className="text-2xl text-zinc-400 font-bold">₺</span>
                     </div>
                 </div>
-            )}
 
-            {/* 2. Cari Hesaplar Tab Content */}
-            {activeTab === "caris" && (
-                <div className="bg-white border border-zinc-200 rounded-lg shadow-sm overflow-hidden">
-                    <Table>
-                        <TableHeader className="bg-zinc-50/50">
-                            <TableRow>
-                                <TableHead className="w-[120px] font-medium">Müşteri Kodu</TableHead>
-                                <TableHead className="font-medium">Müşteri Adı / Firma</TableHead>
-                                <TableHead className="font-medium">Telefon</TableHead>
-                                <TableHead className="font-medium">Müşteri Tipi</TableHead>
-                                <TableHead className="text-right font-medium">Güncel Bakiye</TableHead>
-                                <TableHead className="w-[150px]"></TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {initialCustomers.map((customer) => {
-                                const hasDebt = customer.balance > 0
-                                const hasCredit = customer.balance < 0
+                <div className="bg-white border border-zinc-200/60 rounded-2xl p-6 shadow-sm relative overflow-hidden flex flex-col justify-between h-36 group hover:shadow-md transition-shadow">
+                    <div className="absolute -right-6 -top-6 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-colors" />
+                    <div className="flex justify-between items-center relative z-10">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                <Landmark className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <span className="font-semibold text-zinc-500 text-sm tracking-wide uppercase">Toplam Banka (Hesaplar)</span>
+                        </div>
+                    </div>
+                    <div className="text-4xl font-black text-zinc-900 tracking-tight relative z-10">
+                        {totalBank.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} <span className="text-2xl text-zinc-400 font-bold">₺</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Timeline / Transaction List */}
+            <div className="bg-white border border-zinc-200/60 rounded-2xl shadow-sm overflow-hidden">
+                <div className="px-6 py-5 border-b border-zinc-100 flex items-center gap-3">
+                    <History className="w-5 h-5 text-zinc-400" />
+                    <h3 className="text-lg font-bold text-zinc-900">İşlem Geçmişi</h3>
+                </div>
+                
+                <Table>
+                    <TableHeader className="bg-zinc-50/50">
+                        <TableRow className="hover:bg-transparent">
+                            <TableHead className="font-semibold text-zinc-500 h-12 w-[180px]">Tarih</TableHead>
+                            <TableHead className="font-semibold text-zinc-500">Açıklama & Cari</TableHead>
+                            <TableHead className="font-semibold text-zinc-500 w-[140px]">Yöntem</TableHead>
+                            <TableHead className="font-semibold text-zinc-500 w-[160px]">Kasa / Banka</TableHead>
+                            <TableHead className="font-semibold text-zinc-500 w-[120px]">Tip</TableHead>
+                            <TableHead className="text-right font-semibold text-zinc-500 w-[160px]">Tutar</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {initialTransactions.length > 0 ? (
+                            initialTransactions.map((tx) => {
+                                const formattedDate = new Date(tx.transaction_date).toLocaleDateString('tr-TR', {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric',
+                                })
+                                const formattedTime = new Date(tx.transaction_date).toLocaleTimeString('tr-TR', {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                })
+
+                                const isGelir = tx.type === "gelir"
+                                const hasServiceLink = !!tx.service_id
 
                                 return (
-                                    <TableRow key={customer.id} className="hover:bg-zinc-50/50 transition-colors">
-                                        <TableCell className="font-medium text-zinc-900">{customer.customer_code}</TableCell>
-                                        <TableCell className="font-bold text-zinc-950">
-                                            {customer.first_name} {customer.last_name || ""}
+                                    <TableRow 
+                                        key={tx.id} 
+                                        onClick={() => handleRowClick(tx.service_id)}
+                                        className={`transition-colors border-zinc-100 ${hasServiceLink ? "cursor-pointer hover:bg-zinc-50 group" : "hover:bg-transparent"}`}
+                                    >
+                                        <TableCell className="py-4">
+                                            <div className="font-semibold text-zinc-700">{formattedDate}</div>
+                                            <div className="text-xs text-zinc-400 font-medium">{formattedTime}</div>
                                         </TableCell>
-                                        <TableCell className="text-zinc-500">{customer.phone}</TableCell>
-                                        <TableCell>
-                                            <Badge
-                                                variant="secondary"
-                                                className={
-                                                    customer.type === "kurumsal"
-                                                        ? "bg-blue-50 text-blue-700 hover:bg-blue-50"
-                                                        : customer.type === "personel"
-                                                        ? "bg-purple-50 text-purple-700 hover:bg-purple-50"
-                                                        : "bg-zinc-100 text-zinc-700 hover:bg-zinc-100"
-                                                }
-                                            >
-                                                {customer.type === "kurumsal" 
-                                                    ? "Kurumsal" 
-                                                    : customer.type === "personel" 
-                                                    ? "Personel" 
-                                                    : "Bireysel"}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right font-semibold">
-                                            {hasDebt ? (
-                                                <span className="text-rose-600 font-bold">
-                                                    +{customer.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺ (Borçlu)
-                                                </span>
-                                            ) : hasCredit ? (
-                                                <span className="text-emerald-600 font-bold">
-                                                    {customer.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺ (Alacaklı)
-                                                </span>
-                                            ) : (
-                                                <span className="text-zinc-400 font-medium">0.00 ₺</span>
+                                        <TableCell className="py-4">
+                                            <div className="font-bold text-zinc-900 flex items-center gap-2">
+                                                {tx.description || "-"}
+                                                {hasServiceLink && (
+                                                    <Badge variant="outline" className="bg-white border-zinc-200 text-[10px] text-zinc-500 px-1.5 py-0 rounded font-semibold group-hover:bg-zinc-100 transition-colors">
+                                                        Servis Kaydı
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            {tx.customers && (
+                                                <div className="text-xs text-zinc-500 font-medium mt-0.5 flex items-center gap-1.5">
+                                                    <span className="w-1 h-1 rounded-full bg-zinc-300"></span>
+                                                    Cari: {tx.customers.first_name} {tx.customers.last_name || ""}
+                                                </div>
                                             )}
                                         </TableCell>
-                                        <TableCell className="text-right">
-                                            <Button
-                                                onClick={() => {
-                                                    setSelectedCustomerForTx(customer)
-                                                    setTxType("gelir")
-                                                    setIsTxOpen(true)
-                                                }}
-                                                size="sm"
-                                                variant="outline"
-                                                className="h-8 border-zinc-200 hover:bg-zinc-50 text-xs font-semibold"
+                                        <TableCell className="py-4 text-zinc-600 font-medium text-sm">
+                                            {tx.payment_method === "kredi_karti" 
+                                                ? "Kredi Kartı" 
+                                                : tx.payment_method === "acik_hesap" 
+                                                ? "Cari (Açık Hesap)" 
+                                                : tx.payment_method === "havale"
+                                                ? "EFT / Havale"
+                                                : tx.payment_method === "nakit"
+                                                ? "Nakit"
+                                                : tx.payment_method}
+                                        </TableCell>
+                                        <TableCell className="py-4">
+                                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-100 text-zinc-700 text-xs font-semibold">
+                                                {tx.cash_registers ? <Wallet className="w-3 h-3 text-emerald-600" /> : <Landmark className="w-3 h-3 text-blue-600" />}
+                                                {tx.cash_registers?.name || tx.bank_accounts?.name || "-"}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="py-4">
+                                            <Badge
+                                                variant="secondary"
+                                                className={`font-bold px-2.5 py-0.5 shadow-sm ${
+                                                    isGelir
+                                                        ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                                                        : "bg-rose-50 text-rose-700 border border-rose-100"
+                                                }`}
                                             >
-                                                Tahsilat Ekle
-                                            </Button>
+                                                {isGelir ? "Giriş" : "Çıkış"}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className={`py-4 text-right font-black text-base ${isGelir ? "text-emerald-600" : "text-rose-600"}`}>
+                                            {isGelir ? "+" : "-"}{tx.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                                         </TableCell>
                                     </TableRow>
                                 )
-                            })}
-                        </TableBody>
-                    </Table>
-                </div>
-            )}
-
-            {/* 3. Finansal Hareketler Tab Content */}
-            {activeTab === "transactions" && (
-                <div className="bg-white border border-zinc-200 rounded-lg shadow-sm overflow-hidden">
-                    <Table>
-                        <TableHeader className="bg-zinc-50/50">
+                            })
+                        ) : (
                             <TableRow>
-                                <TableHead className="font-medium">Tarih</TableHead>
-                                <TableHead className="font-medium">İşlem Açıklaması</TableHead>
-                                <TableHead className="font-medium">İlişkili Cari</TableHead>
-                                <TableHead className="font-medium">Ödeme Tipi</TableHead>
-                                <TableHead className="font-medium">Kasa / Banka</TableHead>
-                                <TableHead className="font-medium">Tür</TableHead>
-                                <TableHead className="text-right font-medium">Tutar</TableHead>
+                                <TableCell colSpan={6} className="text-center py-16 text-zinc-400 font-medium">
+                                    <div className="flex flex-col items-center justify-center gap-2">
+                                        <History className="w-8 h-8 text-zinc-200" />
+                                        <span>Henüz finansal işlem hareketi bulunmuyor.</span>
+                                    </div>
+                                </TableCell>
                             </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {initialTransactions.length > 0 ? (
-                                initialTransactions.map((tx) => {
-                                    const formattedDate = new Date(tx.transaction_date).toLocaleDateString('tr-TR', {
-                                        day: 'numeric',
-                                        month: 'short',
-                                        year: 'numeric',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                    })
-
-                                    const isGelir = tx.type === "gelir"
-
-                                    return (
-                                        <TableRow key={tx.id} className="hover:bg-zinc-50/50 transition-colors">
-                                            <TableCell className="text-zinc-500 text-xs">{formattedDate}</TableCell>
-                                            <TableCell className="font-semibold text-zinc-900">{tx.description || "-"}</TableCell>
-                                            <TableCell className="font-medium text-zinc-700">
-                                                {tx.customers
-                                                    ? `${tx.customers.first_name} ${tx.customers.last_name || ""}`
-                                                    : "-"}
-                                            </TableCell>
-                                            <TableCell className="text-zinc-500 capitalize text-xs">
-                                                {tx.payment_method === "kredi_karti" 
-                                                    ? "Kredi Kartı" 
-                                                    : tx.payment_method === "acik_hesap" 
-                                                    ? "Açık Hesap (Cari)" 
-                                                    : tx.payment_method}
-                                            </TableCell>
-                                            <TableCell className="text-zinc-600 font-medium text-xs">
-                                                {tx.cash_registers?.name || tx.bank_accounts?.name || "-"}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge
-                                                    variant="secondary"
-                                                    className={
-                                                        isGelir
-                                                            ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-50 font-medium"
-                                                            : "bg-rose-50 text-rose-700 hover:bg-rose-50 font-medium"
-                                                    }
-                                                >
-                                                    {isGelir ? "Giriş (Gelir)" : "Çıkış (Gider)"}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className={`text-right font-bold ${isGelir ? "text-emerald-600" : "text-rose-600"}`}>
-                                                {isGelir ? "+" : "-"}{tx.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                                            </TableCell>
-                                        </TableRow>
-                                    )
-                                })
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={7} className="text-center py-12 text-zinc-400 font-medium">
-                                        Henüz finansal işlem hareketi bulunmuyor.
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
-            )}
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
 
             {/* --- Dialog Modals --- */}
-
             {/* 1. Yeni Kasa Dialog */}
             <Dialog open={isKasaOpen} onOpenChange={setIsKasaOpen}>
                 <DialogContent className="bg-white">
@@ -409,7 +315,7 @@ export default function FinanceDashboard({
                             <Input id="kasaName" name="name" placeholder="Örn: Şube-2 Kasası" required />
                         </div>
                         <DialogFooter className="pt-4">
-                            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white">Kasayı Oluştur</Button>
+                            <Button type="submit" className="w-full bg-zinc-900 hover:bg-zinc-800 text-white font-semibold">Kasayı Oluştur</Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
@@ -438,7 +344,7 @@ export default function FinanceDashboard({
                             </div>
                         </div>
                         <DialogFooter className="pt-4">
-                            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white">Hesabı Oluştur</Button>
+                            <Button type="submit" className="w-full bg-zinc-900 hover:bg-zinc-800 text-white font-semibold">Hesabı Oluştur</Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
@@ -448,40 +354,24 @@ export default function FinanceDashboard({
             <Dialog open={isTxOpen} onOpenChange={setIsTxOpen}>
                 <DialogContent className="bg-white max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Manuel Finansal İşlem Girişi</DialogTitle>
+                        <DialogTitle>{txType === "gelir" ? "Tahsilat Gir (Gelir)" : "Ödeme Çıkışı (Gider)"}</DialogTitle>
                         <DialogDescription>
-                            {selectedCustomerForTx 
-                                ? `${selectedCustomerForTx.first_name} ${selectedCustomerForTx.last_name || ""} müşterisi için cari ödeme veya tahsilat girin.`
-                                : "Kasaya veya bankaya manuel gelir/gider hareketi girin."}
+                            Kasaya veya bankaya manuel gelir/gider hareketi girin.
                         </DialogDescription>
                     </DialogHeader>
                     <form action={handleAddTx} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                                <Label>İşlem Türü</Label>
-                                <Select value={txType} onValueChange={(val: any) => setTxType(val)}>
-                                    <SelectTrigger className="border-zinc-200">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-white">
-                                        <SelectItem value="gelir">Tahsilat / Giriş (Gelir)</SelectItem>
-                                        <SelectItem value="gider">Ödeme / Çıkış (Gider)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-1">
-                                <Label>Ödeme Yöntemi</Label>
-                                <Select value={txPaymentMethod} onValueChange={setTxPaymentMethod}>
-                                    <SelectTrigger className="border-zinc-200">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-white">
-                                        <SelectItem value="nakit">Nakit</SelectItem>
-                                        <SelectItem value="kredi_karti">Kredi Kartı</SelectItem>
-                                        <SelectItem value="havale">EFT / Havale</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                        <div className="space-y-2">
+                            <Label>Ödeme Yöntemi</Label>
+                            <Select value={txPaymentMethod} onValueChange={setTxPaymentMethod}>
+                                <SelectTrigger className="border-zinc-200">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="bg-white">
+                                    <SelectItem value="nakit">Nakit</SelectItem>
+                                    <SelectItem value="kredi_karti">Kredi Kartı</SelectItem>
+                                    <SelectItem value="havale">EFT / Havale</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         {txPaymentMethod === "nakit" && (
@@ -529,12 +419,12 @@ export default function FinanceDashboard({
 
                         <div className="space-y-2">
                             <Label htmlFor="txDesc">Açıklama</Label>
-                            <Textarea id="txDesc" name="description" placeholder="Örn: Cari hesap bakiyesi tahsilatı veya fatura ödemesi..." className="resize-none h-16" required />
+                            <Textarea id="txDesc" name="description" placeholder="Örn: Fatura ödemesi..." className="resize-none h-16" required />
                         </div>
 
                         <DialogFooter className="pt-4">
-                            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold">
-                                İşlemi Kaydet ve İşle
+                            <Button type="submit" className={`w-full text-white font-bold shadow-md transition-all ${txType === 'gelir' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'}`}>
+                                İşlemi Kaydet
                             </Button>
                         </DialogFooter>
                     </form>
