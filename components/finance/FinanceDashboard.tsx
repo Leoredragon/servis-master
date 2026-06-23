@@ -17,6 +17,16 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog"
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -61,9 +71,11 @@ export default function FinanceDashboard({
     const [isBankaOpen, setIsBankaOpen] = useState(false)
     const [isTxOpen, setIsTxOpen] = useState(false)
     
-    // Edit state
+    // Edit & Delete state
     const [isEditTxOpen, setIsEditTxOpen] = useState(false)
     const [editingTx, setEditingTx] = useState<any>(null)
+    const [deleteConfirmTx, setDeleteConfirmTx] = useState<any>(null)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     // Selection state for quick transaction
     const [txType, setTxType] = useState<"gelir" | "gider">("gelir")
@@ -131,12 +143,14 @@ export default function FinanceDashboard({
         }
     }
 
-    async function handleDeleteTx(id: string) {
-        if (!confirm("Bu finansal hareketi silmek istediğinize emin misiniz?")) return
-
-        const res = await deleteTransaction(id)
+    async function confirmDeleteTx() {
+        if (!deleteConfirmTx) return
+        setIsDeleting(true)
+        const res = await deleteTransaction(deleteConfirmTx.id)
+        setIsDeleting(false)
         if (res.success) {
             toast.success("İşlem başarıyla silindi!")
+            setDeleteConfirmTx(null)
         } else {
             toast.error(res.message || "İşlem silinemedi.")
         }
@@ -283,7 +297,7 @@ export default function FinanceDashboard({
                                 })
 
                                 const isGelir = tx.type === "gelir"
-                                const hasServiceLink = !!tx.service_id
+                                const hasServiceLink = !!tx.invoice_id // Updated to use invoice_id
 
                                 return (
                                     <TableRow 
@@ -292,7 +306,7 @@ export default function FinanceDashboard({
                                             // Menüye tıklandıysa row'un kendi onclick'ini engelle
                                             const target = e.target as HTMLElement;
                                             if (target.closest('.action-menu-container')) return;
-                                            handleRowClick(tx.service_id);
+                                            handleRowClick(tx.invoice_id);
                                         }}
                                         className={`transition-colors border-zinc-100 ${hasServiceLink ? "cursor-pointer hover:bg-zinc-50 group" : "hover:bg-transparent"}`}
                                     >
@@ -349,23 +363,23 @@ export default function FinanceDashboard({
                                             {isGelir ? "+" : "-"}{tx.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                                         </TableCell>
                                         <TableCell className="py-4 text-right action-menu-container">
-                                            {!hasServiceLink && (
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-zinc-100">
-                                                            <MoreHorizontal className="h-4 w-4 text-zinc-500" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end" className="w-40 bg-white">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-zinc-100">
+                                                        <MoreHorizontal className="h-4 w-4 text-zinc-500" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-40 bg-white">
+                                                    {!hasServiceLink && (
                                                         <DropdownMenuItem onClick={() => openEditModal(tx)} className="cursor-pointer gap-2">
                                                             <Edit className="w-4 h-4 text-zinc-500" /> Düzenle
                                                         </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => handleDeleteTx(tx.id)} className="cursor-pointer gap-2 text-rose-600 focus:text-rose-600 focus:bg-rose-50">
-                                                            <Trash2 className="w-4 h-4" /> Sil
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            )}
+                                                    )}
+                                                    <DropdownMenuItem onClick={() => setDeleteConfirmTx(tx)} className="cursor-pointer gap-2 text-rose-600 focus:text-rose-600 focus:bg-rose-50">
+                                                        <Trash2 className="w-4 h-4" /> Sil
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </TableCell>
                                     </TableRow>
                                 )
@@ -646,6 +660,31 @@ export default function FinanceDashboard({
                     )}
                 </DialogContent>
             </Dialog>
+
+            {/* 5. İşlem Silme AlertDialog */}
+            <AlertDialog open={!!deleteConfirmTx} onOpenChange={(open) => !open && setDeleteConfirmTx(null)}>
+                <AlertDialogContent className="bg-white">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>İşlemi Sil</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Bu finansal hareketi silmek istediğinize emin misiniz? Eğer bu işlem bir faturaya bağlıysa, ilgili fatura da kalıcı olarak silinecektir.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>İptal</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(e) => {
+                                e.preventDefault()
+                                confirmDeleteTx()
+                            }}
+                            className="bg-rose-600 hover:bg-rose-700 text-white"
+                            disabled={isDeleting}
+                        >
+                            {isDeleting ? "Siliniyor..." : "Sil"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

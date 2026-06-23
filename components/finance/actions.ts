@@ -168,6 +168,30 @@ export async function updateTransaction(id: string, data: {
 export async function deleteTransaction(id: string) {
     const supabase = await createClient()
 
+    // Önce işlemin detaylarını alıp faturaya bağlı mı kontrol et
+    const { data: txData, error: fetchError } = await supabase
+        .from('transactions')
+        .select('invoice_id')
+        .eq('id', id)
+        .single()
+
+    if (fetchError) {
+        return { success: false, message: 'İşlem detayları alınamadı: ' + fetchError.message }
+    }
+
+    // Eğer bağlı bir fatura varsa önce onu sil (Supabase cascade kurmadıysa manuel sileriz)
+    if (txData && txData.invoice_id) {
+        const { error: invoiceError } = await supabase
+            .from('invoices')
+            .delete()
+            .eq('id', txData.invoice_id)
+        
+        if (invoiceError) {
+            return { success: false, message: 'Bağlı fatura silinemedi: ' + invoiceError.message }
+        }
+    }
+
+    // Sonra ana işlemi sil
     const { error } = await supabase
         .from('transactions')
         .delete()
@@ -179,5 +203,6 @@ export async function deleteTransaction(id: string) {
 
     revalidatePath('/finance')
     revalidatePath('/customers')
+    revalidatePath('/invoices')
     return { success: true }
 }
