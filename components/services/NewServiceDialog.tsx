@@ -146,6 +146,8 @@ export default function NewServiceDialog({ triggerVisible = true }: { triggerVis
                 plate: quickVehiclePlate.toUpperCase(),
                 brand: quickVehicleBrand,
                 model: quickVehicleModel,
+                mileage: 0,
+                year: null
             }])
             .select()
             .single()

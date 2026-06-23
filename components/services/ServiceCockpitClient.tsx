@@ -515,11 +515,11 @@ export default function ServiceCockpitClient({
                             <div className="pt-2 border-t border-zinc-100 flex justify-between items-center">
                                 <span className="font-bold text-[10px] text-zinc-400 uppercase">Cari Hesap Durumu</span>
                                 <Badge className={cn("text-[10px] font-bold",
-                                    service.customers.balance > 0 ? "bg-red-50 text-red-700 hover:bg-red-50 border border-red-200" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-50 border border-emerald-200"
+                                    (service.customers.balance || 0) > 0 ? "bg-red-50 text-red-700 hover:bg-red-50 border border-red-200" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-50 border border-emerald-200"
                                 )}>
-                                    {service.customers.balance > 0 
-                                        ? `Borçlu: ${Math.abs(service.customers.balance).toLocaleString()} ₺` 
-                                        : `Alacaklı: ${Math.abs(service.customers.balance).toLocaleString()} ₺`}
+                                    {(service.customers.balance || 0) > 0 
+                                        ? `Borçlu: ${Math.abs(service.customers.balance || 0).toLocaleString()} ₺` 
+                                        : `Alacaklı: ${Math.abs(service.customers.balance || 0).toLocaleString()} ₺`}
                                 </Badge>
                             </div>
                         </div>
@@ -549,7 +549,7 @@ export default function ServiceCockpitClient({
                             <div>
                                 <p className="text-[10px] text-zinc-400 font-bold uppercase leading-none">Kayıtlı Araç Kilometresi</p>
                                 <p className="font-semibold text-zinc-800 mt-1">
-                                    {service.vehicles.mileage.toLocaleString()} KM
+                                    {(service.vehicles.mileage || 0).toLocaleString()} KM
                                 </p>
                             </div>
                         </div>
