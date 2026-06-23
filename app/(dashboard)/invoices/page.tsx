@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { MoreHorizontal, FileText } from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
 import Link from "next/link"
+import { InvoiceRowActions } from "@/components/invoices/InvoiceRowActions"
 
 export default async function InvoicesPage() {
     const supabase = await createClient()
@@ -94,9 +95,7 @@ export default async function InvoicesPage() {
                                             {invoice.grand_total ? `${invoice.grand_total} ₺` : "0 ₺"}
                                         </TableCell>
                                         <TableCell>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-zinc-600">
-                                                <MoreHorizontal className="h-4 w-4" />
-                                            </Button>
+                                            <InvoiceRowActions invoiceId={invoice.id} />
                                         </TableCell>
                                     </TableRow>
                                 )

@@ -226,3 +226,41 @@ export async function createInvoice(data: CreateInvoiceInput) {
     revalidatePath('/finance')
     return { success: true, data: invoice }
 }
+
+export async function deleteInvoiceAction(invoiceId: string) {
+    const supabase = await createClient()
+
+    // 1. Delete associated transactions (kasa/banka hareketleri)
+    const { error: txError } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('invoice_id', invoiceId)
+
+    if (txError) {
+        return { success: false, message: 'Bağlı finansal hareketler silinemedi: ' + txError.message }
+    }
+
+    // 2. Delete invoice items
+    const { error: itemsError } = await supabase
+        .from('invoice_items')
+        .delete()
+        .eq('invoice_id', invoiceId)
+    
+    if (itemsError) {
+         return { success: false, message: 'Fatura kalemleri silinemedi: ' + itemsError.message }
+    }
+
+    // 3. Delete invoice
+    const { error: invoiceError } = await supabase
+        .from('invoices')
+        .delete()
+        .eq('id', invoiceId)
+
+    if (invoiceError) {
+        return { success: false, message: 'Fatura silinemedi: ' + invoiceError.message }
+    }
+
+    revalidatePath('/invoices')
+    revalidatePath('/finance')
+    return { success: true }
+}
