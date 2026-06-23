@@ -5,6 +5,7 @@ import {
     BarChart3, Package, FileText, Users, Car,
     CalendarDays, Zap, Star, Check, ChevronRight
 } from "lucide-react"
+import { createClient } from "@/lib/supabase/server"
 
 export const metadata = {
     title: "Servis Master | Teknik Servis Yönetim Sistemi",
@@ -112,7 +113,10 @@ const colorMap: Record<string, string> = {
     cyan: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
 }
 
-export default function LandingPage() {
+export default async function LandingPage() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
     return (
         <div className="min-h-screen bg-zinc-950 text-white font-sans overflow-x-hidden scroll-smooth">
 
@@ -133,19 +137,31 @@ export default function LandingPage() {
                     </nav>
 
                     <div className="flex items-center gap-5">
-                        <Link
-                            href="/login"
-                            className="text-zinc-400 hover:text-white text-sm font-bold transition-colors"
-                        >
-                            Giriş Yap
-                        </Link>
-                        <Link
-                            href="/register"
-                            className="group inline-flex items-center gap-1.5 bg-white text-zinc-950 hover:bg-zinc-100 font-bold text-sm px-4.5 py-2 rounded-lg transition-all duration-200 shadow-lg shadow-white/10"
-                        >
-                            Kayıt Ol
-                            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                        </Link>
+                        {user ? (
+                            <Link
+                                href="/dashboard"
+                                className="group inline-flex items-center gap-1.5 bg-white text-zinc-950 hover:bg-zinc-100 font-bold text-sm px-4.5 py-2 rounded-lg transition-all duration-200 shadow-lg shadow-white/10"
+                            >
+                                Yönetim Paneli
+                                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                            </Link>
+                        ) : (
+                            <>
+                                <Link
+                                    href="/login"
+                                    className="text-zinc-400 hover:text-white text-sm font-bold transition-colors"
+                                >
+                                    Giriş Yap
+                                </Link>
+                                <Link
+                                    href="/register"
+                                    className="group inline-flex items-center gap-1.5 bg-white text-zinc-950 hover:bg-zinc-100 font-bold text-sm px-4.5 py-2 rounded-lg transition-all duration-200 shadow-lg shadow-white/10"
+                                >
+                                    Kayıt Ol
+                                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                                </Link>
+                            </>
+                        )}
                     </div>
                 </div>
             </header>
@@ -186,10 +202,10 @@ export default function LandingPage() {
 
                         <div className="flex flex-col sm:flex-row gap-4">
                             <Link
-                                href="/login"
+                                href={user ? "/dashboard" : "/login"}
                                 className="group inline-flex items-center justify-center gap-2 bg-white text-zinc-950 hover:bg-zinc-100 font-bold text-base px-8 py-4 rounded-xl transition-all duration-200 shadow-2xl shadow-white/20"
                             >
-                                Ücretsiz Deneyin
+                                {user ? "Yönetim Paneline Git" : "Ücretsiz Deneyin"}
                                 <ArrowRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
                             </Link>
                             <a
@@ -388,14 +404,14 @@ export default function LandingPage() {
                                 </ul>
 
                                 <Link
-                                    href="/login"
+                                    href={user ? "/dashboard" : "/login"}
                                     className={`w-full text-center font-bold text-sm py-3.5 rounded-xl transition-all duration-200 block ${
                                         plan.highlight
                                             ? "bg-zinc-950 text-white hover:bg-zinc-800"
                                             : "bg-white/8 text-white hover:bg-white/14 border border-white/10"
                                     }`}
                                 >
-                                    {plan.price === "Özel" ? "Bize Ulaşın" : "Başlayın"}
+                                    {plan.price === "Özel" ? "Bize Ulaşın" : (user ? "Panele Git" : "Başlayın")}
                                 </Link>
                             </div>
                         ))}
@@ -459,10 +475,10 @@ export default function LandingPage() {
                         Kredi kartı gerektirmez. 2 dakikada kurulum. İlk 7 gün tamamen ücretsiz.
                     </p>
                     <Link
-                        href="/login"
+                        href={user ? "/dashboard" : "/login"}
                         className="group inline-flex items-center justify-center gap-2 bg-white text-zinc-950 hover:bg-zinc-100 font-bold text-base px-10 py-4 rounded-xl transition-all duration-200 shadow-2xl shadow-white/10"
                     >
-                        Hemen Başlayın — Ücretsiz
+                        {user ? "Yönetim Paneline Git" : "Hemen Başlayın — Ücretsiz"}
                         <ArrowRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
                     </Link>
                 </div>
@@ -487,7 +503,7 @@ export default function LandingPage() {
                         <ul className="space-y-2 text-sm text-zinc-400">
                             <li><a href="#features" className="hover:text-white transition-colors">Özellikler</a></li>
                             <li><a href="#pricing" className="hover:text-white transition-colors">Fiyatlar</a></li>
-                            <li><Link href="/login" className="hover:text-white transition-colors">Giriş Yap</Link></li>
+                            <li><Link href={user ? "/dashboard" : "/login"} className="hover:text-white transition-colors">{user ? "Yönetim Paneli" : "Giriş Yap"}</Link></li>
                         </ul>
                     </div>
                     <div>
