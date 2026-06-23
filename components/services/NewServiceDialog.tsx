@@ -71,6 +71,7 @@ export default function NewServiceDialog({ triggerVisible = true }: { triggerVis
             const { data: vehs } = await supabase
                 .from("vehicles")
                 .select("*")
+                .eq("is_deleted", false)
                 .order("plate", { ascending: true })
             if (vehs) setVehicles(vehs)
         }

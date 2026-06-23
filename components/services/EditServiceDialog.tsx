@@ -71,6 +71,7 @@ export default function EditServiceDialog({ service, open, onOpenChange }: EditS
             const { data: vehs } = await supabase
                 .from("vehicles")
                 .select("*")
+                .eq("is_deleted", false)
                 .order("plate", { ascending: true })
             if (vehs) setVehicles(vehs)
         }
