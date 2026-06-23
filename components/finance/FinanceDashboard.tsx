@@ -48,6 +48,14 @@ export default function FinanceDashboard({
 }: FinanceDashboardProps) {
     const router = useRouter()
 
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1)
+    const [pageSize, setPageSize] = useState(20)
+
+    const startIndex = (currentPage - 1) * pageSize
+    const paginatedTransactions = initialTransactions.slice(startIndex, startIndex + pageSize)
+    const totalPages = Math.ceil(initialTransactions.length / pageSize)
+
     // Modals open state
     const [isKasaOpen, setIsKasaOpen] = useState(false)
     const [isBankaOpen, setIsBankaOpen] = useState(false)
@@ -262,8 +270,8 @@ export default function FinanceDashboard({
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {initialTransactions.length > 0 ? (
-                            initialTransactions.map((tx) => {
+                        {paginatedTransactions.length > 0 ? (
+                            paginatedTransactions.map((tx) => {
                                 const formattedDate = new Date(tx.transaction_date).toLocaleDateString('tr-TR', {
                                     day: 'numeric',
                                     month: 'long',
@@ -374,6 +382,56 @@ export default function FinanceDashboard({
                         )}
                     </TableBody>
                 </Table>
+
+                {/* Pagination Controls */}
+                {initialTransactions.length > 0 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 border-t border-zinc-100 bg-zinc-50/50 gap-4">
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm font-medium text-zinc-500">Sayfa başına gösterim:</span>
+                            <Select value={pageSize.toString()} onValueChange={(val) => {
+                                setPageSize(Number(val));
+                                setCurrentPage(1);
+                            }}>
+                                <SelectTrigger className="w-20 h-8 border-zinc-200 bg-white">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="bg-white">
+                                    <SelectItem value="20">20</SelectItem>
+                                    <SelectItem value="30">30</SelectItem>
+                                    <SelectItem value="50">50</SelectItem>
+                                    <SelectItem value="100">100</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <span className="text-xs text-zinc-400 font-medium hidden md:inline-block ml-2">
+                                Toplam {initialTransactions.length} kayıttan {startIndex + 1}-{Math.min(startIndex + pageSize, initialTransactions.length)} arası
+                            </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="h-8 border-zinc-200 px-3 bg-white hover:bg-zinc-50"
+                            >
+                                Önceki
+                            </Button>
+                            <div className="flex items-center gap-1.5 px-3 text-sm font-bold text-zinc-700">
+                                {currentPage} <span className="text-zinc-400 font-semibold">/ {totalPages || 1}</span>
+                            </div>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage >= totalPages || totalPages === 0}
+                                className="h-8 border-zinc-200 px-3 bg-white hover:bg-zinc-50"
+                            >
+                                Sonraki
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* --- Dialog Modals --- */}
