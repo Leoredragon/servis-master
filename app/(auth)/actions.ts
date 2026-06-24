@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export async function login(formData: FormData) {
     const supabase = await createClient()
@@ -30,8 +30,13 @@ export async function register(formData: FormData) {
     const email = formData.get('email') as string
     const password = formData.get('password') as string
     const fullName = formData.get('fullName') as string
+    const companyName = formData.get('companyName') as string
 
-    const { error } = await supabase.auth.signUp({
+    if (!companyName || !fullName) {
+        return redirect('/register?message=Ad Soyad ve Şirket/Servis Adı zorunludur.')
+    }
+
+    const { data: authData, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -42,7 +47,42 @@ export async function register(formData: FormData) {
     })
 
     if (error) {
-        return redirect('/register?message=Kayıt işlemi başarısız. Lütfen tekrar deneyin.')
+        return redirect('/register?message=Kayıt işlemi başarısız. Detay: ' + error.message)
+    }
+
+    if (authData.user) {
+        // Service Role client'ı kullan (Bypass RLS)
+        const adminSupabase = createAdminClient()
+
+        // 1. Şirketi oluştur
+        const { data: company, error: companyError } = await adminSupabase
+            .from('companies')
+            .insert([{ name: companyName }])
+            .select()
+            .single()
+
+        if (companyError) {
+             console.error("Şirket oluşturulamadı:", companyError)
+             return redirect('/register?message=Hesap açıldı ancak şirket oluşturulamadı.')
+        }
+
+        // 2. Profili güncelle veya ekle
+        const { error: profileError } = await adminSupabase
+            .from('profiles')
+            .upsert({
+                id: authData.user.id,
+                email: email,
+                full_name: fullName,
+                company_id: company.id,
+                role: 'admin', // İlk kayıt olan admin'dir
+                package_name: 'Başlangıç',
+                status: 'active'
+            })
+
+        if (profileError) {
+            console.error("Profil güncellenemedi:", profileError)
+            return redirect('/register?message=Hesap açıldı ancak profil yapılandırılamadı.')
+        }
     }
 
     revalidatePath('/', 'layout')
