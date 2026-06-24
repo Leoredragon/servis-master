@@ -1,12 +1,19 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCompanyId } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 export async function createAppointment(formData: FormData) {
     const supabase = await createClient()
 
+    const companyCheck = await getCompanyId()
+    if (!companyCheck.success) {
+        console.error('Randevu oluşturulamadı:', companyCheck.message)
+        throw new Error(companyCheck.message)
+    }
+
     const { error } = await supabase.from('appointments').insert([{
+        company_id: companyCheck.companyId,
         customer_id: formData.get('customerId'),
         vehicle_id: formData.get('vehicleId'),
         title: formData.get('title'),

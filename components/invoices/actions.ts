@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCompanyId } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 interface InvoiceItemInput {
@@ -45,6 +45,12 @@ export async function createInvoice(data: CreateInvoiceInput) {
     if (!invoiceNo || !customerId) {
         return { success: false, message: 'Fatura numarası ve müşteri seçimi zorunludur.' }
     }
+
+    const companyCheck = await getCompanyId()
+    if (!companyCheck.success) {
+        return { success: false, message: companyCheck.message }
+    }
+    const company_id = companyCheck.companyId
 
     if (items.length === 0) {
         return { success: false, message: 'Faturaya en az bir kalem eklenmelidir.' }
@@ -114,6 +120,7 @@ export async function createInvoice(data: CreateInvoiceInput) {
     const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
         .insert([{
+            company_id,
             invoice_no: invoiceNo,
             customer_id: customerId,
             service_id: serviceId || null,
@@ -136,6 +143,7 @@ export async function createInvoice(data: CreateInvoiceInput) {
 
     // 3. Fatura Kalemlerini Ekle
     const preparedItemsWithInvoiceId = preparedItems.map(item => ({
+        company_id,
         invoice_id: invoice.id,
         ...item
     }))
@@ -157,6 +165,7 @@ export async function createInvoice(data: CreateInvoiceInput) {
             const { error: cashErr } = await supabase
                 .from('transactions')
                 .insert([{
+                    company_id,
                     customer_id: customerId,
                     invoice_id: invoice.id,
                     cash_register_id: cashRegisterId,
@@ -172,6 +181,7 @@ export async function createInvoice(data: CreateInvoiceInput) {
             const { error: bankErr } = await supabase
                 .from('transactions')
                 .insert([{
+                    company_id,
                     customer_id: customerId,
                     invoice_id: invoice.id,
                     bank_account_id: bankAccountId,
@@ -187,6 +197,7 @@ export async function createInvoice(data: CreateInvoiceInput) {
             const { error: creditErr } = await supabase
                 .from('transactions')
                 .insert([{
+                    company_id,
                     customer_id: customerId,
                     invoice_id: invoice.id,
                     type: 'gelir',
@@ -199,6 +210,7 @@ export async function createInvoice(data: CreateInvoiceInput) {
     } else {
         // Tek ödeme için işlemler
         const transactionData: any = {
+            company_id,
             customer_id: customerId,
             invoice_id: invoice.id,
             type: 'gelir',

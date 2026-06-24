@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCompanyId } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 export async function createVehicle(formData: FormData) {
@@ -17,10 +17,16 @@ export async function createVehicle(formData: FormData) {
     const mileage = formData.get('currentKm') as string
     const notes = formData.get('notes') as string
 
+    const companyCheck = await getCompanyId()
+    if (!companyCheck.success) {
+        throw new Error(companyCheck.message)
+    }
+
     const { error } = await supabase
         .from('vehicles')
         .insert([
             {
+                company_id: companyCheck.companyId,
                 customer_id,
                 plate,
                 brand,

@@ -1,14 +1,20 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCompanyId } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 export async function createStock(formData: FormData) {
     const supabase = await createClient()
 
+    const companyCheck = await getCompanyId()
+    if (!companyCheck.success) {
+        return { success: false, message: companyCheck.message }
+    }
+
     const { error } = await supabase
         .from('stock_cards')
         .insert([{
+            company_id: companyCheck.companyId,
             stock_code: formData.get('stockCode'),
             name: formData.get('name'),
             category: formData.get('category'),

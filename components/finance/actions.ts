@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCompanyId } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 export async function createCashRegister(formData: FormData) {
@@ -11,9 +11,14 @@ export async function createCashRegister(formData: FormData) {
         return { success: false, message: 'Kasa adı girilmelidir.' }
     }
 
+    const companyCheck = await getCompanyId()
+    if (!companyCheck.success) {
+        return { success: false, message: companyCheck.message }
+    }
+
     const { data, error } = await supabase
         .from('cash_registers')
-        .insert([{ name, balance: 0 }])
+        .insert([{ company_id: companyCheck.companyId, name, balance: 0 }])
         .select()
         .single()
 
@@ -35,9 +40,15 @@ export async function createBankAccount(formData: FormData) {
         return { success: false, message: 'Banka adı girilmelidir.' }
     }
 
+    const companyCheck = await getCompanyId()
+    if (!companyCheck.success) {
+        return { success: false, message: companyCheck.message }
+    }
+
     const { data, error } = await supabase
         .from('bank_accounts')
         .insert([{
+            company_id: companyCheck.companyId,
             name,
             account_number: accountNumber || null,
             iban: iban || null,
@@ -103,7 +114,13 @@ export async function createTransaction(formData: FormData) {
         }
     }
 
+    const companyCheck = await getCompanyId()
+    if (!companyCheck.success) {
+        return { success: false, message: companyCheck.message }
+    }
+
     const transactionData: any = {
+        company_id: companyCheck.companyId,
         customer_id: customerId,
         type,
         payment_method: paymentMethod,

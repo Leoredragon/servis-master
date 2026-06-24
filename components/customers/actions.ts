@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCompanyId } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 export async function createCustomer(formData: FormData) {
@@ -24,10 +24,16 @@ export async function createCustomer(formData: FormData) {
     const discount_rate = discountRateVal ? parseFloat(discountRateVal as string) : 0
     const group_id = formData.get('groupId') as string || null
 
+    const companyCheck = await getCompanyId()
+    if (!companyCheck.success) {
+        return { success: false, message: companyCheck.message }
+    }
+
     const { data, error } = await supabase
         .from('customers')
         .insert([
             {
+                company_id: companyCheck.companyId,
                 type, // Artık veritabanındaki sütun adıyla birebir eşleşiyor ('bireysel' | 'kurumsal' | 'personel')
                 customer_code,
                 first_name,
@@ -79,9 +85,14 @@ export async function createCustomerGroup(formData: FormData) {
         return { success: false, message: 'Grup adı gereklidir.' }
     }
 
+    const companyCheck = await getCompanyId()
+    if (!companyCheck.success) {
+        return { success: false, message: companyCheck.message }
+    }
+
     const { data, error } = await supabase
         .from('customer_groups')
-        .insert([{ name, discount_rate }])
+        .insert([{ company_id: companyCheck.companyId, name, discount_rate }])
         .select()
         .single()
 

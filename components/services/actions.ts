@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCompanyId } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 export async function createServiceRecord(formData: FormData) {
@@ -21,10 +21,16 @@ export async function createServiceRecord(formData: FormData) {
         const parsedMileage = entryMileageVal ? parseInt(entryMileageVal, 10) : NaN
         const entry_mileage = isNaN(parsedMileage) ? null : parsedMileage
 
+        const companyCheck = await getCompanyId()
+        if (!companyCheck.success) {
+            return { success: false, error: companyCheck.message }
+        }
+
         // 1. Yeni servis kaydı oluştur
         const { data, error } = await supabase
             .from('service_records')
             .insert([{
+                company_id: companyCheck.companyId,
                 service_code: `SRV-${Date.now().toString().slice(-6)}`, // Basit bir kod üretici
                 customer_id: customerId,
                 vehicle_id: vehicleId,
@@ -105,9 +111,15 @@ export async function addServiceItemAction(data: {
     const supabase = await createClient()
     const { serviceId, stockId, description, quantity, unitPrice, itemType } = data
 
+    const companyCheck = await getCompanyId()
+    if (!companyCheck.success) {
+        return { success: false, error: companyCheck.message }
+    }
+
     const { data: item, error } = await supabase
         .from('service_items')
         .insert([{
+            company_id: companyCheck.companyId,
             service_id: serviceId,
             stock_id: stockId || null,
             item_type: itemType,

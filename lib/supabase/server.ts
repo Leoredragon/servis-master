@@ -34,3 +34,25 @@ export function createAdminClient() {
         process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 }
+
+export async function getCompanyId() {
+    const supabase = await createClient()
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    if (userError || !user) {
+        return { success: false, message: 'Yetkilendirme hatası: Kullanıcı oturumu bulunamadı.' }
+    }
+
+    const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .single()
+
+    if (profileError || !profile?.company_id) {
+        return { success: false, message: 'Yetkilendirme hatası: Şirket bilgisi bulunamadı.' }
+    }
+
+    return { success: true, companyId: profile.company_id }
+}
