@@ -176,7 +176,6 @@ export async function updateCustomer(id: string, formData: FormData) {
         .from('customers')
         .update({
             type,
-            customer_code: customer_code?.trim() || null,
             first_name: first_name.trim(),
             last_name: last_name?.trim() || null,
             phone: phone.trim(),
