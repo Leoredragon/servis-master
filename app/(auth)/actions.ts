@@ -50,7 +50,8 @@ export async function register(formData: FormData) {
         })
 
         if (error) {
-            errorMessage = 'Kayıt işlemi başarısız. Detay: ' + error.message
+            console.error("Supabase signUp hatası:", error)
+            errorMessage = 'Kayıt işlemi başarısız. Detay: ' + (error.message || JSON.stringify(error))
         } else if (authData.user) {
             // Service Role client'ı kullan (Bypass RLS)
             const adminSupabase = createAdminClient()
@@ -82,6 +83,20 @@ export async function register(formData: FormData) {
                 if (profileError) {
                     console.error("Profil güncellenemedi:", profileError)
                     errorMessage = 'Hesap açıldı ancak profil yapılandırılamadı. ' + profileError.message
+                } else {
+                    // 3. Varsayılan "Peşin Satışlar" müşterisini ekle
+                    await adminSupabase.from('customers').insert([{
+                        company_id: company.id,
+                        customer_code: 'PEŞİN-001',
+                        first_name: 'Peşin Satışlar',
+                        last_name: '',
+                        phone: '05000000000',
+                        email: 'pesin@servismaster.app',
+                        type: 'bireysel',
+                        notes: 'Hızlı/peşin satışlar için varsayılan sistem müşterisidir.',
+                        balance: 0,
+                        discount_rate: 0
+                    }])
                 }
             }
         }
