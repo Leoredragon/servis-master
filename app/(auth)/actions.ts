@@ -36,53 +36,62 @@ export async function register(formData: FormData) {
         return redirect('/register?message=Ad Soyad ve Şirket/Servis Adı zorunludur.')
     }
 
-    const { data: authData, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-            data: {
-                full_name: fullName, // Supabase user metadata içine ad soyad ekliyoruz
+    let errorMessage = ''
+
+    try {
+        const { data: authData, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    full_name: fullName,
+                }
+            }
+        })
+
+        if (error) {
+            errorMessage = 'Kayıt işlemi başarısız. Detay: ' + error.message
+        } else if (authData.user) {
+            // Service Role client'ı kullan (Bypass RLS)
+            const adminSupabase = createAdminClient()
+
+            // 1. Şirketi oluştur
+            const { data: company, error: companyError } = await adminSupabase
+                .from('companies')
+                .insert([{ name: companyName }])
+                .select()
+                .single()
+
+            if (companyError) {
+                 console.error("Şirket oluşturulamadı:", companyError)
+                 errorMessage = 'Hesap açıldı ancak şirket oluşturulamadı. ' + companyError.message
+            } else {
+                // 2. Profili güncelle veya ekle
+                const { error: profileError } = await adminSupabase
+                    .from('profiles')
+                    .upsert({
+                        id: authData.user.id,
+                        email: email,
+                        full_name: fullName,
+                        company_id: company.id,
+                        role: 'admin', // İlk kayıt olan admin'dir
+                        package_name: 'Başlangıç',
+                        status: 'active'
+                    })
+
+                if (profileError) {
+                    console.error("Profil güncellenemedi:", profileError)
+                    errorMessage = 'Hesap açıldı ancak profil yapılandırılamadı. ' + profileError.message
+                }
             }
         }
-    })
-
-    if (error) {
-        return redirect('/register?message=Kayıt işlemi başarısız. Detay: ' + error.message)
+    } catch (err: any) {
+        console.error("Beklenmeyen hata:", err)
+        errorMessage = 'Sistemsel bir hata oluştu: ' + (err.message || 'Bilinmeyen hata')
     }
 
-    if (authData.user) {
-        // Service Role client'ı kullan (Bypass RLS)
-        const adminSupabase = createAdminClient()
-
-        // 1. Şirketi oluştur
-        const { data: company, error: companyError } = await adminSupabase
-            .from('companies')
-            .insert([{ name: companyName }])
-            .select()
-            .single()
-
-        if (companyError) {
-             console.error("Şirket oluşturulamadı:", companyError)
-             return redirect('/register?message=Hesap açıldı ancak şirket oluşturulamadı.')
-        }
-
-        // 2. Profili güncelle veya ekle
-        const { error: profileError } = await adminSupabase
-            .from('profiles')
-            .upsert({
-                id: authData.user.id,
-                email: email,
-                full_name: fullName,
-                company_id: company.id,
-                role: 'admin', // İlk kayıt olan admin'dir
-                package_name: 'Başlangıç',
-                status: 'active'
-            })
-
-        if (profileError) {
-            console.error("Profil güncellenemedi:", profileError)
-            return redirect('/register?message=Hesap açıldı ancak profil yapılandırılamadı.')
-        }
+    if (errorMessage) {
+        return redirect('/register?message=' + encodeURIComponent(errorMessage))
     }
 
     revalidatePath('/', 'layout')
