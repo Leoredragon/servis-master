@@ -51,6 +51,7 @@ export async function getCompanyId() {
         .single()
 
     if (profileError || !profile?.company_id) {
+        console.error("getCompanyId Error:", profileError, "Profile:", profile, "User ID:", user.id)
         return { success: false, message: 'Yetkilendirme hatası: Şirket bilgisi bulunamadı.' }
     }
 

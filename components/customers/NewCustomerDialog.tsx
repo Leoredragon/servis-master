@@ -119,33 +119,38 @@ export default function NewCustomerDialog({ triggerVisible = true }: { triggerVi
         // Set customer code value as it is set via React state
         formData.set("customerCode", customerCode)
 
-        const result = await createCustomer(formData)
-        if (result.success) {
-            toast.success("Müşteri başarıyla kaydedildi!")
-            if (submitAction === "save") {
-                setOpen(false)
-                setCustomerType("bireysel")
-                setPhone("")
-                setTaxNumber("")
-                setDiscountRate("0")
-                setSelectedGroupId("none")
-                setErrors({})
+        try {
+            const result = await createCustomer(formData)
+            if (result.success) {
+                toast.success("Müşteri başarıyla kaydedildi!")
+                if (submitAction === "save") {
+                    setOpen(false)
+                    setCustomerType("bireysel")
+                    setPhone("")
+                    setTaxNumber("")
+                    setDiscountRate("0")
+                    setSelectedGroupId("none")
+                    setErrors({})
+                } else {
+                    // Reset form state but keep dialog open
+                    formRef.current?.reset()
+                    setCustomerType("bireysel")
+                    setPhone("")
+                    setTaxNumber("")
+                    setDiscountRate("0")
+                    setSelectedGroupId("none")
+                    setErrors({})
+                    setCustomerCode("")
+                    setTimeout(() => {
+                        firstInputRef.current?.focus()
+                    }, 100)
+                }
             } else {
-                // Reset form state but keep dialog open
-                formRef.current?.reset()
-                setCustomerType("bireysel")
-                setPhone("")
-                setTaxNumber("")
-                setDiscountRate("0")
-                setSelectedGroupId("none")
-                setErrors({})
-                setCustomerCode("")
-                setTimeout(() => {
-                    firstInputRef.current?.focus()
-                }, 100)
+                toast.error(result.message || "Müşteri kaydedilirken bir hata oluştu.")
             }
-        } else {
-            toast.error(result.message || "Müşteri kaydedilirken bir hata oluştu.")
+        } catch (err: any) {
+            console.error("Beklenmeyen Hata:", err)
+            toast.error("Beklenmeyen bir hata oluştu: " + (err.message || 'Sunucu hatası'))
         }
     }
 
