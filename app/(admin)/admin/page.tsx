@@ -1,30 +1,212 @@
-import { createAdminClient } from "@/lib/supabase/server"
-import AdminClientPage from "./AdminClientPage"
+import { redirect } from "next/navigation"
+import { createClient, createAdminClient } from "@/lib/supabase/server"
+import { Building2, Users, Activity, LayoutDashboard } from "lucide-react"
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card"
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
 
-export const dynamic = 'force-dynamic'
+export default async function SuperAdminPage() {
+    const supabase = await createClient()
 
-export default async function AdminPage() {
-    const supabase = createAdminClient()
-
-    // Fetch all profiles from public.profiles ordered by registration date
-    const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-    if (error) {
-        return (
-            <div className="bg-red-50 border border-red-200 text-red-700 p-6 rounded-xl space-y-2">
-                <h2 className="text-lg font-bold">Veri Yükleme Hatası</h2>
-                <p className="text-sm">Profiles tablosu yüklenemedi. Lütfen önce SQL Editor üzerinde şema betiğini çalıştırın.</p>
-                <div className="text-xs bg-red-100 p-3 rounded-md font-mono mt-4">
-                    {error.message}
-                </div>
-            </div>
-        )
+    // 1. Yetki Kontrolü
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+        redirect('/login')
     }
 
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile || profile.role !== 'super_admin') {
+        redirect('/dashboard')
+    }
+
+    // 2. Platform Metriklerini Çekme
+    const adminClient = createAdminClient()
+
+    // Toplam Şirket Sayısı
+    const { count: companyCount } = await adminClient
+        .from('companies')
+        .select('*', { count: 'exact', head: true })
+
+    // Toplam Sistem Kullanıcısı
+    const { count: userCount } = await adminClient
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+
+    // Son 7 Günde Açılan Servis Kaydı
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    
+    const { count: recentServiceCount } = await adminClient
+        .from('service_records')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', sevenDaysAgo.toISOString())
+
+    // En Son Kayıt Olan Şirketler (SaaS Gözetimi)
+    // Şirket tablosunda kurucuyu bulmak için profiles tablosuyla join yapıyoruz (role = admin veya user)
+    const { data: recentCompanies } = await adminClient
+        .from('companies')
+        .select(`
+            id,
+            name,
+            created_at,
+            profiles (
+                email,
+                role
+            )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+    // Format companies for table
+    const formattedCompanies = recentCompanies?.map(company => {
+        // Şirketin ilk kullanıcısını (genelde admin veya ilk user) bul
+        const founder = Array.isArray(company.profiles) && company.profiles.length > 0
+            ? company.profiles[0] 
+            : null
+            
+        return {
+            id: company.id,
+            name: company.name,
+            createdAt: new Date(company.created_at).toLocaleDateString('tr-TR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }),
+            founderEmail: founder?.email || 'Bilinmiyor',
+            status: 'Aktif' // Basitlik için Aktif varsayıyoruz
+        }
+    }) || []
+
     return (
-        <AdminClientPage initialProfiles={profiles || []} />
+        <div className="min-h-screen bg-zinc-50/50 pb-12">
+            {/* Header Area */}
+            <div className="bg-white border-b border-zinc-200 px-8 py-8 mb-8">
+                <div className="max-w-6xl mx-auto flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 flex items-center gap-3">
+                            <LayoutDashboard className="w-8 h-8 text-blue-600" strokeWidth={1.5} />
+                            Platform Kontrol Kulesi
+                        </h1>
+                        <p className="text-zinc-500 mt-2 text-sm">
+                            Servis Master platformunun genel performansını ve aktif kullanıcı havuzunu yönetin.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="max-w-6xl mx-auto px-8 space-y-8">
+                {/* KPI Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <Card className="border-zinc-200 shadow-none rounded-xl bg-white">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium text-zinc-500">
+                                Toplam Aktif Servis
+                            </CardTitle>
+                            <div className="p-2 bg-blue-50 rounded-lg">
+                                <Building2 className="w-4 h-4 text-blue-600" strokeWidth={2} />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-3xl font-bold text-zinc-900">{companyCount || 0}</div>
+                            <p className="text-xs text-zinc-500 mt-1">Platformdaki kayıtlı tüm tenant'lar</p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-zinc-200 shadow-none rounded-xl bg-white">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium text-zinc-500">
+                                Toplam Kullanıcı
+                            </CardTitle>
+                            <div className="p-2 bg-indigo-50 rounded-lg">
+                                <Users className="w-4 h-4 text-indigo-600" strokeWidth={2} />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-3xl font-bold text-zinc-900">{userCount || 0}</div>
+                            <p className="text-xs text-zinc-500 mt-1">Sistemdeki tüm bireysel hesaplar</p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-zinc-200 shadow-none rounded-xl bg-white">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium text-zinc-500">
+                                Sistem Aktivitesi
+                            </CardTitle>
+                            <div className="p-2 bg-emerald-50 rounded-lg">
+                                <Activity className="w-4 h-4 text-emerald-600" strokeWidth={2} />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-3xl font-bold text-zinc-900">{recentServiceCount || 0}</div>
+                            <p className="text-xs text-zinc-500 mt-1">Son 7 günde açılan servis fişi</p>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Companies Table */}
+                <div className="space-y-4">
+                    <h2 className="text-lg font-semibold tracking-tight text-zinc-900">Aktif Şirketler (Tenant Listesi)</h2>
+                    <div className="border border-zinc-200 rounded-xl bg-white overflow-hidden">
+                        <Table>
+                            <TableHeader className="bg-zinc-50/50">
+                                <TableRow className="hover:bg-transparent border-zinc-200">
+                                    <TableHead className="font-medium text-zinc-500 h-11">Şirket Adı</TableHead>
+                                    <TableHead className="font-medium text-zinc-500 h-11">Kurucu E-posta</TableHead>
+                                    <TableHead className="font-medium text-zinc-500 h-11">Kayıt Tarihi</TableHead>
+                                    <TableHead className="font-medium text-zinc-500 h-11 text-right">Durum</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {formattedCompanies.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="text-center py-8 text-zinc-500">
+                                            Henüz kayıtlı şirket bulunmuyor.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    formattedCompanies.map((company) => (
+                                        <TableRow key={company.id} className="border-zinc-100 hover:bg-zinc-50/50">
+                                            <TableCell className="font-medium text-zinc-900 py-4">
+                                                {company.name}
+                                            </TableCell>
+                                            <TableCell className="text-zinc-500">
+                                                {company.founderEmail}
+                                            </TableCell>
+                                            <TableCell className="text-zinc-500">
+                                                {company.createdAt}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Badge variant="secondary" className="bg-emerald-50 text-emerald-600 hover:bg-emerald-50 border border-emerald-100 font-normal">
+                                                    {company.status}
+                                                </Badge>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </div>
+            </div>
+        </div>
     )
 }

@@ -75,7 +75,7 @@ export async function register(formData: FormData) {
                         email: email,
                         full_name: fullName,
                         company_id: company.id,
-                        role: 'admin', // İlk kayıt olan admin'dir
+                        role: 'user', // Kullanıcının istediği gibi varsayılan role 'user' yapıldı.
                         package_name: 'Başlangıç',
                         status: 'active'
                     })
