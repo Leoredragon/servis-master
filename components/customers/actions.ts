@@ -272,8 +272,8 @@ export async function getCustomer360Data(customerId: string) {
         .order('transaction_date', { ascending: false })
 
     // 5. Fetch cash registers and bank accounts
-    let cashRegisters = []
-    let bankAccounts = []
+    let cashRegisters: any[] = []
+    let bankAccounts: any[] = []
     
     if (companyCheck.success) {
         const { data: cr } = await supabase
