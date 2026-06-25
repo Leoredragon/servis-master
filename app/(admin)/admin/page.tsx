@@ -34,7 +34,7 @@ export default async function SuperAdminPage() {
         .eq('id', user.id)
         .single()
 
-    if (!profile || profile.role !== 'super_admin') {
+    if (!profile || profile.role !== 'admin') {
         redirect('/dashboard')
     }
 
