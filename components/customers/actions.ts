@@ -8,7 +8,7 @@ export async function createCustomer(formData: FormData) {
 
     // Sütun adı artık 'type' olduğu için burası sorunsuz çalışacak
     const type = formData.get('type') as string
-    const customer_code = formData.get('customerCode') as string
+    let customer_code = formData.get('customerCode') as string
     const first_name = formData.get('firstName') as string
     const last_name = formData.get('lastName') as string
     const phone = formData.get('phone') as string
@@ -27,6 +27,30 @@ export async function createCustomer(formData: FormData) {
     const companyCheck = await getCompanyId()
     if (!companyCheck.success) {
         return { success: false, message: companyCheck.message }
+    }
+
+    // Şirkete özel otomatik müşteri kodu üretimi
+    if (!customer_code) {
+        const { data: lastCustomer } = await supabase
+            .from('customers')
+            .select('customer_code')
+            .eq('company_id', companyCheck.companyId)
+            .ilike('customer_code', 'MÜŞ-%')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single()
+
+        if (lastCustomer?.customer_code) {
+            const lastNumberMatch = lastCustomer.customer_code.match(/MÜŞ-(\d+)/)
+            if (lastNumberMatch && lastNumberMatch[1]) {
+                const nextNumber = parseInt(lastNumberMatch[1], 10) + 1
+                customer_code = `MÜŞ-${nextNumber.toString().padStart(3, '0')}`
+            } else {
+                customer_code = 'MÜŞ-001'
+            }
+        } else {
+            customer_code = 'MÜŞ-001'
+        }
     }
 
     const { data, error } = await supabase
