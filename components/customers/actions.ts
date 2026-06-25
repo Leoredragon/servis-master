@@ -239,6 +239,7 @@ export async function updateCustomer(id: string, formData: FormData) {
 
 export async function getCustomer360Data(customerId: string) {
     const supabase = await createClient()
+    const companyCheck = await getCompanyId()
 
     // 1. Fetch customer details
     const { data: customer } = await supabase
@@ -271,15 +272,26 @@ export async function getCustomer360Data(customerId: string) {
         .order('transaction_date', { ascending: false })
 
     // 5. Fetch cash registers and bank accounts
-    const { data: cashRegisters } = await supabase
-        .from('cash_registers')
-        .select('id, name')
-        .order('name', { ascending: true })
+    let cashRegisters = []
+    let bankAccounts = []
+    
+    if (companyCheck.success) {
+        const { data: cr } = await supabase
+            .from('cash_registers')
+            .select('id, name')
+            .eq('company_id', companyCheck.companyId)
+            .order('name', { ascending: true })
+        
+        cashRegisters = cr || []
 
-    const { data: bankAccounts } = await supabase
-        .from('bank_accounts')
-        .select('id, name')
-        .order('name', { ascending: true })
+        const { data: ba } = await supabase
+            .from('bank_accounts')
+            .select('id, name')
+            .eq('company_id', companyCheck.companyId)
+            .order('name', { ascending: true })
+            
+        bankAccounts = ba || []
+    }
 
     return {
         customer,
