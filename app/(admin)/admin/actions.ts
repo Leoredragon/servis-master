@@ -1,85 +1,103 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
-import { createAdminClient } from '@/lib/supabase/server'
+import { createAdminClient } from "@/lib/supabase/server"
+import { revalidatePath } from "next/cache"
 
-// 1. Kullanıcının paket bilgisini güncelle
-export async function updateUserPackageAction(userId: string, packageName: string) {
-    const supabase = createAdminClient()
+// 1. Yeni Şirket ve İlk Admin Kullanıcısını Oluştur
+export async function adminCreateCompanyWithUser(formData: FormData) {
+    const adminSupabase = createAdminClient()
 
-    const { error } = await supabase
-        .from('profiles')
-        .update({ package_name: packageName })
-        .eq('id', userId)
+    const companyName = formData.get('companyName') as string
+    const fullName = formData.get('fullName') as string
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
 
-    if (error) {
-        throw new Error('Paket güncellenirken hata oluştu: ' + error.message)
+    try {
+        // Auth sisteminde kullanıcıyı doğrulanmış olarak oluştur
+        const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
+            email: email,
+            password: password,
+            email_confirm: true,
+            user_metadata: { full_name: fullName }
+        })
+
+        if (authError) throw authError
+
+        // Şirketi oluştur
+        const { data: company, error: companyError } = await adminSupabase
+            .from('companies')
+            .insert([{ name: companyName }])
+            .select()
+            .single()
+
+        if (companyError) throw companyError
+
+        // Kullanıcı profilini "admin" (tenant admin) olarak oluştur ve şirkete bağla
+        const { error: profileError } = await adminSupabase
+            .from('profiles')
+            .upsert({
+                id: authData.user.id,
+                email: email,
+                full_name: fullName,
+                company_id: company.id,
+                role: 'admin',
+                package_name: 'Başlangıç',
+                status: 'active'
+            })
+
+        if (profileError) throw profileError
+
+        revalidatePath('/admin')
+        return { success: true }
+    } catch (error: any) {
+        console.error("Admin şirket oluşturma hatası:", error)
+        return { success: false, message: error.message }
     }
-
-    revalidatePath('/admin')
-    return { success: true }
 }
 
-// 2. Kullanıcı üyelik durumunu güncelle (Aktif / Askıda)
-export async function updateUserStatusAction(userId: string, status: string) {
-    const supabase = createAdminClient()
-
-    const { error } = await supabase
+// 2. Şirket Durumunu Değiştir (Aktif / Askıya Alındı)
+export async function adminUpdateCompanyStatus(companyId: string, status: string) {
+    const adminSupabase = createAdminClient()
+    
+    // Şirkete ait yöneticinin profil status'ünü güncelliyoruz
+    const { error } = await adminSupabase
         .from('profiles')
         .update({ status: status })
-        .eq('id', userId)
+        .eq('company_id', companyId)
+        .eq('role', 'admin')
 
-    if (error) {
-        throw new Error('Kullanıcı durumu güncellenirken hata oluştu: ' + error.message)
-    }
-
-    revalidatePath('/admin')
-    return { success: true }
-}
-
-// 3. Kullanıcı rolünü güncelle (Admin / User)
-export async function updateUserRoleAction(userId: string, role: string) {
-    const supabase = createAdminClient()
-
-    const { error } = await supabase
-        .from('profiles')
-        .update({ role: role })
-        .eq('id', userId)
-
-    if (error) {
-        throw new Error('Kullanıcı rolü güncellenirken hata oluştu: ' + error.message)
-    }
+    if (error) return { success: false, message: error.message }
 
     revalidatePath('/admin')
     return { success: true }
 }
 
-// 4. Kullanıcı şifresini doğrudan sıfırla (Admin yetkisiyle)
-export async function resetUserPasswordAction(userId: string, newPassword: string) {
-    const supabase = createAdminClient()
+// 3. Şirket Adını Düzenle
+export async function adminUpdateCompanyName(companyId: string, newName: string) {
+    const adminSupabase = createAdminClient()
+    
+    const { error } = await adminSupabase
+        .from('companies')
+        .update({ name: newName })
+        .eq('id', companyId)
 
-    const { error } = await supabase.auth.admin.updateUserById(
-        userId,
-        { password: newPassword }
-    )
-
-    if (error) {
-        throw new Error('Şifre sıfırlanırken hata oluştu: ' + error.message)
-    }
+    if (error) return { success: false, message: error.message }
 
     revalidatePath('/admin')
     return { success: true }
 }
 
-// 5. Kullanıcıyı sistemden ve Auth modülünden tamamen sil
-export async function deleteUserAction(userId: string) {
-    const supabase = createAdminClient()
+// 4. Şirketi Kalıcı Olarak Sil (Cascade)
+export async function adminDeleteCompany(companyId: string) {
+    const adminSupabase = createAdminClient()
+    
+    // Not: Veritabanınızda ON DELETE CASCADE varsa, company silindiğinde her şey silinir.
+    const { error } = await adminSupabase
+        .from('companies')
+        .delete()
+        .eq('id', companyId)
 
-    const { error } = await supabase.auth.admin.deleteUser(userId)
-
-    if (error) {
-        throw new Error('Kullanıcı silinirken hata oluştu: ' + error.message)
-    }
+    if (error) return { success: false, message: error.message }
 
     revalidatePath('/admin')
     return { success: true }

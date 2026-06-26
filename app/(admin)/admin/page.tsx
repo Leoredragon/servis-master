@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import AdminClientPage from "./AdminClientPage"
 import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { Building2, Users, Activity, LayoutDashboard } from "lucide-react"
 import {
@@ -92,7 +93,7 @@ export default async function SuperAdminPage() {
                 day: 'numeric'
             }),
             founderEmail: founder?.email || 'Bilinmiyor',
-            status: 'Aktif' // Basitlik için Aktif varsayıyoruz
+            status: founder?.status === 'passive' ? 'Askıya Alındı' : 'Aktif'
         }
     }) || []
 
@@ -162,50 +163,8 @@ export default async function SuperAdminPage() {
                     </Card>
                 </div>
 
-                {/* Companies Table */}
-                <div className="space-y-4">
-                    <h2 className="text-lg font-semibold tracking-tight text-zinc-900">Aktif Şirketler (Tenant Listesi)</h2>
-                    <div className="border border-zinc-200 rounded-xl bg-white overflow-hidden">
-                        <Table>
-                            <TableHeader className="bg-zinc-50/50">
-                                <TableRow className="hover:bg-transparent border-zinc-200">
-                                    <TableHead className="font-medium text-zinc-500 h-11">Şirket Adı</TableHead>
-                                    <TableHead className="font-medium text-zinc-500 h-11">Kurucu E-posta</TableHead>
-                                    <TableHead className="font-medium text-zinc-500 h-11">Kayıt Tarihi</TableHead>
-                                    <TableHead className="font-medium text-zinc-500 h-11 text-right">Durum</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {formattedCompanies.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={4} className="text-center py-8 text-zinc-500">
-                                            Henüz kayıtlı şirket bulunmuyor.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    formattedCompanies.map((company) => (
-                                        <TableRow key={company.id} className="border-zinc-100 hover:bg-zinc-50/50">
-                                            <TableCell className="font-medium text-zinc-900 py-4">
-                                                {company.name}
-                                            </TableCell>
-                                            <TableCell className="text-zinc-500">
-                                                {company.founderEmail}
-                                            </TableCell>
-                                            <TableCell className="text-zinc-500">
-                                                {company.createdAt}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Badge variant="secondary" className="bg-emerald-50 text-emerald-600 hover:bg-emerald-50 border border-emerald-100 font-normal">
-                                                    {company.status}
-                                                </Badge>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </div>
+                {/* Companies Table Client Component */}
+                <AdminClientPage formattedCompanies={formattedCompanies} />
             </div>
         </div>
     )
