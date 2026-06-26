@@ -10,7 +10,7 @@ export async function login(formData: FormData) {
     const email = formData.get('email') as string
     const password = formData.get('password') as string
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
     })
@@ -20,7 +20,18 @@ export async function login(formData: FormData) {
         return redirect('/login?message=E-posta veya şifre hatalı')
     }
 
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single()
+
     revalidatePath('/', 'layout')
+    
+    if (profile?.role === 'super_admin' || profile?.role === 'admin') {
+        redirect('/admin')
+    }
+
     redirect('/dashboard') // Başarılı girişte panele yönlendir
 }
 

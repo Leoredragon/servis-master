@@ -29,6 +29,12 @@ export async function createCustomer(formData: FormData) {
         return { success: false, message: companyCheck.message }
     }
 
+    const { checkCustomerLimit } = await import('@/lib/subscription')
+    const hasLimit = await checkCustomerLimit(companyCheck.companyId)
+    if (!hasLimit) {
+        return { success: false, message: 'Demo paket limitine ulaştınız. Daha fazla müşteri eklemek için lütfen Pro pakete geçin.' }
+    }
+
     // Şirkete özel otomatik müşteri kodu üretimi
     if (!customer_code) {
         const { data: lastCustomer } = await supabase
