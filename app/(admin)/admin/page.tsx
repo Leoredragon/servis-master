@@ -71,7 +71,8 @@ export default async function SuperAdminPage() {
             created_at,
             profiles (
                 email,
-                role
+                role,
+                status
             )
         `)
         .order('created_at', { ascending: false })
