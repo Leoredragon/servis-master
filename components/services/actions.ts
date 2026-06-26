@@ -242,3 +242,39 @@ export async function updateServiceRecord(id: string, data: {
     }
 }
 
+export async function addServiceStage(data: {
+    serviceId: string
+    stageName: string
+    description: string
+    personnelName: string
+}) {
+    const supabase = await createClient()
+    const { serviceId, stageName, description, personnelName } = data
+
+    const companyCheck = await getCompanyId()
+    if (!companyCheck.success) {
+        return { success: false, message: companyCheck.message }
+    }
+
+    const { data: stage, error } = await supabase
+        .from('service_stages')
+        .insert([{
+            company_id: companyCheck.companyId,
+            service_id: serviceId,
+            stage_name: stageName,
+            description,
+            personnel_name: personnelName
+        }])
+        .select()
+        .single()
+
+    if (error) {
+        console.error('Servis aşaması eklenemedi:', error.message)
+        return { success: false, message: error.message }
+    }
+
+    revalidatePath(`/services/${serviceId}`)
+    return { success: true, data: stage }
+}
+ 
+ 

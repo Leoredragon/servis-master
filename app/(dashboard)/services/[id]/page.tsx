@@ -4,6 +4,7 @@ import { AlertTriangle } from "lucide-react"
 import Link from "next/link"
 import ServiceDetailActions from "@/components/services/ServiceDetailActions"
 import ServiceCockpitClient from "@/components/services/ServiceCockpitClient"
+import ServiceTimeline from "@/components/services/ServiceTimeline"
 
 export default async function ServiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -12,7 +13,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
     // Servis, müşteri, araç ve parça/işçilik kalemlerini (stok kartları ile birlikte) çekiyoruz
     const { data: service, error } = await supabase
         .from('service_records')
-        .select('*, customers(*), vehicles(*), service_items(*, stock_cards(*))')
+        .select('*, customers(*), vehicles(*), service_items(*, stock_cards(*)), service_stages(*)')
         .eq('id', id)
         .single()
 
@@ -80,6 +81,14 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
                     serviceInitial={service as any} 
                     stockCards={(stockCards || []) as any} 
                 />
+
+                {/* Vertical Timeline - İş Emri Aşamaları */}
+                <div className="pt-4 border-t border-zinc-200">
+                    <ServiceTimeline 
+                        serviceId={service.id} 
+                        initialStages={service.service_stages || []} 
+                    />
+                </div>
             </div>
 
             {/* A4 Yazıcı Dostu Çıktı Tasarımı (Ekran görüntülerinde gizlenip sadece yazdırma esnasında görünecektir) */}
